@@ -1,0 +1,80 @@
+[
+  {
+    "seq": 1,
+    "partition_key": "sdd",
+    "event_id": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+    "event_type": "TaskImplemented",
+    "payload": "{\"actor\": \"llm\", \"phase_id\": \"1\", \"task_id\": \"T-101\", \"timestamp\": \"2026-01-01T00:00:00Z\"}",
+    "schema_version": 1,
+    "appended_at": 1735689600000,
+    "level": "L1",
+    "expired": false,
+    "event_source": "runtime",
+    "caused_by_meta_seq": null
+  },
+  {
+    "seq": 2,
+    "partition_key": "sdd",
+    "event_id": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+    "event_type": "TaskValidated",
+    "payload": "{\"phase_id\": \"1\", \"result\": \"PASS\", \"task_id\": \"T-101\", \"timestamp\": \"2026-01-01T00:01:00Z\"}",
+    "schema_version": 1,
+    "appended_at": 1735689660000,
+    "level": "L1",
+    "expired": false,
+    "event_source": "runtime",
+    "caused_by_meta_seq": null
+  },
+  {
+    "seq": 3,
+    "partition_key": "sdd",
+    "event_id": "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+    "event_type": "PhaseCompleted",
+    "payload": "{\"phase_id\": \"1\", \"timestamp\": \"2026-01-01T01:00:00Z\"}",
+    "schema_version": 1,
+    "appended_at": 1735693200000,
+    "level": "L1",
+    "expired": false,
+    "event_source": "runtime",
+    "caused_by_meta_seq": null
+  },
+  {
+    "seq": 4,
+    "partition_key": "sdd",
+    "event_id": "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5",
+    "event_type": "TestRunCompleted",
+    "payload": "{\"result\": \"PASS\", \"returncode\": 0, \"summary\": \"5 passed in 0.12s\", \"task_id\": \"T-101\"}",
+    "schema_version": 1,
+    "appended_at": 1735689650000,
+    "level": "L1",
+    "expired": false,
+    "event_source": "runtime",
+    "caused_by_meta_seq": null
+  },
+  {
+    "seq": 5,
+    "partition_key": "sdd",
+    "event_id": "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6",
+    "event_type": "SDDEventRejected",
+    "payload": "{\"command\": \"Implement T-201\", \"guard\": \"PhaseGuard\", \"reason\": \"phase.status != ACTIVE\", \"task_id\": \"T-201\"}",
+    "schema_version": 1,
+    "appended_at": 1735689700000,
+    "level": "L1",
+    "expired": false,
+    "event_source": "runtime",
+    "caused_by_meta_seq": 1
+  },
+  {
+    "seq": 6,
+    "partition_key": "sdd",
+    "event_id": "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1",
+    "event_type": "DecisionRecorded",
+    "payload": "{\"decision\": \"Use DuckDB as single event store\", \"entities\": [\"Spec_v1\", \"T-105\"], \"phase_id\": \"1\", \"rationale\": \"Single writer path simplifies I-EL-9 enforcement\", \"task_id\": \"T-105\", \"timestamp\": \"2026-01-01T00:30:00Z\"}",
+    "schema_version": 1,
+    "appended_at": 1735691400000,
+    "level": "L1",
+    "expired": false,
+    "event_source": "runtime",
+    "caused_by_meta_seq": null
+  }
+]
