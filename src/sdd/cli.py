@@ -2,11 +2,18 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
+from pathlib import Path
 
 import click
 
 from sdd.core.errors import SDDError
+
+
+def _sdd_root() -> Path:
+    env = os.environ.get("SDD_HOME")
+    return Path(env).resolve() if env else Path(".sdd").resolve()
 
 
 @click.group()
@@ -109,18 +116,19 @@ def report_error(args: tuple[str, ...]) -> None:
 @click.option(
     "--config",
     "config_path",
-    default=".sdd/config/project_profile.yaml",
-    show_default=True,
-    help="Path to project_profile.yaml",
+    default=None,
+    help="Path to project_profile.yaml (default: resolved via paths.py config_file())",
 )
-def validate_config(phase: int, config_path: str) -> None:
+def validate_config(phase: int, config_path: str | None) -> None:
     """Validate project_profile.yaml and phases/phase_N.yaml structure."""
     import uuid
-    from pathlib import Path
 
     from sdd.commands.validate_config import ValidateConfigCommand, ValidateConfigHandler
 
-    db_path = Path(".sdd/state/sdd_events.duckdb")
+    _root = _sdd_root()
+    if config_path is None:
+        config_path = str(_root / "config" / "project_profile.yaml")
+    db_path = _root / "state" / "sdd_events.duckdb"
     handler = ValidateConfigHandler(db_path)
     command = ValidateConfigCommand(
         command_id=str(uuid.uuid4()),
@@ -187,14 +195,12 @@ def show_spec_cmd(args: tuple[str, ...]) -> None:
 def show_plan_cmd(phase: int | None) -> None:
     """Show plan content for a phase."""
     import yaml
-    from pathlib import Path
 
     from sdd.commands.show_plan import show_plan
-    from sdd.infra.paths import state_file
 
     if phase is None:
         try:
-            data = yaml.safe_load(Path(state_file()).read_text(encoding="utf-8"))
+            data = yaml.safe_load((_sdd_root() / "runtime" / "State_index.yaml").read_text(encoding="utf-8"))
             phase = int(data["tasks"]["version"])
         except Exception as exc:
             json.dump({"error_type": "MissingState", "message": str(exc), "exit_code": 1}, sys.stderr)
@@ -211,17 +217,17 @@ def show_plan_cmd(phase: int | None) -> None:
 def record_decision(decision_id: str, title: str, summary: str, phase: int | None) -> None:
     """Record a design decision in the EventLog as DecisionRecordedEvent."""
     import uuid
-    from pathlib import Path
 
     import yaml
 
     from sdd.commands.record_decision import RecordDecisionCommand, RecordDecisionHandler
 
+    _root = _sdd_root()
     if phase is None:
-        state = yaml.safe_load(Path(".sdd/runtime/State_index.yaml").read_text())
+        state = yaml.safe_load((_root / "runtime" / "State_index.yaml").read_text())
         phase = state["phase"]["current"]
 
-    db_path = Path(".sdd/state/sdd_events.duckdb")
+    db_path = _root / "state" / "sdd_events.duckdb"
     handler = RecordDecisionHandler(db_path)
     command = RecordDecisionCommand(
         command_id=str(uuid.uuid4()),

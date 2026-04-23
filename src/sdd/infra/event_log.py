@@ -232,7 +232,7 @@ def canonical_json(data: dict[str, Any]) -> str:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), default=_default)
 
 
-def exists_command(db_path: str | None = None, *, command_id: str) -> bool:
+def exists_command(db_path: str, command_id: str) -> bool:
     """Return True if any event with payload.command_id == command_id exists (I-CMD-10, I-EL-9)."""
     conn = open_sdd_connection(db_path)
     try:
@@ -247,8 +247,7 @@ def exists_command(db_path: str | None = None, *, command_id: str) -> bool:
 
 
 def exists_semantic(
-    db_path: str | None = None,
-    *,
+    db_path: str,
     command_type: str,
     task_id: str | None,
     phase_id: int | None,
@@ -283,7 +282,7 @@ def exists_semantic(
         conn.close()
 
 
-def get_error_count(db_path: str | None = None, *, command_id: str) -> int:
+def get_error_count(db_path: str, command_id: str) -> int:
     """Return count of ErrorEvent records with payload.command_id == command_id (I-CMD-10, I-EL-9)."""
     conn = open_sdd_connection(db_path)
     try:

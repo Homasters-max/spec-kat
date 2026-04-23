@@ -11,6 +11,7 @@ Invariants: I-HOOK-1 (event_source="meta"), I-HOOK-2 (exit 0 always),
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 
@@ -90,7 +91,7 @@ def main() -> None:
     tool_input: dict = payload.get("tool_input") or {}
     timestamp_ms = int(time.time() * 1000)
     from sdd.infra.paths import event_store_file  # noqa: PLC0415
-    db = str(event_store_file())
+    db = os.environ.get("SDD_DB_PATH") or str(event_store_file())
 
     event_type = ""
     event_payload: dict = {}

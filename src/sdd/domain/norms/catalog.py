@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import yaml
+try:
+    import yaml
+    _safe_load = yaml.safe_load
+except ImportError:  # stdlib fallback: JSON is a strict subset of YAML (I-LOGIC-COVER-3)
+    import json as _json_mod
+    _safe_load = _json_mod.load  # type: ignore[assignment]
 
 from sdd.core.errors import MissingContext
 
@@ -60,7 +65,7 @@ def load_catalog(path: str, strict: bool = True) -> NormCatalog:
     """
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+            data = _safe_load(fh)
     except FileNotFoundError:
         raise MissingContext(f"Norm catalog not found: {path}")
 

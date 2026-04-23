@@ -42,11 +42,12 @@ def build_context(
     Pure: no I/O beyond reads. Layers appended 0→8 (I-CTX-6). Budget: EFFECTIVE_BUDGET[depth].
     First line: <!-- context_hash: <sha256> --> (I-CTX-5).
     """
-    _state_yaml: str = str(_paths.state_file())
-    _phases_md: str = str(_paths.phases_index_file())
-    specs_dir = _paths.specs_dir()
-    plans_dir = _paths.plans_dir()
-    tasks_dir = _paths.tasks_dir()
+    ctx = config.get("context", {})
+    _state_yaml: str = ctx.get("state_path") or str(_paths.state_file())
+    _phases_md: str = ctx.get("phases_index_path") or str(_paths.phases_index_file())
+    specs_dir = Path(ctx.get("specs_dir") or str(_paths.specs_dir()))
+    plans_dir = Path(ctx.get("plans_dir") or str(_paths.plans_dir()))
+    tasks_dir = Path(ctx.get("tasks_dir") or str(_paths.tasks_dir()))
 
     loaded: dict[str, str] = {}
 

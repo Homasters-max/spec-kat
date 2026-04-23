@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import os
 import uuid
+import warnings
 from collections.abc import Callable
 
 from sdd.core.errors import InvalidState
@@ -59,6 +60,11 @@ def init_state(
         plan_status="ACTIVE",
     )
 
+    warnings.warn(
+        "Direct YAML write in init_state is deprecated; use EventLog replay path.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     write_state(state, state_path)
 
     emit(PhaseInitializedEvent(

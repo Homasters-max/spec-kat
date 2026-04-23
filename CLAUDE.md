@@ -3,7 +3,7 @@
 **Status:** ACTIVE — supersedes CLAUDE_v2.md, CLAUDE_v3.md, CLAUDE_v3-PLAN.md  
 **Formal model:** .sdd/specs/SDD_Spec_v1.md (events, reducer, guards — BC-9)  
 **SENAR norms:** .sdd/norms/norm_catalog.yaml (machine-readable, enforcement layer)  
-**Tools:** .sdd/tools/*.py (deterministic Python enforcement scripts)
+**Tools:** `sdd` CLI (src/sdd/ — pip install -e .)
 
 ---
 
@@ -102,9 +102,9 @@ SENAR (Supervised Engineering & Normative AI Regulation) provides:
 - **Norm catalog**: machine-readable actor permissions (.sdd/norms/norm_catalog.yaml)
 - **Supervision gates**: human approval checkpoints (NORM-GATE-001..003)
 - **Audit trail**: every LLM action logged to .sdd/runtime/audit_log.jsonl
-- **Enforcement tools**: .sdd/tools/*.py (deterministic, no AI, no randomness)
+- **Enforcement tools**: `sdd` CLI commands (see §0.10)
 
-On any SENAR violation: STOP → call `report_error.py` → DO NOT PROCEED.
+On any SENAR violation: STOP → run `sdd report-error` → DO NOT PROCEED.
 
 ### §0.8 Operational Rules
 
@@ -114,7 +114,7 @@ SEM-2  No implicit assumptions
 SEM-3  No missing artifact tolerance
 SEM-4  Always validate preconditions before execution
 SEM-5  Fail fast on violation — STOP immediately
-SEM-6  On any violation: call .sdd/tools/report_error.py
+SEM-6  On any violation: run `sdd report-error --type T --message M`
 SEM-7  Every guard MUST be called via Python script — LLM does NOT interpret rules directly
 SEM-8  Every metric MUST be recorded via record_metric.py — no inferred or estimated values
 SEM-9  Context is always built via build_context.py — LLM does not choose what to read
@@ -622,6 +622,8 @@ MPS-3  Parallel phases forbidden unless explicitly allowed
 | *(no CLI equivalent — internal audit)* | Audit trail logger | `.sdd/_deprecated_tools/senar_audit.py` |
 | *(no CLI equivalent — library only)* | Norm catalog reader | `.sdd/_deprecated_tools/norm_catalog.py` |
 | *(auto-called by complete + validate-invariants)* | Sole write path for metrics → DuckDB | `.sdd/_deprecated_tools/record_metric.py` |
+| *(internal-only — no `sdd activate-plan` CLI entry; I-CLI-REG-1 exempt)* | activate_plan.py — plan activation is a human-only gate, not user-facing CLI | *(internal, not deprecated)* |
+| *(removed in Phase 16 — `sdd run` deleted; CommandRunner class deferred to Phase 17)* | Former task runner adapter | `.sdd/_deprecated_tools/sdd_run.py` |
 
 ## §0.11 Repository Structure
 
