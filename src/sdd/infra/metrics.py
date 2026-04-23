@@ -6,7 +6,6 @@ import statistics
 from dataclasses import dataclass
 from typing import Any
 
-from sdd.infra.db import SDD_EVENTS_DB
 from sdd.infra.event_log import EventInput, sdd_append, sdd_append_batch
 
 _TREND_EPSILON: float = 1e-9
@@ -59,7 +58,7 @@ def record_metric(
     task_id: str | None = None,
     phase_id: int | None = None,
     context: dict[str, Any] | None = None,
-    db_path: str = SDD_EVENTS_DB,
+    db_path: str | None = None,
 ) -> None:
     """Write a MetricRecorded event, optionally batched with TaskCompleted (I-M-1).
 
@@ -114,7 +113,7 @@ def load_metrics(metric_ids: list[str], window: int = 10) -> list[MetricRecord]:
     """
     from sdd.infra.db import open_sdd_connection  # local import keeps module top-level clean
 
-    conn = open_sdd_connection(SDD_EVENTS_DB)
+    conn = open_sdd_connection()
     try:
         rows = conn.execute(
             "SELECT payload FROM events "

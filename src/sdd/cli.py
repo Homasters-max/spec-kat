@@ -166,6 +166,43 @@ def norm_guard(args: tuple[str, ...]) -> None:
     sys.exit(main(list(args)))
 
 
+@cli.command("show-task", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def show_task_cmd(args: tuple[str, ...]) -> None:
+    """Show task definition from TaskSet."""
+    from sdd.commands.show_task import main
+    sys.exit(main(list(args)))
+
+
+@cli.command("show-spec", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def show_spec_cmd(args: tuple[str, ...]) -> None:
+    """Show spec content for a phase."""
+    from sdd.commands.show_spec import main
+    sys.exit(main(list(args)))
+
+
+@cli.command("show-plan")
+@click.option("--phase", type=int, default=None, help="Phase number (auto-detected if omitted)")
+def show_plan_cmd(phase: int | None) -> None:
+    """Show plan content for a phase."""
+    import yaml
+    from pathlib import Path
+
+    from sdd.commands.show_plan import show_plan
+    from sdd.infra.paths import state_file
+
+    if phase is None:
+        try:
+            data = yaml.safe_load(Path(state_file()).read_text(encoding="utf-8"))
+            phase = int(data["tasks"]["version"])
+        except Exception as exc:
+            json.dump({"error_type": "MissingState", "message": str(exc), "exit_code": 1}, sys.stderr)
+            sys.stderr.write("\n")
+            sys.exit(1)
+    show_plan(phase)
+
+
 @cli.command("record-decision")
 @click.option("--decision-id", required=True, help="Decision identifier (D-NNN)")
 @click.option("--title", required=True, help="Decision title")

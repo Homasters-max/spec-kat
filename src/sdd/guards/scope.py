@@ -1,17 +1,46 @@
 """sdd.guards.scope — ScopeGuard CLI (migrated to src/ in Phase 8).
 
-Invariants: NORM-SCOPE-001..004, NORM-SCOPE-003 (glob).
+Invariants: NORM-SCOPE-001..004, NORM-SCOPE-003 (glob), I-PATH-1.
 Exit: 0 = allowed, 1 = denied. JSON to stdout.
 """
 from __future__ import annotations
 
-import fnmatch
 import json
+import os
 import sys
+from pathlib import Path
 
 
 def _has_glob(path: str) -> bool:
     return "*" in path or "?" in path or "[" in path
+
+
+def _is_relative_to(path: Path, parent: Path) -> bool:
+    """Path.is_relative_to() is Python 3.9+; str().startswith() fallback."""
+    if sys.version_info >= (3, 9):
+        return path.is_relative_to(parent)
+    parent_str = str(parent)
+    path_str = str(path)
+    return path_str == parent_str or path_str.startswith(parent_str + os.sep)
+
+
+def _contains_sdd_specs(resolved: Path) -> bool:
+    """Return True if path is under .sdd/specs/ — by resolve or by path components.
+
+    Component check catches absolute paths to any .sdd/specs/ location, not
+    just the project's own specs dir.
+    """
+    try:
+        specs_dir = (Path.cwd() / ".sdd" / "specs").resolve()
+        if _is_relative_to(resolved, specs_dir):
+            return True
+    except (OSError, ValueError):
+        pass
+    parts = resolved.parts
+    for i in range(len(parts) - 1):
+        if parts[i] == ".sdd" and parts[i + 1] == "specs":
+            return True
+    return False
 
 
 def check_scope(
@@ -19,9 +48,7 @@ def check_scope(
     file_path: str,
     task_inputs: list[str] | None = None,
 ) -> dict:
-    path = file_path.lstrip("./").lstrip("/")
-
-    if _has_glob(path):
+    if _has_glob(file_path):
         return {
             "allowed": False,
             "reason": f"Glob patterns forbidden: '{file_path}'. Use exact file paths only.",
@@ -30,8 +57,11 @@ def check_scope(
             "file_path": file_path,
         }
 
+    resolved = Path(file_path).resolve()
+
     if operation == "read":
-        if path.startswith("tests/") or path == "tests":
+        tests_dir = (Path.cwd() / "tests").resolve()
+        if _is_relative_to(resolved, tests_dir):
             return {
                 "allowed": False,
                 "reason": f"Reading from tests/ is forbidden (NORM-SCOPE-001). Path: '{file_path}'",
@@ -39,9 +69,10 @@ def check_scope(
                 "operation": operation,
                 "file_path": file_path,
             }
-        if path.startswith("src/"):
-            task_inputs_norm = [p.lstrip("./").lstrip("/") for p in (task_inputs or [])]
-            if path not in task_inputs_norm:
+        src_dir = (Path.cwd() / "src").resolve()
+        if _is_relative_to(resolved, src_dir):
+            resolved_inputs = [Path(p).resolve() for p in (task_inputs or [])]
+            if resolved not in resolved_inputs:
                 return {
                     "allowed": False,
                     "reason": (
@@ -53,6 +84,17 @@ def check_scope(
                     "operation": operation,
                     "file_path": file_path,
                 }
+        if _contains_sdd_specs(resolved):
+            return {
+                "allowed": False,
+                "reason": (
+                    f"Reading from .sdd/specs/ directly is forbidden — use 'sdd show-spec' "
+                    f"(NORM-SCOPE-004, I-PATH-1). Path: '{file_path}'"
+                ),
+                "norm_id": "NORM-SCOPE-004",
+                "operation": operation,
+                "file_path": file_path,
+            }
         return {
             "allowed": True,
             "reason": f"Read allowed: '{file_path}'",
@@ -62,7 +104,7 @@ def check_scope(
         }
 
     if operation == "write":
-        if path.startswith(".sdd/specs/") or path == ".sdd/specs":
+        if _contains_sdd_specs(resolved):
             return {
                 "allowed": False,
                 "reason": (

@@ -5,7 +5,6 @@ Invariants: I-ACT-1, I-CMD-1, I-DOMAIN-1
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 import time
 import uuid
@@ -20,6 +19,7 @@ from sdd.core.errors import AlreadyActivated, InvalidActor, SDDError
 from sdd.core.events import DomainEvent, PhaseActivatedEvent, classify_event_level
 from sdd.domain.state.reducer import reduce
 from sdd.infra.event_log import sdd_replay
+from sdd.infra.paths import event_store_file
 
 
 def _utc_now_iso() -> str:
@@ -80,8 +80,6 @@ class ActivatePhaseHandler(CommandHandlerBase):
 # CLI entry point (I-CLI-2)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_DB_PATH = os.environ.get("SDD_DB_PATH", ".sdd/state/sdd_events.duckdb")
-
 
 def main(args: list[str] | None = None) -> int:
     if args is None:
@@ -89,8 +87,9 @@ def main(args: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="activate-phase")
     parser.add_argument("phase_id", type=int)
     parser.add_argument("--actor", default="human")
-    parser.add_argument("--db", default=_DEFAULT_DB_PATH)
+    parser.add_argument("--db", default=None)
     parsed = parser.parse_args(args)
+    db = parsed.db or str(event_store_file())
     try:
         from sdd.infra.event_store import EventStore
         cmd = ActivatePhaseCommand(
@@ -100,9 +99,9 @@ def main(args: list[str] | None = None) -> int:
             phase_id=parsed.phase_id,
             actor=parsed.actor,
         )
-        events = ActivatePhaseHandler(parsed.db).handle(cmd)
+        events = ActivatePhaseHandler(db).handle(cmd)
         if events:
-            EventStore(parsed.db).append(events, source=__name__)
+            EventStore(db).append(events, source=__name__)
         return 0
     except SDDError:
         return 1

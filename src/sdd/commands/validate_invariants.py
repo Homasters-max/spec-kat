@@ -22,6 +22,7 @@ from sdd.core.events import DomainEvent, classify_event_level
 from sdd.domain.metrics.aggregator import MetricsAggregator
 from sdd.infra.config_loader import load_config
 from sdd.infra.event_query import EventLogQuerier, QueryFilters
+from sdd.infra.paths import config_file, event_store_file, taskset_file
 
 _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _DEFAULT_TIMEOUT_SECS = 300
@@ -304,8 +305,6 @@ def _run_acceptance_check(
 # CLI entry point (I-CLI-2)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_DB_PATH = os.environ.get("SDD_DB_PATH", ".sdd/state/sdd_events.duckdb")
-_DEFAULT_CONFIG_PATH = ".sdd/config/project_profile.yaml"
 _DEFAULT_ENV_WHITELIST = ("PATH", "HOME", "PYTHONPATH", "VIRTUAL_ENV")
 
 
@@ -372,20 +371,23 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--phase", type=int, required=False, default=None)
     parser.add_argument("--task", default=None)
     parser.add_argument("--taskset", default=None, help="Path to TaskSet_vN.md for {outputs} expansion")
-    parser.add_argument("--config", default=_DEFAULT_CONFIG_PATH)
+    parser.add_argument("--config", default=None)
     parser.add_argument("--cwd", default=os.getcwd())
     parser.add_argument("--timeout", type=int, default=0)
     parser.add_argument("--env", nargs="*", default=list(_DEFAULT_ENV_WHITELIST))
-    parser.add_argument("--db", default=_DEFAULT_DB_PATH)
+    parser.add_argument("--db", default=None)
     parser.add_argument("--check", default=None,
                         help="Invariant ID to check against forbidden_patterns (e.g. I-LEGACY-0a)")
     parser.add_argument("--scope", default=None, choices=["full-src"],
                         help="Scan scope; full-src scans source_root for the given --check pattern")
     parsed = parser.parse_args(args)
 
+    config_path = parsed.config or str(config_file())
+    db_path = parsed.db or str(event_store_file())
+
     # --scope full-src + --check: dedicated invariant scan, no --phase required
     if parsed.scope == "full-src" and parsed.check:
-        config = load_config(parsed.config)
+        config = load_config(config_path)
         return _run_full_src_check(parsed.check, config, parsed.cwd)
 
     # Default mode: --phase is required
@@ -394,7 +396,7 @@ def main(args: list[str] | None = None) -> int:
 
     task_outputs: list[str] = []
     if parsed.task:
-        taskset_path = parsed.taskset or f".sdd/tasks/TaskSet_v{parsed.phase}.md"
+        taskset_path = parsed.taskset or str(taskset_file(parsed.phase))
         taskset_full = os.path.join(parsed.cwd, taskset_path)
         if os.path.exists(taskset_full):
             task_outputs = _read_task_outputs(taskset_full, parsed.task)
@@ -407,19 +409,19 @@ def main(args: list[str] | None = None) -> int:
             payload={},
             phase_id=parsed.phase,
             task_id=parsed.task,
-            config_path=parsed.config,
+            config_path=config_path,
             cwd=parsed.cwd,
             env_whitelist=tuple(parsed.env),
             timeout_secs=parsed.timeout,
             task_outputs=tuple(task_outputs),
         )
-        events = ValidateInvariantsHandler(parsed.db).handle(cmd)
+        events = ValidateInvariantsHandler(db_path).handle(cmd)
         if events:
-            EventStore(parsed.db).append(events, source=__name__)
+            EventStore(db_path).append(events, source=__name__)
 
         # Acceptance check (I-ACCEPT-1): only when --task given and acceptance field present
         if parsed.task:
-            config = load_config(parsed.config)
+            config = load_config(config_path)
             if config.get("build", {}).get("commands", {}).get("acceptance"):
                 env = {k: os.environ[k] for k in parsed.env if k in os.environ}
                 timeout = parsed.timeout if parsed.timeout > 0 else _DEFAULT_TIMEOUT_SECS

@@ -5,7 +5,6 @@ Invariants: I-CMD-1, I-ERR-1
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 import time
 import uuid
@@ -18,6 +17,7 @@ from sdd.core.errors import SDDError
 from sdd.core.events import DomainEvent, ErrorEvent, classify_event_level
 from sdd.core.payloads import _unpack_payload, build_command
 from sdd.infra.event_store import EventStore
+from sdd.infra.paths import event_store_file
 
 # ---------------------------------------------------------------------------
 # Legacy command envelope shim (I-CMD-ENV-1)
@@ -88,9 +88,6 @@ class ReportErrorHandler(CommandHandlerBase):
 # CLI entry point (I-CLI-2)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_DB_PATH = os.environ.get("SDD_DB_PATH", ".sdd/state/sdd_events.duckdb")
-
-
 def main(args: list[str] | None = None) -> int:
     if args is None:
         args = sys.argv[1:]
@@ -99,7 +96,7 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--message", required=True)
     parser.add_argument("--source", default="cli")
     parser.add_argument("--recoverable", action="store_true")
-    parser.add_argument("--db", default=_DEFAULT_DB_PATH)
+    parser.add_argument("--db", default=str(event_store_file()))
     parsed = parser.parse_args(args)
     try:
         ReportErrorHandler(parsed.db).handle(build_command(

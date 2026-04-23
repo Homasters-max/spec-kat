@@ -14,7 +14,7 @@ import re
 import sys
 from pathlib import Path
 
-_DEFAULT_STATE = ".sdd/runtime/State_index.yaml"
+from sdd.infra import paths as _paths
 
 # Matches task ID headers in TaskSet markdown: "T-1007b: ..." or "## T-1007b: ..."
 _TASK_HDR = re.compile(r"^(?:##\s+)?(T-\d+[a-z]*)\s*[:.]")
@@ -98,8 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     if taskset_path is None:
         try:
             from sdd.domain.state.yaml_state import read_state
-            state = read_state(_DEFAULT_STATE)
-            taskset_path = f".sdd/tasks/TaskSet_v{state.tasks_version}.md"
+            state = read_state(str(_paths.state_file()))
+            taskset_path = str(_paths.taskset_file(state.tasks_version))
         except Exception as e:
             print(json.dumps({"error": f"Cannot resolve taskset path: {e}"}))
             return 1

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sdd.core import classify_event_level
-from sdd.infra.db import SDD_EVENTS_DB, open_sdd_connection
+from sdd.infra.db import open_sdd_connection
 
 _VALID_SOURCES = frozenset({"meta", "runtime"})
 
@@ -62,7 +62,7 @@ def _resolve_caused_by(
 def sdd_append(
     event_type: str,
     payload: dict[str, Any],
-    db_path: str = SDD_EVENTS_DB,
+    db_path: str | None = None,
     level: str | None = None,
     event_source: str = "runtime",
     caused_by_meta_seq: int | None = None,
@@ -98,7 +98,7 @@ def sdd_append(
 
 def sdd_append_batch(
     events: list[EventInput],
-    db_path: str = SDD_EVENTS_DB,
+    db_path: str | None = None,
 ) -> None:
     """Write all events atomically in a single transaction (I-EL-11)."""
     for ev in events:
@@ -144,7 +144,7 @@ def sdd_append_batch(
 
 def sdd_replay(
     after_seq: int | None = None,
-    db_path: str = SDD_EVENTS_DB,
+    db_path: str | None = None,
     level: str = "L1",
     source: str = "runtime",
     include_expired: bool = False,
@@ -189,7 +189,7 @@ def sdd_replay(
 
 def archive_expired_l3(
     cutoff_ms: int,
-    db_path: str = SDD_EVENTS_DB,
+    db_path: str | None = None,
 ) -> int:
     """Mark L3 events older than cutoff_ms as expired=TRUE. No DELETE ever issued (I-EL-7)."""
     conn = open_sdd_connection(db_path)
@@ -232,7 +232,7 @@ def canonical_json(data: dict[str, Any]) -> str:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), default=_default)
 
 
-def exists_command(db_path: str, command_id: str) -> bool:
+def exists_command(db_path: str | None = None, *, command_id: str) -> bool:
     """Return True if any event with payload.command_id == command_id exists (I-CMD-10, I-EL-9)."""
     conn = open_sdd_connection(db_path)
     try:
@@ -247,7 +247,8 @@ def exists_command(db_path: str, command_id: str) -> bool:
 
 
 def exists_semantic(
-    db_path: str,
+    db_path: str | None = None,
+    *,
     command_type: str,
     task_id: str | None,
     phase_id: int | None,
@@ -282,7 +283,7 @@ def exists_semantic(
         conn.close()
 
 
-def get_error_count(db_path: str, command_id: str) -> int:
+def get_error_count(db_path: str | None = None, *, command_id: str) -> int:
     """Return count of ErrorEvent records with payload.command_id == command_id (I-CMD-10, I-EL-9)."""
     conn = open_sdd_connection(db_path)
     try:

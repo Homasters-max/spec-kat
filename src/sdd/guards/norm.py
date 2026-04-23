@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import sys
 
-_DEFAULT_CATALOG = ".sdd/norms/norm_catalog.yaml"
+from sdd.infra import paths as _paths
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         from sdd.domain.norms.catalog import load_catalog
-        catalog = load_catalog(catalog_path or _DEFAULT_CATALOG)
+        catalog = load_catalog(catalog_path or str(_paths.norm_catalog_file()))
     except Exception as e:
         print(json.dumps({"error": f"Cannot load catalog: {e}"}))
         return 1

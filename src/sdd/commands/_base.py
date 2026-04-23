@@ -65,7 +65,7 @@ def error_event_boundary(source: str) -> Callable:
                 return fn(self, command)
             except Exception as exc:
                 try:
-                    retry_count = get_error_count(self._db_path, command.command_id)
+                    retry_count = get_error_count(self._db_path, command_id=command.command_id)
                 except Exception as count_exc:
                     _fallback_log.error(
                         "error_event_boundary get_error_count failed: %s; original: %s",
@@ -110,12 +110,12 @@ class CommandHandlerBase:
           2. Semantic:    exists_semantic(command_type, task_id, phase_id, payload_hash)
                           — prevents duplicate effects even with a new command_id
         """
-        if exists_command(self._db_path, command.command_id):
+        if exists_command(self._db_path, command_id=command.command_id):
             return True
         return exists_semantic(
             self._db_path,
-            type(command).__name__,
-            getattr(command, "task_id", None),
-            getattr(command, "phase_id", None),
-            command_payload_hash(command),
+            command_type=type(command).__name__,
+            task_id=getattr(command, "task_id", None),
+            phase_id=getattr(command, "phase_id", None),
+            payload_hash=command_payload_hash(command),
         )

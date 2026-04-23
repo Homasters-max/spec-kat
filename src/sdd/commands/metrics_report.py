@@ -5,7 +5,6 @@ Invariants: I-MR-1, I-MR-2, I-CHAIN-1, I-ES-6, I-PROJ-CONST-3, I-TREND-1, I-ANOM
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -23,9 +22,7 @@ from sdd.infra.metrics import (
     detect_anomalies,
     load_metrics,
 )
-
-_DEFAULT_DB_PATH = os.environ.get("SDD_DB_PATH", ".sdd/state/sdd_events.duckdb")
-_DEFAULT_STATE_PATH = ".sdd/runtime/State_index.yaml"
+from sdd.infra.paths import event_store_file, state_file
 
 _DEFAULT_METRIC_IDS: list[str] = [
     "task.lead_time",
@@ -179,12 +176,15 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--output", default=None)
     parser.add_argument("--metrics", nargs="+", default=None)
     parser.add_argument("--threshold", type=float, default=2.0)
-    parser.add_argument("--db", default=_DEFAULT_DB_PATH)
-    parser.add_argument("--state", default=_DEFAULT_STATE_PATH)
+    parser.add_argument("--db", default=None)
+    parser.add_argument("--state", default=None)
     parsed = parser.parse_args(args)
 
+    db = parsed.db or str(event_store_file())
+    state = parsed.state or str(state_file())
+
     try:
-        phase_id = parsed.phase if parsed.phase is not None else _read_phase(parsed.state)
+        phase_id = parsed.phase if parsed.phase is not None else _read_phase(state)
     except Exception as exc:
         print(f"ERROR: cannot determine phase: {exc}", file=sys.stderr)
         return 1
@@ -201,7 +201,7 @@ def main(args: list[str] | None = None) -> int:
             anomalies = detect_anomalies(records, threshold=parsed.threshold)
             sections.append(_render_anomalies(anomalies, parsed.threshold))
     else:
-        querier = EventLogQuerier(parsed.db)
+        querier = EventLogQuerier(db)
         tc_events = querier.query(QueryFilters(phase_id=phase_id, event_type="TaskCompleted"))
         mr_events = querier.query(QueryFilters(phase_id=phase_id, event_type="MetricRecorded"))
         summary = MetricsAggregator().aggregate(tc_events, mr_events, phase_id)

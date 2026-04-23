@@ -11,14 +11,9 @@ import tempfile
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
-from sdd.infra.db import SDD_EVENTS_DB
-
-_AUDIT_LOG_DEFAULT = str(
-    Path(SDD_EVENTS_DB).parent.parent / "runtime" / "audit_log.jsonl"
-)
+from sdd.infra.paths import audit_log_file
 
 # AuditEntry.event_type MUST NOT equal any V1_L1_EVENT_TYPES member (governance-only, L2).
 _AUDIT_EVENT_TYPE = "AuditEntry"
@@ -80,9 +75,11 @@ def log_action(
     action: str,
     actor: str,
     context: Mapping[str, Any] | None = None,
-    audit_log_path: str = _AUDIT_LOG_DEFAULT,
+    audit_log_path: str | None = None,
 ) -> AuditEntry:
     """Append an AuditEntry to the JSONL audit log atomically."""
+    if audit_log_path is None:
+        audit_log_path = str(audit_log_file())
     ctx: Mapping[str, Any] = context if context is not None else {}
     entry = AuditEntry(
         entry_id=make_entry_id(action, actor, ctx),
@@ -121,7 +118,7 @@ def audit_cli(argv: list[str] | None = None) -> int:
         return 0
 
     cmd = args[0]
-    log_path = _AUDIT_LOG_DEFAULT
+    log_path = str(audit_log_file())
     for i, a in enumerate(args[1:], 1):
         if a == "--log" and i + 1 < len(args):
             log_path = args[i + 1]

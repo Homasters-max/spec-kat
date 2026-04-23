@@ -10,7 +10,7 @@ import json
 import re
 import sys
 
-_DEFAULT_STATE = ".sdd/runtime/State_index.yaml"
+from sdd.infra import paths as _paths
 
 # Extracts a full Task ID (with optional suffix) from a command string.
 _CMD_TASK_RE = re.compile(r"(T-\d+[a-z]*)")
@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"error": "Missing --command"}))
         return 1
 
-    sp = state_path or _DEFAULT_STATE
+    sp = state_path or str(_paths.state_file())
     try:
         from sdd.domain.state.yaml_state import read_state
         state = read_state(sp)
@@ -100,7 +100,7 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         from sdd.guards.task import _find_task_status
-        taskset_path = f".sdd/tasks/TaskSet_v{tasks_version}.md"
+        taskset_path = str(_paths.taskset_file(tasks_version))
         if _find_task_status(taskset_path, task_id) is None:
             return _reject(
                 "PG-1",

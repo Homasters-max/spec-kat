@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=src python3 -c \"from sdd.commands.metrics_report import MetricsReportCommand, MetricsReportHandler; print\\('OK'\\)\")"
+    ]
+  }
+}

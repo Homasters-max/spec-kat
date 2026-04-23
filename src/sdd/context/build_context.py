@@ -10,6 +10,7 @@ from typing import Any
 from sdd.core.errors import MissingContext
 from sdd.domain.state.yaml_state import read_state
 from sdd.domain.tasks.parser import Task, parse_taskset
+from sdd.infra import paths as _paths
 
 
 class ContextDepth:
@@ -41,14 +42,11 @@ def build_context(
     Pure: no I/O beyond reads. Layers appended 0→8 (I-CTX-6). Budget: EFFECTIVE_BUDGET[depth].
     First line: <!-- context_hash: <sha256> --> (I-CTX-5).
     """
-    ctx_cfg: dict[str, Any] = config.get("context", {})
-    state_path: str = ctx_cfg.get("state_path", ".sdd/runtime/State_index.yaml")
-    phases_index_path: str = ctx_cfg.get(
-        "phases_index_path", ".sdd/plans/Phases_index.md"
-    )
-    specs_dir = Path(ctx_cfg.get("specs_dir", ".sdd/specs"))
-    plans_dir = Path(ctx_cfg.get("plans_dir", ".sdd/plans"))
-    tasks_dir = Path(ctx_cfg.get("tasks_dir", ".sdd/tasks"))
+    _state_yaml: str = str(_paths.state_file())
+    _phases_md: str = str(_paths.phases_index_file())
+    specs_dir = _paths.specs_dir()
+    plans_dir = _paths.plans_dir()
+    tasks_dir = _paths.tasks_dir()
 
     loaded: dict[str, str] = {}
 
@@ -62,8 +60,8 @@ def build_context(
         return loaded[key]
 
     # Read state to determine current phase
-    _read(state_path)
-    state = read_state(state_path)
+    _read(_state_yaml)
+    state = read_state(_state_yaml)
     phase_n = state.phase_current
 
     # Resolve canonical artifact paths
@@ -110,10 +108,10 @@ def build_context(
         layers.append((0, "## Domain Glossary\n\n(empty)\n"))
 
     # Layer 1: state summary (all)
-    layers.append((1, f"## State Summary\n\n```yaml\n{_read(state_path)}```\n"))
+    layers.append((1, f"## State Summary\n\n```yaml\n{_read(_state_yaml)}```\n"))
 
     # Layer 2: phases index (all)
-    layers.append((2, f"## Phases Index\n\n{_read(phases_index_path)}\n"))
+    layers.append((2, f"## Phases Index\n\n{_read(_phases_md)}\n"))
 
     # Layer 3: single task row — coder only (I-CTX-3)
     if is_coder and task is not None:
@@ -322,7 +320,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--task", default=None, help="Task ID (e.g. T-801)")
     parser.add_argument("--depth", default="STANDARD",
                         choices=["COMPACT", "STANDARD", "VERBOSE"])
-    parser.add_argument("--profile", default=".sdd/config/project_profile.yaml",
+    parser.add_argument("--profile", default=None,
                         help="Path to project_profile.yaml")
     parser.add_argument("--phase-config", default=None,
                         help="Path to phase_N.yaml override (optional)")
@@ -330,7 +328,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         from sdd.infra.config_loader import load_config
-        config = load_config(ns.profile, ns.phase_config)
+        profile = ns.profile if ns.profile is not None else str(_paths.config_file())
+        config = load_config(profile, ns.phase_config)
         output = build_context(ns.agent, ns.task, ns.depth, config)
         print(output)
         return 0

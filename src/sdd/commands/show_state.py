@@ -5,15 +5,13 @@ Invariants: I-CLI-2
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
 import yaml
 
 from sdd.core.errors import Inconsistency, MissingState, SDDError
-
-_DEFAULT_STATE_PATH = os.environ.get("SDD_STATE_PATH", ".sdd/runtime/State_index.yaml")
+from sdd.infra.paths import event_store_file, state_file
 
 
 def _load(path: str) -> dict:
@@ -78,17 +76,16 @@ def main(args: list[str] | None = None) -> int:
     if args is None:
         args = sys.argv[1:]
     parser = argparse.ArgumentParser(description="Show SDD runtime state")
-    parser.add_argument("--state", default=_DEFAULT_STATE_PATH, help="Path to State_index.yaml")
+    parser.add_argument("--state", default=None, help="Path to State_index.yaml")
     parsed = parser.parse_args(args)
+    state_path = parsed.state or str(state_file())
     try:
         from sdd.infra.projections import rebuild_state  # noqa: PLC0415
-        from pathlib import Path as _Path
-        _db = os.environ.get("SDD_DB_PATH", ".sdd/state/sdd_events.duckdb")
-        rebuild_state(str(_Path(_db)), parsed.state)
+        rebuild_state(str(event_store_file()), state_path)
     except Exception:
         pass  # best-effort rebuild; State Guard will catch staleness below
     try:
-        s = _load(parsed.state)
+        s = _load(state_path)
         _guard(s)
         print(_render(s), end="")
         return 0

@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-import os
-
 import duckdb
+
+from sdd.infra.paths import event_store_file
 
 # Safety floor for sequence restart — never let the sequence start below this.
 # Update only when the DuckDB file is recreated or events are manually deleted:
 # set to MAX(seq)+1 from the new DB state. See CLAUDE.md §0.12 SDD-SEQ-1.
 SDD_SEQ_CHECKPOINT: int = 1
-
-SDD_EVENTS_DB = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", ".sdd", "state", "sdd_events.duckdb"
-)
 
 # v2 schema — all columns present on fresh install.
 # Migrations below upgrade v1 databases to v2.
@@ -45,13 +41,15 @@ SDD_MIGRATION_REGISTRY: list[tuple[int, str]] = [
 ]
 
 
-def open_sdd_connection(db_path: str = SDD_EVENTS_DB) -> duckdb.DuckDBPyConnection:
+def open_sdd_connection(db_path: str | None = None) -> duckdb.DuckDBPyConnection:
     """Open (or create) a DuckDB connection and ensure the v2 schema is present.
 
     Idempotent: N calls on the same path all succeed with identical schema (I-PK-1).
     Restarts the sequence on every call so seq is strictly increasing across
     reconnections (I-EL-5b). See CLAUDE.md §0.12 SDD-SEQ-1.
     """
+    if db_path is None:
+        db_path = str(event_store_file())
     conn = duckdb.connect(db_path)
     ensure_sdd_schema(conn)
     _restart_sequence(conn)

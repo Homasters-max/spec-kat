@@ -11,15 +11,8 @@ Invariants: I-HOOK-1 (event_source="meta"), I-HOOK-2 (exit 0 always),
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
-
-_DEFAULT_DB_PATH = ".sdd/state/sdd_events.duckdb"
-
-
-def _db_path() -> str:
-    return os.environ.get("SDD_DB_PATH", _DEFAULT_DB_PATH)
 
 
 def _extract_inputs(tool_name: str, tool_input: dict) -> dict:
@@ -96,7 +89,8 @@ def main() -> None:
     hook_event_name: str = payload.get("hook_event_name", "")
     tool_input: dict = payload.get("tool_input") or {}
     timestamp_ms = int(time.time() * 1000)
-    db = _db_path()
+    from sdd.infra.paths import event_store_file  # noqa: PLC0415
+    db = str(event_store_file())
 
     event_type = ""
     event_payload: dict = {}

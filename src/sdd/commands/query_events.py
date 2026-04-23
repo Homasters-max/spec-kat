@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from dataclasses import dataclass
 from typing import Protocol
 
 from sdd.core.errors import SDDError
 from sdd.infra.event_query import EventLogQuerier, EventRecord, QueryFilters
+from sdd.infra.paths import event_store_file
 
 
 class QueryHandler(Protocol):
@@ -51,9 +51,6 @@ class QueryEventsHandler:
 # CLI entry point (I-CLI-2)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_DB_PATH = os.environ.get("SDD_DB_PATH", ".sdd/state/sdd_events.duckdb")
-
-
 def main(args: list[str] | None = None) -> int:
     if args is None:
         args = sys.argv[1:]
@@ -65,7 +62,7 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--order", choices=["ASC", "DESC"], default="ASC")
     parser.add_argument("--replay", action="store_true", help="Filter to L1 domain events")
     parser.add_argument("--json", action="store_true", dest="as_json")
-    parser.add_argument("--db", default=_DEFAULT_DB_PATH)
+    parser.add_argument("--db", default=str(event_store_file()))
     parsed = parser.parse_args(args)
     try:
         filters = QueryFilters(

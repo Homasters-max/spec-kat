@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 import uuid
@@ -28,6 +27,7 @@ from sdd.core.payloads import _unpack_payload, build_command
 from sdd.domain.state.yaml_state import read_state
 from sdd.domain.tasks.parser import parse_taskset
 from sdd.infra.event_store import EventStore
+from sdd.infra.paths import event_store_file, state_file, taskset_file
 from sdd.infra.projections import rebuild_state, rebuild_taskset, sync_projections
 
 # ---------------------------------------------------------------------------
@@ -408,8 +408,6 @@ class CheckDoDHandler(CommandHandlerBase):
 # CLI entry point (I-CLI-2)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_DB_PATH = os.environ.get("SDD_DB_PATH", ".sdd/state/sdd_events.duckdb")
-_DEFAULT_STATE_PATH = os.environ.get("SDD_STATE_PATH", ".sdd/runtime/State_index.yaml")
 
 
 def _read_phase(state_path: str) -> int:
@@ -430,8 +428,8 @@ def main(args: list[str] | None = None) -> int:
     p_comp.add_argument("task_id")
     p_comp.add_argument("--phase", type=int, default=None)
     p_comp.add_argument("--taskset", default=None)
-    p_comp.add_argument("--state", default=_DEFAULT_STATE_PATH)
-    p_comp.add_argument("--db", default=_DEFAULT_DB_PATH)
+    p_comp.add_argument("--state", default=str(state_file()))
+    p_comp.add_argument("--db", default=str(event_store_file()))
 
     p_val = sub.add_parser("validate")
     p_val.add_argument("task_id", nargs="?")
@@ -439,19 +437,19 @@ def main(args: list[str] | None = None) -> int:
     p_val.add_argument("--result", choices=["PASS", "FAIL"], default=None)
     p_val.add_argument("--check-dod", action="store_true")
     p_val.add_argument("--taskset", default=None)
-    p_val.add_argument("--state", default=_DEFAULT_STATE_PATH)
-    p_val.add_argument("--db", default=_DEFAULT_DB_PATH)
+    p_val.add_argument("--state", default=str(state_file()))
+    p_val.add_argument("--db", default=str(event_store_file()))
 
     p_sync = sub.add_parser("sync")
     p_sync.add_argument("--phase", type=int, default=None)
     p_sync.add_argument("--taskset", default=None)
-    p_sync.add_argument("--state", default=_DEFAULT_STATE_PATH)
-    p_sync.add_argument("--db", default=_DEFAULT_DB_PATH)
+    p_sync.add_argument("--state", default=str(state_file()))
+    p_sync.add_argument("--db", default=str(event_store_file()))
 
     parsed = parser.parse_args(args)
     try:
         phase_id = parsed.phase if parsed.phase is not None else _read_phase(parsed.state)
-        taskset = parsed.taskset or f".sdd/tasks/TaskSet_v{phase_id}.md"
+        taskset = parsed.taskset or str(taskset_file(phase_id))
 
         if parsed.cmd == "complete":
             events = CompleteTaskHandler(parsed.db).handle(build_command(

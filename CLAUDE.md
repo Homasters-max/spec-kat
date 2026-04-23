@@ -146,12 +146,17 @@ operationally approved for downstream phases. Formal Artifacts_index.md update i
 ### §R.1 System Model
 
 ```
-LLM = Pure Function:  Output = f(State, Spec, Task)
+LLM = Pure Function:  Output = f(CLI_Output, Task_Inputs)
+
+Where:
+- CLI_Output:   deterministic projection of SDD artifacts via sdd show-* commands
+- Task_Inputs:  source files listed in Task Inputs field (exact paths only)
 
 Constraints:
 - No hidden state
 - No global scanning
 - Only explicit inputs allowed
+- SDD artifact data MUST come from CLI output, never direct file reads
 ```
 
 ### §R.6 Implement T-NNN Protocol
@@ -199,15 +204,27 @@ Events emitted: TaskValidated, InvariantsUpdated, TestsUpdated, DoDChecked,
 
 ### §R.2 Read Scope (CRITICAL — enforced by check_scope.py)
 
-LLM MUST read ONLY:
-- `.sdd/runtime/State_index.yaml`
-- `.sdd/plans/Phases_index.md`
-- `.sdd/specs/Spec_vN_*.md` (exact path, current phase only)
-- `.sdd/plans/Plan_vN.md` (exact path, current phase only)
-- `.sdd/tasks/TaskSet_vN.md` (exact path, current phase only)
-- Files listed in Task Inputs field (exact paths only)
+LLM MUST obtain SDD artifact data ONLY via these authorized CLI commands (I-CLI-SSOT-1, I-SCOPE-CLI-2):
 
-**FORBIDDEN (hard — NORM-SCOPE-001..003):**
+| Command | SDD artifact provided |
+|---|---|
+| `sdd show-state` | current phase/task state |
+| `sdd show-task T-NNN` | task definition: inputs, outputs, invariants, acceptance |
+| `sdd show-spec --phase N` | current phase spec content |
+| `sdd show-plan --phase N` | current phase plan content |
+
+Additionally: files listed in Task Inputs field (exact paths only) — source files only.
+
+**FORBIDDEN — direct `.sdd/` file reads (I-CLI-SSOT-1, I-SCOPE-CLI-2):**
+```
+resolved via paths.py → state_file()         ← use: sdd show-state
+resolved via paths.py → specs_dir()          ← use: sdd show-spec --phase N
+resolved via paths.py → plan_file(N)         ← use: sdd show-plan --phase N
+resolved via paths.py → taskset_file(N)      ← use: sdd show-task T-NNN
+resolved via paths.py → phases_index_file()  ← use: sdd show-state
+```
+
+**FORBIDDEN — scan patterns (hard — NORM-SCOPE-001..003):**
 ```
 tests/**            ← any test directory traversal
 src/**              ← any source directory scan (unless in Task Inputs)
@@ -425,6 +442,15 @@ SDD-7   LLM must refuse execution on inconsistency
 SDD-8   Task Outputs field defines the allowed modification scope
 SDD-9   .sdd/specs/ is immutable
 SDD-10  Drafts must stay in .sdd/specs_draft/
+SDD-11  LLM MUST obtain SDD artifact data only via sdd show-* CLI or Task Inputs; direct .sdd/ reads forbidden (I-CLI-SSOT-1)
+SDD-12  CLI output is an authoritative deterministic projection; LLM MUST treat sdd show-* as single source of truth (I-CLI-SSOT-2)
+SDD-13  LLM MUST NOT simulate CLI by reading equivalent files directly — sdd show-task/spec/plan required (I-SCOPE-CLI-2)
+SDD-14  No literal .sdd/ path strings in src/sdd/**/*.py except infra/paths.py (I-PATH-1)
+SDD-15  paths.py imports ONLY stdlib (os, pathlib) — zero intra-sdd imports (I-PATH-2)
+SDD-16  Task Inputs/Outputs paths are relative to repo root, not SDD_HOME (I-PATH-3)
+SDD-17  paths.py does NOT create directories; callers are responsible for existence (I-PATH-4)
+SDD-18  reset_sdd_root() MUST NOT be called in production code — test isolation only (I-PATH-5)
+SDD-19  Config MUST NOT override core SDD paths (state, tasks, specs, plans, db) (I-CONFIG-PATH-1)
 ```
 
 ### §K.5 Phase Guard
@@ -447,12 +473,12 @@ PI-5  Exactly one phase has status ACTIVE at any time
 ### §K.6 Read Order (strict — for planning commands)
 
 ```
-0. .sdd/runtime/State_index.yaml     ← always first (State Guard)
-1. .sdd/plans/Phases_index.md
-2. .sdd/specs/Spec_vN_*.md
-3. .sdd/plans/Plan_vN.md
-4. .sdd/tasks/TaskSet_vN.md
-5. .sdd/reports/  (if summarizing)
+0. sdd show-state                    ← always first (State Guard; includes phase index)
+1. sdd show-state                    ← Phases_index info is in show-state output
+2. sdd show-spec --phase N           ← spec content (I-CLI-SSOT-1; do NOT read .sdd/specs/ directly)
+3. sdd show-plan --phase N           ← plan content (I-CLI-SSOT-1; do NOT read .sdd/plans/ directly)
+4. sdd show-task T-NNN               ← task definition (I-CLI-SSOT-1; do NOT read .sdd/tasks/ directly)
+5. .sdd/reports/  (if summarizing)   ← reports dir only; accessed via paths.py / reports_dir()
 ```
 
 ### §K.7 Phase Isolation Rules
@@ -582,6 +608,9 @@ MPS-3  Parallel phases forbidden unless explicitly allowed
 | **`sdd query-events --phase N [--step T-NNN] [--event TYPE] [--include-bash] [--json] [--save]`** | Query EventLog (DuckDB single source) | `.sdd/_deprecated_tools/query_events.py` |
 | **`sdd metrics-report --phase N [--trend] [--anomalies]`** | Generate Metrics_PhaseN.md + trends + anomalies | `.sdd/_deprecated_tools/metrics_report.py` |
 | **`sdd show-state`** | Print State_index as markdown table | `.sdd/_deprecated_tools/show_state.py` |
+| **`sdd show-task T-NNN [--phase N]`** *(Phase 14 complete)* | Print task definition: status, inputs, outputs, invariants, acceptance | *(new — no deprecated adapter)* |
+| **`sdd show-spec --phase N`** *(Phase 14 complete)* | Print full spec content for phase N (read-only, no events) | *(new — no deprecated adapter)* |
+| **`sdd show-plan --phase N`** *(Phase 14 complete)* | Print full plan content for phase N (read-only, no events) | *(new — no deprecated adapter)* |
 | **`sdd-hook-log pre\|post`** *(console_scripts — Phase 13 M1 complete)* | Claude Code PreToolUse/PostToolUse hook | `.sdd/_deprecated_tools/log_tool.py` |
 | *(historical record only — replaced by log_tool.py, not wired)* | Former Bash-only hook | `.sdd/_deprecated_tools/log_bash.py` |
 | **`sdd phase-guard`** *(Phase 13 M2 complete)* | PhaseGuard + SDDEventRejected emitter | `.sdd/_deprecated_tools/phase_guard.py` |
@@ -846,6 +875,7 @@ Replay строится ТОЛЬКО по Level 1. Метрики — Level 2.
 | `infra/event_store.py` | `EventStore.append()` interface |
 | `domain/state/reducer.py` | `reduce()` signature; I-REDUCER-1 filter contract |
 | `domain/guards/context.py` | `GuardContext`, `GuardResult`, `GuardOutcome` |
+| `infra/paths.py` | `get_sdd_root()`, `reset_sdd_root()`, `event_store_file()`, `state_file()`, `audit_log_file()`, `norm_catalog_file()`, `config_file()`, `phases_index_file()`, `specs_dir()`, `specs_draft_dir()`, `plans_dir()`, `tasks_dir()`, `reports_dir()`, `templates_dir()`, `taskset_file(phase)`, `plan_file(phase)` — stdlib-only imports (I-PATH-2) |
 
 **Not frozen** (may evolve per phase spec): DuckDB schema internals, reducer handler logic, guard pipeline composition, command handler implementations, projections, CLI layer.
 

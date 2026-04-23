@@ -43,8 +43,7 @@ FROZEN_MODULE_FILES = [
 # Format: list of (param_name, annotation_str) per callable.
 # Annotation strings are normalized: str(annotation).strip("'\"") — strips outer
 # quotes that appear when from __future__ import annotations is active.
-# Default values are intentionally excluded (db_path default contains an absolute
-# path that is environment-specific and not a breaking-change indicator).
+# Default values are intentionally excluded — only type annotations are checked.
 # ---------------------------------------------------------------------------
 
 FROZEN_SIGNATURES: dict[str, list[tuple[str, str]]] = {
@@ -71,18 +70,18 @@ FROZEN_SIGNATURES: dict[str, list[tuple[str, str]]] = {
     "sdd_append": [
         ("event_type", "str"),
         ("payload", "dict[str, Any]"),
-        ("db_path", "str"),
+        ("db_path", "str | None"),
         ("level", "str | None"),
         ("event_source", "str"),
         ("caused_by_meta_seq", "int | None"),
     ],
     "sdd_append_batch": [
         ("events", "list[EventInput]"),
-        ("db_path", "str"),
+        ("db_path", "str | None"),
     ],
     "sdd_replay": [
         ("after_seq", "int | None"),
-        ("db_path", "str"),
+        ("db_path", "str | None"),
         ("level", "str"),
         ("source", "str"),
         ("include_expired", "bool"),
