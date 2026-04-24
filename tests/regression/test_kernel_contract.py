@@ -90,6 +90,8 @@ FROZEN_SIGNATURES: dict[str, list[tuple[str, str]]] = {
         ("self", ""),
         ("events", "list[DomainEvent]"),
         ("source", "str"),
+        ("command_id", "str | None"),
+        ("expected_head", "int | None"),
     ],
     "reduce": [
         ("events", "list[dict[str, object]]"),
@@ -110,6 +112,9 @@ FROZEN_SIGNATURES: dict[str, list[tuple[str, str]]] = {
         ("message", "str"),
         ("norm_id", "str | None"),
         ("task_id", "str | None"),
+        ("reason", "str | None"),
+        ("human_reason", "str | None"),
+        ("violated_invariant", "str | None"),
     ],
 }
 

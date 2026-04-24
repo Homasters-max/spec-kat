@@ -14,8 +14,6 @@ import re
 import sys
 from pathlib import Path
 
-from sdd.infra import paths as _paths
-
 # Matches task ID headers in TaskSet markdown: "T-1007b: ..." or "## T-1007b: ..."
 _TASK_HDR = re.compile(r"^(?:##\s+)?(T-\d+[a-z]*)\s*[:.]")
 _STATUS_RE = re.compile(r"^\s*Status\s*:\s*(\S+)", re.IGNORECASE)
@@ -96,13 +94,12 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if taskset_path is None:
-        try:
-            from sdd.domain.state.yaml_state import read_state
-            state = read_state(str(_paths.state_file()))
-            taskset_path = str(_paths.taskset_file(state.tasks_version))
-        except Exception as e:
-            print(json.dumps({"error": f"Cannot resolve taskset path: {e}"}))
-            return 1
+        print(json.dumps({
+            "error_type": "UsageError",
+            "message": "--taskset is required; guards do not read YAML",
+            "exit_code": 1,
+        }), file=sys.stderr)
+        sys.exit(1)
 
     status = _find_task_status(taskset_path, task_id)
     if status is None:

@@ -262,8 +262,8 @@ _TASKSET_TODO = textwrap.dedent("""\
 
 
 def test_command_event_equivalence(tmp_path):
-    """I-RUNTIME-1 + I-STATE-SYNC-1: CompleteTaskHandler emits TaskImplemented and syncs state."""
-    from sdd.commands.update_state import CompleteTaskHandler
+    """I-RUNTIME-1 + I-STATE-SYNC-1: execute_and_project emits TaskImplemented and syncs state."""
+    from sdd.commands.registry import REGISTRY, execute_and_project
     from sdd.core.payloads import build_command
     from sdd.domain.state.yaml_state import read_state
 
@@ -273,13 +273,22 @@ def test_command_event_equivalence(tmp_path):
 
     (tmp_path / "TaskSet_v1.md").write_text(_TASKSET_TODO, encoding="utf-8")
 
-    CompleteTaskHandler(db).handle(build_command(
-        "CompleteTask",
-        task_id="T-001",
-        phase_id=1,
-        taskset_path=taskset_path,
+    # Seed phase context so PhaseGuard passes (I-KERNEL-WRITE-1)
+    sdd_append(
+        "PhaseInitialized",
+        {"phase_id": 1, "tasks_total": 1, "plan_version": 1,
+         "actor": "test-seed", "timestamp": "2026-01-01T00:00:00Z"},
+        db_path=db, level="L1", event_source="runtime",
+    )
+
+    execute_and_project(
+        REGISTRY["complete"],
+        build_command("CompleteTask", task_id="T-001", phase_id=1,
+                      taskset_path=taskset_path, state_path=state_path),
+        db_path=db,
         state_path=state_path,
-    ))
+        taskset_path=taskset_path,
+    )
 
     events = sdd_replay(db_path=db)
     ti_events = [e for e in events if e["event_type"] == "TaskImplemented"]
@@ -387,6 +396,14 @@ def test_state_always_synced_after_command(tmp_path):
 
     taskset_path.write_text(_TASKSET_TODO, encoding="utf-8")
     state_path.write_text(_MINIMAL_STATE_YAML, encoding="utf-8")
+
+    # Seed phase context so PhaseGuard passes (I-KERNEL-WRITE-1)
+    sdd_append(
+        "PhaseInitialized",
+        {"phase_id": 1, "tasks_total": 1, "plan_version": 1,
+         "actor": "test-seed", "timestamp": "2026-01-01T00:00:00Z"},
+        db_path=str(db_path), level="L1", event_source="runtime",
+    )
 
     result = subprocess.run(
         [
@@ -516,6 +533,14 @@ def test_cli_projection_consistency(tmp_path):
 
     taskset_path.write_text(_TASKSET_TODO, encoding="utf-8")
     state_path.write_text(_MINIMAL_STATE_YAML, encoding="utf-8")
+
+    # Seed phase context so PhaseGuard passes (I-KERNEL-WRITE-1)
+    sdd_append(
+        "PhaseInitialized",
+        {"phase_id": 1, "tasks_total": 1, "plan_version": 1,
+         "actor": "test-seed", "timestamp": "2026-01-01T00:00:00Z"},
+        db_path=str(db_path), level="L1", event_source="runtime",
+    )
 
     result = subprocess.run(
         [

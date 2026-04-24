@@ -39,6 +39,8 @@ def make_norm_guard(actor: str, action: str, task_id: str | None) -> Guard:
             message=norm_reason,
             norm_id=violated_norm_id,
             task_id=task_id,
+            reason=f"GUARD_DENY.NormGuard.{violated_norm_id or 'UNLISTED'}",
+            human_reason=norm_reason[:140],
         )
         norm_event = NormViolatedEvent(
             event_type="NormViolated",

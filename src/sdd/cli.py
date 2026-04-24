@@ -121,23 +121,12 @@ def report_error(args: tuple[str, ...]) -> None:
 )
 def validate_config(phase: int, config_path: str | None) -> None:
     """Validate project_profile.yaml and phases/phase_N.yaml structure."""
-    import uuid
-
-    from sdd.commands.validate_config import ValidateConfigCommand, ValidateConfigHandler
+    from sdd.commands.validate_config import validate_project_config
 
     _root = _sdd_root()
     if config_path is None:
         config_path = str(_root / "config" / "project_profile.yaml")
-    db_path = _root / "state" / "sdd_events.duckdb"
-    handler = ValidateConfigHandler(db_path)
-    command = ValidateConfigCommand(
-        command_id=str(uuid.uuid4()),
-        command_type="ValidateConfig",
-        payload={},
-        phase_id=phase,
-        config_path=config_path,
-    )
-    handler.handle(command)
+    validate_project_config(phase, config_path)
     click.echo(f"Config valid for phase {phase}.")
     sys.exit(0)
 
@@ -213,32 +202,31 @@ def show_plan_cmd(phase: int | None) -> None:
 @click.option("--decision-id", required=True, help="Decision identifier (D-NNN)")
 @click.option("--title", required=True, help="Decision title")
 @click.option("--summary", required=True, help="Decision summary (max 500 chars)")
-@click.option("--phase", type=int, default=None, help="Phase number (defaults to current phase from State_index.yaml)")
+@click.option("--phase", type=int, default=None, help="Phase number (defaults to current phase from EventLog replay)")
 def record_decision(decision_id: str, title: str, summary: str, phase: int | None) -> None:
     """Record a design decision in the EventLog as DecisionRecordedEvent."""
     import uuid
 
-    import yaml
-
-    from sdd.commands.record_decision import RecordDecisionCommand, RecordDecisionHandler
+    from sdd.commands.record_decision import RecordDecisionCommand
+    from sdd.commands.registry import REGISTRY, execute_and_project, get_current_state
 
     _root = _sdd_root()
-    if phase is None:
-        state = yaml.safe_load((_root / "runtime" / "State_index.yaml").read_text())
-        phase = state["phase"]["current"]
+    _db = str(_root / "state" / "sdd_events.duckdb")
 
-    db_path = _root / "state" / "sdd_events.duckdb"
-    handler = RecordDecisionHandler(db_path)
+    if phase is None:
+        state = get_current_state(_db)
+        phase = state.phase_current
+
     command = RecordDecisionCommand(
         command_id=str(uuid.uuid4()),
         command_type="RecordDecision",
-        payload={},
+        payload={"decision_id": decision_id, "phase_id": phase},
         decision_id=decision_id,
         title=title,
         summary=summary,
         phase_id=phase,
     )
-    handler.handle(command)
+    execute_and_project(REGISTRY["record-decision"], command, db_path=_db)
     sys.exit(0)
 
 

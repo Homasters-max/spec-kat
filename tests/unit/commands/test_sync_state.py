@@ -49,18 +49,16 @@ class TestEmitFirst:
     def test_sync_state_writes_atomically(
         self, mock_event_store_cls, mock_sync, handler
     ):
-        """EventStore.append is called before sync_projections (emit-first, I-ES-1, I-CMD-8, I-SYNC-1)."""
-        call_order: list[str] = []
+        """handle() is pure: EventStore and sync_projections are not called (I-KERNEL-WRITE-1, I-CI-PURITY-3).
 
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
-        mock_store.append.side_effect = lambda *a, **kw: call_order.append("append")
-        mock_sync.side_effect = lambda *a, **kw: call_order.append("sync")
-
+        Emit-first ordering is now enforced by execute_and_project in the Write Kernel,
+        not by SyncStateHandler.handle() itself.
+        """
         with patch.object(handler, "_check_idempotent", return_value=False):
             handler.handle(_command())
 
-        assert call_order == ["append", "sync"]
+        mock_event_store_cls.assert_not_called()
+        mock_sync.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -95,12 +93,12 @@ class TestEventEmission:
 # ---------------------------------------------------------------------------
 
 class TestIdempotency:
-    @patch("sdd.commands.update_state.rebuild_state")
+    @patch("sdd.commands.update_state.sync_projections")
     @patch("sdd.commands.update_state.EventStore")
     def test_sync_state_idempotent(
-        self, mock_event_store_cls, mock_rebuild, handler
+        self, mock_event_store_cls, mock_sync, handler
     ):
-        """Duplicate command_id returns [] with no append or rebuild calls (I-CMD-1)."""
+        """Duplicate command_id returns [] with no append or sync calls (I-CMD-1)."""
         mock_store = MagicMock()
         mock_event_store_cls.return_value = mock_store
 
@@ -109,7 +107,7 @@ class TestIdempotency:
 
         assert result == []
         mock_store.append.assert_not_called()
-        mock_rebuild.assert_not_called()
+        mock_sync.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -123,31 +121,30 @@ class TestAtomicWrite:
     def test_sync_uses_atomic_write(
         self, mock_event_store_cls, mock_sync, handler
     ):
-        """sync_projections is called with db_path, taskset_path, state_path (I-PK-5, I-CMD-8, I-SYNC-1).
+        """handle() does not call sync_projections — projection is the caller's responsibility (I-KERNEL-PROJECT-1).
 
-        sync_projections → rebuild_taskset + rebuild_state → atomic_write;
-        we verify the correct arguments reach sync_projections.
+        Projection rebuild (sync_projections → rebuild_taskset + rebuild_state → atomic_write)
+        is now orchestrated by execute_and_project in the Write Kernel.
         """
-        mock_event_store_cls.return_value = MagicMock()
         cmd = _command(taskset_path="fake/TaskSet_v4.md", state_path="fake/State_index.yaml")
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             handler.handle(cmd)
 
-        mock_sync.assert_called_once_with(handler._db_path, cmd.taskset_path, cmd.state_path)
+        mock_sync.assert_not_called()
 
     @patch("sdd.commands.update_state.sync_projections")
     @patch("sdd.commands.update_state.EventStore")
     def test_rebuild_not_called_when_append_fails(
         self, mock_event_store_cls, mock_sync, handler
     ):
-        """sync_projections never called when EventStore.append raises (atomicity guard, I-SYNC-1)."""
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
-        mock_store.append.side_effect = RuntimeError("DuckDB write failed")
+        """handle() never calls EventStore.append, so there is no append-failure path (I-KERNEL-WRITE-1).
 
+        Both EventStore and sync_projections remain uncalled — the handler is purely functional.
+        """
         with patch.object(handler, "_check_idempotent", return_value=False):
-            with pytest.raises(RuntimeError, match="DuckDB write failed"):
-                handler.handle(_command())
+            events = handler.handle(_command())
 
+        mock_event_store_cls.assert_not_called()
         mock_sync.assert_not_called()
+        assert len(events) == 1

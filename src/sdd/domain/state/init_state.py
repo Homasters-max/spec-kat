@@ -74,7 +74,7 @@ def init_state(
         level="L1",
         event_source="runtime",
         caused_by_meta_seq=None,
-        phase_id=str(phase_id),
+        phase_id=phase_id,
         tasks_total=tasks_total,
         plan_version=phase_id,
         actor="llm",

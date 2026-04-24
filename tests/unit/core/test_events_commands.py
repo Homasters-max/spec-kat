@@ -121,12 +121,13 @@ def test_decision_recorded_in_v1_l1_types() -> None:
     assert "DecisionRecorded" in V1_L1_EVENT_TYPES
 
 
-def test_phase_completed_in_known_no_handler() -> None:
-    assert "PhaseCompleted" in EventReducer._KNOWN_NO_HANDLER
+def test_phase_completed_in_event_schema() -> None:
+    # Phase 15: PhaseCompleted moved from _KNOWN_NO_HANDLER to _EVENT_SCHEMA (I-PHASE-COMPLETE-1)
+    assert "PhaseCompleted" in EventReducer._EVENT_SCHEMA
 
 
-def test_phase_completed_not_in_event_schema() -> None:
-    assert "PhaseCompleted" not in EventReducer._EVENT_SCHEMA
+def test_phase_completed_not_in_known_no_handler() -> None:
+    assert "PhaseCompleted" not in EventReducer._KNOWN_NO_HANDLER
 
 
 def test_decision_recorded_in_known_no_handler() -> None:
@@ -198,14 +199,14 @@ def test_reducer_task_validated_ignores_unknown_result() -> None:
 
 
 # ---------------------------------------------------------------------------
-# PhaseCompleted is in _KNOWN_NO_HANDLER — no state mutation
+# PhaseCompleted — Phase 15: now in _EVENT_SCHEMA (I-PHASE-COMPLETE-1)
 # ---------------------------------------------------------------------------
 
-def test_reducer_phase_completed_no_state_change() -> None:
+def test_reducer_phase_completed_sets_complete() -> None:
+    # Phase 15: PhaseCompleted handler sets phase_status=COMPLETE, plan_status=COMPLETE
     events = [
         _runtime_l1("PhaseCompleted", phase_id=4),
     ]
     state = reduce(events)
-    # phase_status is human-managed (I-ST-11); reducer must not mutate it
-    assert state.phase_status == EMPTY_STATE.phase_status
-    assert state.plan_status == EMPTY_STATE.plan_status
+    assert state.phase_status == "COMPLETE"
+    assert state.plan_status == "COMPLETE"

@@ -1,6 +1,6 @@
-"""sdd.guards.phase — PhaseGuard CLI (migrated to src/ in Phase 8).
+"""sdd.guards.phase — PhaseGuard CLI + phase activation guard.
 
-Invariants: PG-1..PG-3 (CLAUDE.md §R.4).
+Invariants: PG-1..PG-3 (CLAUDE.md §R.4), I-GUARD-CLI-1, I-PHASE-SEQ-FORWARD-1.
 I-GUARD-REG-2: guards resolve tasks with suffixes (e.g. T-1007b) correctly.
 Exit: 0 = allowed, 1 = rejected. JSON to stdout.
 """
@@ -11,6 +11,7 @@ import re
 import sys
 
 from sdd.infra import paths as _paths
+from sdd.infra.projections import get_current_state
 
 # Extracts a full Task ID (with optional suffix) from a command string.
 _CMD_TASK_RE = re.compile(r"(T-\d+[a-z]*)")
@@ -56,10 +57,17 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"error": "Missing --command"}))
         return 1
 
-    sp = state_path or str(_paths.state_file())
+    if not state_path:
+        print(json.dumps({
+            "error_type": "UsageError",
+            "message": "--state is required; guards do not read YAML",
+            "exit_code": 1,
+        }), file=sys.stderr)
+        sys.exit(1)
+
     try:
         from sdd.domain.state.yaml_state import read_state
-        state = read_state(sp)
+        state = read_state(state_path)
     except FileNotFoundError as e:
         print(json.dumps({
             "allowed": False,
@@ -131,6 +139,27 @@ def main(argv: list[str] | None = None) -> int:
         "sdd_event_rejected": None,
     }, indent=2))
     return 0
+
+
+def check_phase_activation_guard(phase_id: int, db_path: str) -> None:
+    """Enforce I-PHASE-SEQ-FORWARD-1: phase activation must be forward-sequential.
+
+    Gets current state via get_current_state() (I-STATE-ACCESS-LAYER-1, I-PROJECTION-GUARD-1).
+    Raises AlreadyActivated if phase_id <= state.phase_current.
+    Raises InvalidPhaseSequence if phase_id > state.phase_current + 1.
+    Returns normally if phase_id == state.phase_current + 1 (valid next phase).
+    """
+    from sdd.core.errors import AlreadyActivated, InvalidPhaseSequence
+
+    state = get_current_state(db_path)
+    if phase_id <= state.phase_current:
+        raise AlreadyActivated(
+            f"phase {phase_id} already activated; current phase is {state.phase_current}"
+        )
+    if phase_id > state.phase_current + 1:
+        raise InvalidPhaseSequence(
+            f"cannot skip phases: current is {state.phase_current}, requested {phase_id}"
+        )
 
 
 if __name__ == "__main__":

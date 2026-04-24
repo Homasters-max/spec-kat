@@ -28,7 +28,7 @@ from sdd.domain.state.yaml_state import read_state
 from sdd.domain.tasks.parser import parse_taskset
 from sdd.infra.event_store import EventStore
 from sdd.infra.paths import event_store_file, state_file, taskset_file
-from sdd.infra.projections import rebuild_state, rebuild_taskset, sync_projections
+from sdd.infra.projections import sync_projections
 
 # ---------------------------------------------------------------------------
 # Legacy command envelope shims (I-CMD-ENV-1)
@@ -140,17 +140,16 @@ class _MetricRecordedEvent(DomainEvent):
 # ---------------------------------------------------------------------------
 
 class CompleteTaskHandler(CommandHandlerBase):
-    """Mark a task DONE in TaskSet_vN.md and emit TaskImplementedEvent + MetricRecorded.
+    """Mark a task DONE: pure handler — returns [TaskImplemented, MetricRecorded] with no I/O.
 
-    Emit-first protocol: EventStore.append is called atomically BEFORE
-    rebuild_taskset so the EventLog is always the source of truth (I-ES-1,
-    I-ES-2, I-CMD-4).  A crash between append and rebuild leaves the EventLog
-    correct; the projection is rebuilt on the next run (I-ES-5).
-
-    Idempotent on command_id and semantic key (I-CMD-1, I-CMD-2b).
+    Caller (execute_and_project via REGISTRY["complete"]) is responsible for
+    EventStore.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
+    Idempotent on task.status == "DONE" (I-CMD-2b, §R.11).
     """
 
-    @error_event_boundary(source=__name__)
+    def __init__(self, db_path: str = "") -> None:
+        super().__init__(db_path)
+
     def handle(self, command: Any) -> list[DomainEvent]:
         p = _unpack_payload("CompleteTask", command.payload)
 
@@ -163,8 +162,6 @@ class CompleteTaskHandler(CommandHandlerBase):
             )
 
         if task.status == "DONE":
-            # Idempotent: task already DONE — re-sync projections and return empty (I-CMD-2b, §R.11, I-SYNC-1)
-            sync_projections(self._db_path, p.taskset_path, p.state_path)
             return []
 
         now_ms = int(time.time() * 1000)
@@ -197,15 +194,7 @@ class CompleteTaskHandler(CommandHandlerBase):
             phase_id=p.phase_id,
         )
 
-        events: list[DomainEvent] = [task_event, metric_event]
-
-        # Emit-first: persist events atomically BEFORE any file mutation (I-ES-1, I-CMD-4)
-        EventStore(self._db_path).append(events, source=__name__)
-
-        # Rebuild both projections atomically AFTER the event is in EventLog (I-ES-4, I-SYNC-1)
-        sync_projections(self._db_path, p.taskset_path, p.state_path)
-
-        return events
+        return [task_event, metric_event]
 
 
 # ---------------------------------------------------------------------------
@@ -219,17 +208,13 @@ class _TaskValidatedWithCmd(TaskValidatedEvent):
 
 
 class ValidateTaskHandler(CommandHandlerBase):
-    """Emit TaskValidatedEvent + MetricRecorded, then rebuild State_index.yaml.
+    """Pure handler: return [TaskValidated, MetricRecorded] with no I/O.
 
-    Emit-first: EventStore.append is called atomically BEFORE rebuild_state so
-    the EventLog is always the source of truth (I-ES-1, I-ES-4).  A crash
-    between append and rebuild leaves the EventLog correct; the projection is
-    rebuilt on the next run (I-ES-5).
-
+    Caller (execute_and_project via REGISTRY["validate"]) is responsible for
+    EventStore.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
     Idempotent on command_id and semantic key (I-CMD-1, I-CMD-2b).
     """
 
-    @error_event_boundary(source=__name__)
     def handle(self, command: Any) -> list[DomainEvent]:
         p = _unpack_payload("ValidateTask", command.payload)
 
@@ -269,15 +254,7 @@ class ValidateTaskHandler(CommandHandlerBase):
             phase_id=p.phase_id,
         )
 
-        events: list[DomainEvent] = [validated_event, metric_event]
-
-        # Emit-first: persist events atomically BEFORE any file mutation (I-ES-1)
-        EventStore(self._db_path).append(events, source=__name__)
-
-        # Rebuild State_index.yaml as projection AFTER events are in EventLog (I-ES-4)
-        rebuild_state(self._db_path, p.state_path)
-
-        return events
+        return [validated_event, metric_event]
 
 
 # ---------------------------------------------------------------------------
@@ -294,16 +271,16 @@ class _StateSyncedEvent(DomainEvent):
 
 
 class SyncStateHandler(CommandHandlerBase):
-    """Rebuild State_index.yaml from EventLog replay (Spec_v4 §4.5).
+    """Pure handler: returns [StateSynced] with no I/O (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
 
-    Emit-first: StateSyncedEvent appended before rebuild_state so the EventLog
-    is always the source of truth (I-ES-1, I-ES-4).  rebuild_state uses
-    atomic_write internally (I-PK-5).  Idempotent on command_id and semantic
-    key (I-CMD-1, I-CMD-8).
+    Superseded by NoOpHandler in REGISTRY["sync-state"]; retained for backward compat.
+    Caller (execute_and_project) is responsible for EventStore.append and projection rebuild.
     """
 
-    @error_event_boundary(source=__name__)
     def handle(self, command: Any) -> list[DomainEvent]:
+        if self._check_idempotent(command):
+            return []
+
         p = _unpack_payload("SyncState", command.payload)
 
         now_ms = int(time.time() * 1000)
@@ -321,15 +298,7 @@ class SyncStateHandler(CommandHandlerBase):
             timestamp=now_iso,
         )
 
-        events: list[DomainEvent] = [synced_event]
-
-        # Emit-first: persist event atomically BEFORE any file mutation (I-ES-1)
-        EventStore(self._db_path).append(events, source=__name__)
-
-        # Rebuild both projections atomically AFTER event is in EventLog (I-ES-4, I-CMD-8, I-SYNC-1)
-        sync_projections(self._db_path, p.taskset_path, p.state_path)
-
-        return events
+        return [synced_event]
 
 
 # ---------------------------------------------------------------------------
@@ -345,13 +314,13 @@ class _PhaseCompletedWithCmd(PhaseCompletedEvent):
 class CheckDoDHandler(CommandHandlerBase):
     """Check Definition of Done: ALL tasks DONE + invariants PASS + tests PASS.
 
-    Emits PhaseCompletedEvent + MetricRecorded(phase.completion_time) atomically.
+    Pure handler: returns [PhaseCompleted, MetricRecorded] with no I/O.
+    Caller (execute_and_project via REGISTRY["check-dod"]) is responsible for
+    EventStore.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
     Raises DoDNotMet if any condition fails (I-CMD-5).
-    No projection rebuild — PhaseCompleted is in _KNOWN_NO_HANDLER.
     Idempotent on command_id (I-CMD-1).
     """
 
-    @error_event_boundary(source=__name__)
     def handle(self, command: Any) -> list[DomainEvent]:
         p = _unpack_payload("CheckDoD", command.payload)
 
@@ -396,12 +365,7 @@ class CheckDoDHandler(CommandHandlerBase):
             phase_id=p.phase_id,
         )
 
-        events: list[DomainEvent] = [phase_event, metric_event]
-
-        # Emit-first: persist events atomically BEFORE returning (I-ES-1, I-CMD-5)
-        EventStore(self._db_path).append(events, source=__name__)
-
-        return events
+        return [phase_event, metric_event]
 
 
 # ---------------------------------------------------------------------------
@@ -452,39 +416,68 @@ def main(args: list[str] | None = None) -> int:
         taskset = parsed.taskset or str(taskset_file(phase_id))
 
         if parsed.cmd == "complete":
-            events = CompleteTaskHandler(parsed.db).handle(build_command(
-                "CompleteTask",
-                task_id=parsed.task_id,
-                phase_id=phase_id,
-                taskset_path=taskset,
+            # Noop fast-path: task already DONE — idempotent, bypass kernel guards (I-CMD-2b)
+            _all_tasks = parse_taskset(taskset)
+            _task_obj = next((t for t in _all_tasks if t.task_id == parsed.task_id), None)
+            if _task_obj is not None and _task_obj.status == "DONE":
+                print(json.dumps({"status": "noop", "task_id": parsed.task_id}))
+                return 0
+            # Route through Write Kernel (I-SPEC-EXEC-1, I-KERNEL-WRITE-1, I-KERNEL-PROJECT-1)
+            from sdd.commands.registry import REGISTRY, execute_and_project
+            events = execute_and_project(
+                REGISTRY["complete"],
+                build_command(
+                    "CompleteTask",
+                    task_id=parsed.task_id,
+                    phase_id=phase_id,
+                    taskset_path=taskset,
+                    state_path=parsed.state,
+                ),
+                db_path=parsed.db,
                 state_path=parsed.state,
-            ))
+                taskset_path=taskset,
+            )
             status = "noop" if not events else "done"
             print(json.dumps({"status": status, "task_id": parsed.task_id}))
         elif parsed.cmd == "validate":
             if parsed.check_dod:
-                CheckDoDHandler(parsed.db).handle(build_command(
-                    "CheckDoD",
-                    phase_id=phase_id,
+                from sdd.commands.registry import REGISTRY, execute_and_project
+                execute_and_project(
+                    REGISTRY["check-dod"],
+                    build_command(
+                        "CheckDoD",
+                        phase_id=phase_id,
+                        state_path=parsed.state,
+                    ),
+                    db_path=parsed.db,
                     state_path=parsed.state,
-                ))
+                )
             else:
-                ValidateTaskHandler(parsed.db).handle(build_command(
-                    "ValidateTask",
-                    task_id=parsed.task_id,
-                    phase_id=phase_id,
-                    result=parsed.result,
-                    check_dod=False,
-                    taskset_path=taskset,
+                from sdd.commands.registry import REGISTRY, execute_and_project
+                execute_and_project(
+                    REGISTRY["validate"],
+                    build_command(
+                        "ValidateTask",
+                        task_id=parsed.task_id,
+                        phase_id=phase_id,
+                        result=parsed.result,
+                        check_dod=False,
+                        taskset_path=taskset,
+                        state_path=parsed.state,
+                    ),
+                    db_path=parsed.db,
                     state_path=parsed.state,
-                ))
+                    taskset_path=taskset,
+                )
         elif parsed.cmd == "sync":
-            SyncStateHandler(parsed.db).handle(build_command(
-                "SyncState",
-                phase_id=phase_id,
-                taskset_path=taskset,
+            from sdd.commands.registry import REGISTRY, execute_and_project
+            execute_and_project(
+                REGISTRY["sync-state"],
+                build_command("SyncState", phase_id=phase_id, taskset_path=taskset, state_path=parsed.state),
+                db_path=parsed.db,
                 state_path=parsed.state,
-            ))
+                taskset_path=taskset,
+            )
         return 0
     except SDDError:
         return 1

@@ -119,3 +119,13 @@ class CommandHandlerBase:
             phase_id=getattr(command, "phase_id", None),
             payload_hash=command_payload_hash(command),
         )
+
+
+class NoOpHandler(CommandHandlerBase):
+    """No-operation handler — always returns [] without side effects (I-HANDLER-PURE-1)."""
+
+    def __init__(self, db_path: str = "") -> None:
+        super().__init__(db_path)
+
+    def handle(self, command: Command) -> list[DomainEvent]:
+        return []

@@ -107,9 +107,10 @@ class EventReducer:
         "ExecutionWrapperAccepted", "ExecutionWrapperRejected",
         "TestRunCompleted", "TaskRetryScheduled", "TaskFailed",
         "NormViolated", "TaskStartGuardRejected",
-        "PhaseCompleted",
         # Hook events registered for C-1 compliance (T-611); written as L2/L3 meta events.
         "ToolUseStarted", "ToolUseCompleted", "HookError",
+        # Phase 15 — ErrorEvent L2 observability; reducer ignores (I-ERROR-L2-1)
+        "ErrorOccurred",
     })
 
     # Minimal event schema registry: required payload fields per handled event type.
@@ -117,8 +118,12 @@ class EventReducer:
         "PhaseInitialized":  frozenset({"phase_id", "tasks_total", "plan_version", "actor", "timestamp"}),
         "TaskImplemented":   frozenset({"task_id", "phase_id"}),
         "TaskValidated":     frozenset({"task_id", "phase_id", "result"}),
-        "PhaseActivated":    frozenset({"phase_id", "actor", "timestamp"}),
+        "PhaseActivated":    frozenset({"phase_id", "actor", "timestamp"}),  # I-REDUCER-LEGACY-1: kept for backward compat
         "PlanActivated":     frozenset({"plan_version", "actor", "timestamp"}),
+        # Phase 15 handlers (I-PHASE-COMPLETE-1, I-PHASE-STARTED-1, I-PHASE-ORDER-1)
+        "PhaseCompleted":    frozenset({"phase_id"}),
+        "PhaseStarted":      frozenset({"phase_id", "actor"}),
+        "TaskSetDefined":    frozenset({"phase_id", "tasks_total"}),
     }
 
     # Completeness identity (I-ST-10): every V1_L1_EVENT_TYPE must be classified.
@@ -246,6 +251,12 @@ class EventReducer:
                     plan_version = raw_plan_version
                 tasks_version = plan_version
                 phase_status = "ACTIVE"
+                plan_status = "ACTIVE"
+                # D: backward-compat reset (I-PHASE-RESET-1) — prevents cross-phase task count bleed
+                tasks_completed = 0
+                tasks_done_ids_set = set()
+                invariants_status = "UNKNOWN"
+                tests_status = "UNKNOWN"
             elif event_type == "TaskImplemented":
                 task_id = event.get("task_id")
                 if isinstance(task_id, str) and task_id not in tasks_done_ids_set:
@@ -262,6 +273,41 @@ class EventReducer:
             elif event_type == "PlanActivated":
                 # I-REDUCER-2: accumulator updated, not base state mutated (Q1)
                 plan_status = "ACTIVE"
+            elif event_type == "PhaseCompleted":
+                # I-PHASE-COMPLETE-1: terminal transition for the current phase
+                phase_status = "COMPLETE"
+                plan_status = "COMPLETE"
+            elif event_type == "PhaseStarted":
+                # I-PHASE-STARTED-1: new phase begins; A-8 soft ordering guard
+                raw_phase_id = event.get("phase_id")
+                if isinstance(raw_phase_id, int):
+                    if raw_phase_id != phase_current + 1:
+                        logging.warning(
+                            "EventReducer: PhaseStarted phase_id=%r != phase_current+1=%r"
+                            " — skipping (A-8, I-PHASE-SEQ-1)",
+                            raw_phase_id, phase_current + 1,
+                        )
+                    else:
+                        phase_current = raw_phase_id
+                        phase_status = "ACTIVE"
+                        plan_status = "ACTIVE"
+                        tasks_total = 0
+                        tasks_completed = 0
+                        tasks_done_ids_set = set()
+                        invariants_status = "UNKNOWN"
+                        tests_status = "UNKNOWN"
+            elif event_type == "TaskSetDefined":
+                # I-PHASE-ORDER-1: A-19 soft ordering guard — ignore if phase mismatch
+                raw_phase_id = event.get("phase_id")
+                raw_tasks_total = event.get("tasks_total")
+                if isinstance(raw_phase_id, int) and raw_phase_id != phase_current:
+                    logging.warning(
+                        "EventReducer: TaskSetDefined phase_id=%r != phase_current=%r"
+                        " — skipping (A-19, I-PHASE-ORDER-1)",
+                        raw_phase_id, phase_current,
+                    )
+                elif isinstance(raw_tasks_total, int):
+                    tasks_total = raw_tasks_total
 
         state = SDDState(
             phase_current=phase_current,

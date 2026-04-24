@@ -340,6 +340,80 @@ def test_rebuild_state_compat_mode_no_activation_events(
     assert "T-404" in recovered.tasks_done_ids
 
 
+# ---------------------------------------------------------------------------
+# get_current_state tests (I-PROJECTION-READ-1, I-STATE-ACCESS-LAYER-1) — T-1514
+# ---------------------------------------------------------------------------
+
+
+def test_get_current_state_no_compat_fallback(
+    tmp_path: Any, tmp_db_path: str
+) -> None:
+    """get_current_state uses pure replay — no YAML compat fallback (I-PROJECTION-READ-1)."""
+    from sdd.infra.projections import get_current_state
+
+    # Empty EventLog → default PLANNED state; no YAML present to fall back to
+    state = get_current_state(tmp_db_path)
+    assert state.phase_status == "PLANNED"
+    assert state.tasks_completed == 0
+
+
+def test_get_current_state_is_deterministic(
+    tmp_path: Any, tmp_db_path: str
+) -> None:
+    """get_current_state returns identical result on repeated calls (deterministic)."""
+    from sdd.infra.projections import get_current_state
+
+    sdd_append(
+        "TaskImplemented",
+        {"task_id": "T-001", "phase_id": 1},
+        db_path=tmp_db_path,
+        level="L1",
+    )
+
+    state1 = get_current_state(tmp_db_path)
+    state2 = get_current_state(tmp_db_path)
+    assert state1 == state2
+
+
+def test_get_current_state_partial_legacy(
+    tmp_path: Any, tmp_db_path: str
+) -> None:
+    """get_current_state handles legacy PhaseActivated events correctly."""
+    from sdd.infra.projections import get_current_state
+
+    sdd_append(
+        "PhaseActivated",
+        {"phase_id": 5, "actor": "human", "timestamp": "2026-01-01T00:00:00Z"},
+        db_path=tmp_db_path,
+        level="L1",
+    )
+
+    state = get_current_state(tmp_db_path)
+    # PhaseActivated sets phase_status ACTIVE in reducer (I-REDUCER-LEGACY-1)
+    assert state.phase_status == "ACTIVE"
+
+
+def test_get_current_state_full_replay_from_seq_zero(
+    tmp_path: Any, tmp_db_path: str
+) -> None:
+    """get_current_state replays from seq=0 — all events included (I-PROJECTION-READ-1)."""
+    from sdd.infra.projections import get_current_state
+
+    for i in range(1, 4):
+        sdd_append(
+            "TaskImplemented",
+            {"task_id": f"T-00{i}", "phase_id": 1},
+            db_path=tmp_db_path,
+            level="L1",
+        )
+
+    state = get_current_state(tmp_db_path)
+    assert state.tasks_completed == 3
+    assert "T-001" in state.tasks_done_ids
+    assert "T-002" in state.tasks_done_ids
+    assert "T-003" in state.tasks_done_ids
+
+
 def test_rebuild_state_recovers_after_partial_crash(
     tmp_path: Any, tmp_db_path: str
 ) -> None:

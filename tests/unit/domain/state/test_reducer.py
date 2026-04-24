@@ -108,14 +108,14 @@ def test_reduce_task_implemented_increments_count() -> None:
     assert "T-202" in state.tasks_done_ids
 
 
-def test_reduce_phase_completed_has_no_handler() -> None:
-    """PhaseCompleted is in _KNOWN_NO_HANDLER — it does not mutate state (by design).
-    phase_status transitions are now driven by PhaseActivatedEvent (I-REDUCER-1, Phase 5).
-    """
+def test_reduce_phase_completed_has_handler() -> None:
+    """Phase 15: PhaseCompleted moved to _EVENT_SCHEMA — sets phase_status=COMPLETE (I-PHASE-COMPLETE-1)."""
     event = _runtime_l1("PhaseCompleted", phase_id=2)
     state, diag = reduce_with_diagnostics([event])
-    assert state == EMPTY_STATE
-    assert diag.events_known_no_handler == 1
+    assert state.phase_status == "COMPLETE"
+    assert state.plan_status == "COMPLETE"
+    assert diag.events_processed == 1
+    assert diag.events_known_no_handler == 0
 
 
 def test_reduce_is_deterministic() -> None:

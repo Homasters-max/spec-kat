@@ -20,11 +20,14 @@ class GuardOutcome(Enum):
 
 @dataclass(frozen=True)
 class GuardResult:
-    outcome:    GuardOutcome
-    guard_name: str
-    message:    str
-    norm_id:    str | None
-    task_id:    str | None
+    outcome:             GuardOutcome
+    guard_name:          str
+    message:             str
+    norm_id:             str | None
+    task_id:             str | None
+    reason:              str | None = None   # GUARD_DENY.<guard>.<rule_id> (I-GUARD-REASON-1)
+    human_reason:        str | None = None   # ≤140 chars, no internal IDs (I-HUMAN-REASON-1)
+    violated_invariant:  str | None = None   # I-* if applicable (I-GUARD-REASON-1)
 
 
 @dataclass(frozen=True)

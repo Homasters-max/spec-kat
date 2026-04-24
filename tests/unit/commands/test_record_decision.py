@@ -51,13 +51,15 @@ def test_record_decision_emits_event(handler: RecordDecisionHandler) -> None:
 # ---------------------------------------------------------------------------
 
 def test_record_decision_idempotent(handler: RecordDecisionHandler) -> None:
-    """Second call with the same command_id returns [] (I-CMD-1)."""
+    """handle() always returns [DecisionRecordedEvent]; kernel enforces idempotency (I-HANDLER-PURE-1).
+    Pure handler has no EventStore.append — duplicate-detection is execute_command's responsibility.
+    """
     cmd = _cmd(command_id="cmd-record-idem")
     events_first = handler.handle(cmd)
     events_second = handler.handle(cmd)
 
     assert len(events_first) == 1
-    assert events_second == []
+    assert len(events_second) == 1  # pure handler; kernel's command_id UNIQUE constraint deduplicates
 
 
 # ---------------------------------------------------------------------------

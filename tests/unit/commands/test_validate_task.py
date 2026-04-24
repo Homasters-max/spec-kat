@@ -104,28 +104,34 @@ def _make_cmd(
 # Tests
 # ---------------------------------------------------------------------------
 
-def test_validate_pass_updates_state(db_path, taskset_file, state_file):
-    """Calling with result=PASS writes invariants_status=PASS and tests_status=PASS."""
+def test_validate_pass_returns_pass_result(db_path, taskset_file, state_file):
+    """Pure handler: result=PASS → TaskValidated event carries result=PASS (I-HANDLER-PURE-1).
+
+    State update is the kernel's responsibility via execute_and_project (I-KERNEL-WRITE-1).
+    """
     cmd = _make_cmd("T-412", "PASS", taskset_file, state_file)
-    ValidateTaskHandler(db_path).handle(cmd)
+    events = ValidateTaskHandler(db_path).handle(cmd)
 
-    state = read_state(state_file)
-    assert state.invariants_status == "PASS"
-    assert state.tests_status == "PASS"
+    validated = [e for e in events if e.event_type == "TaskValidated"]
+    assert len(validated) == 1
+    assert validated[0].result == "PASS"  # type: ignore[attr-defined]
 
 
-def test_validate_fail_updates_state(db_path, taskset_file, state_file):
-    """Calling with result=FAIL writes invariants_status=FAIL and tests_status=FAIL."""
+def test_validate_fail_returns_fail_result(db_path, taskset_file, state_file):
+    """Pure handler: result=FAIL → TaskValidated event carries result=FAIL (I-HANDLER-PURE-1).
+
+    State update is the kernel's responsibility via execute_and_project (I-KERNEL-WRITE-1).
+    """
     cmd = _make_cmd("T-412", "FAIL", taskset_file, state_file)
-    ValidateTaskHandler(db_path).handle(cmd)
+    events = ValidateTaskHandler(db_path).handle(cmd)
 
-    state = read_state(state_file)
-    assert state.invariants_status == "FAIL"
-    assert state.tests_status == "FAIL"
+    validated = [e for e in events if e.event_type == "TaskValidated"]
+    assert len(validated) == 1
+    assert validated[0].result == "FAIL"  # type: ignore[attr-defined]
 
 
-def test_validate_task_idempotent(db_path, taskset_file, state_file):
-    """Second call with the same command_id returns [] (I-CMD-1)."""
+def test_validate_task_pure_always_returns_events(db_path, taskset_file, state_file):
+    """Pure handler always returns events; idempotency is enforced by the kernel (I-HANDLER-PURE-1)."""
     cmd = _make_cmd("T-412", "PASS", taskset_file, state_file)
     handler = ValidateTaskHandler(db_path)
 
@@ -133,7 +139,7 @@ def test_validate_task_idempotent(db_path, taskset_file, state_file):
     events_second = handler.handle(cmd)
 
     assert len(events_first) > 0
-    assert events_second == []
+    assert len(events_second) > 0
 
 
 def test_validate_emits_task_validated_event(db_path, taskset_file, state_file):

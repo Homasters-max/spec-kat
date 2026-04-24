@@ -1,6 +1,6 @@
-"""RecordDecisionHandler — Spec_v4 §4.10.
+"""RecordDecisionHandler — Spec_v15 §1 Scope (Amendment A-1), Spec_v4 §4.10.
 
-Invariants: I-CMD-1, I-CMD-9
+Invariants: I-CMD-9, I-HANDLER-PURE-1, I-DECISION-AUDIT-1
 """
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from typing import Any
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.errors import InvalidState
 from sdd.core.events import DecisionRecordedEvent, DomainEvent, classify_event_level
-from sdd.infra.event_store import EventStore
 
 _DECISION_ID_RE = re.compile(r'^D-\d+$')
 _SUMMARY_MAX_LEN = 500
@@ -43,14 +42,15 @@ class _DecisionRecordedWithCmd(DecisionRecordedEvent):
 
 class RecordDecisionHandler(CommandHandlerBase):
     """Persist a design decision in the EventLog as DecisionRecordedEvent.
-    Used to record D-* entries from sdd_plan.md into the immutable event log.
+    Pure handler: returns events only, no I/O (I-HANDLER-PURE-1, I-DECISION-AUDIT-1).
+    Kernel (execute_command) is responsible for EventStore.append (I-SPEC-EXEC-1).
     """
+
+    def __init__(self, db_path: str = "") -> None:
+        super().__init__(db_path)
 
     @error_event_boundary(source=__name__)
     def handle(self, command: RecordDecisionCommand) -> list[DomainEvent]:
-        if self._check_idempotent(command):
-            return []
-
         if not _DECISION_ID_RE.match(command.decision_id):
             raise InvalidState(
                 f"decision_id {command.decision_id!r} must match D-<number> pattern"
@@ -64,7 +64,7 @@ class RecordDecisionHandler(CommandHandlerBase):
         now_ms = int(time.time() * 1000)
         now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        event = _DecisionRecordedWithCmd(
+        return [_DecisionRecordedWithCmd(
             event_type="DecisionRecorded",
             event_id=str(uuid.uuid4()),
             appended_at=now_ms,
@@ -77,7 +77,4 @@ class RecordDecisionHandler(CommandHandlerBase):
             phase_id=command.phase_id,
             timestamp=now_iso,
             command_id=command.command_id,
-        )
-
-        EventStore(self._db_path).append([event], source=__name__)
-        return [event]
+        )]

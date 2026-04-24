@@ -1,11 +1,13 @@
 """Tests for CompleteTaskHandler — Spec_v4 §9 Verification row 4.
 
-Invariants: I-CMD-1, I-CMD-4, I-ES-1, I-ES-2, I-ES-4, I-SYNC-1
+Invariants: I-CMD-1, I-CMD-2b, I-ES-2, I-HANDLER-PURE-1, I-KERNEL-WRITE-1
 """
 from __future__ import annotations
 
 import json
+import time
 import uuid
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -42,46 +44,49 @@ def handler(tmp_path):
     return CompleteTaskHandler(db_path=str(tmp_path / "test.duckdb"))
 
 
+def _seed_active_phase(db_path: str, phase_id: int, tasks_total: int) -> None:
+    """Seed EventLog with PhaseInitialized so EventReducer derives ACTIVE state."""
+    from sdd.infra.event_log import sdd_append
+    sdd_append(
+        "PhaseInitialized",
+        {
+            "phase_id": phase_id,
+            "tasks_total": tasks_total,
+            "plan_version": phase_id,
+            "actor": "test-seed",
+            "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+        db_path=db_path,
+        level="L1",
+    )
+
+
 # ---------------------------------------------------------------------------
-# Emit-first ordering (I-ES-1, I-CMD-4)
+# Handler purity (I-HANDLER-PURE-1): no EventStore.append, no sync_projections
 # ---------------------------------------------------------------------------
 
-class TestEmitFirst:
+class TestHandlerPurity:
     @patch("sdd.commands.update_state.sync_projections")
     @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
-    def test_complete_task_appends_event_before_file_write(
+    def test_handler_does_not_call_eventstore(
         self, mock_parse, mock_event_store_cls, mock_sync, handler
     ):
-        """EventStore.append is called before sync_projections (I-ES-1, I-CMD-4, I-SYNC-1)."""
-        call_order: list[str] = []
-
+        """Pure handler: EventStore.append never called from handle() (I-HANDLER-PURE-1)."""
         mock_parse.return_value = [_task("T-401")]
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
-        mock_store.append.side_effect = lambda *a, **kw: call_order.append("append")
-        mock_sync.side_effect = lambda *a, **kw: call_order.append("sync")
-
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            handler.handle(_command("T-401"))
-
-        assert call_order == ["append", "sync"]
+        handler.handle(_command("T-401"))
+        mock_event_store_cls.return_value.append.assert_not_called()
 
     @patch("sdd.commands.update_state.sync_projections")
     @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
-    def test_complete_task_syncs_both_projections_after_append(
+    def test_handler_does_not_call_sync_projections(
         self, mock_parse, mock_event_store_cls, mock_sync, handler
     ):
-        """sync_projections called with db_path, taskset_path, state_path (I-ES-4, I-SYNC-1)."""
+        """Pure handler: sync_projections never called from handle() (I-HANDLER-PURE-1)."""
         mock_parse.return_value = [_task("T-401")]
-        mock_event_store_cls.return_value = MagicMock()
-        cmd = _command("T-401")
-
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            handler.handle(cmd)
-
-        mock_sync.assert_called_once_with(handler._db_path, cmd.taskset_path, cmd.state_path)
+        handler.handle(_command("T-401"))
+        mock_sync.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -89,26 +94,18 @@ class TestEmitFirst:
 # ---------------------------------------------------------------------------
 
 class TestBatchEmission:
-    @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_complete_task_emits_batch(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, handler
     ):
-        """Handler returns [TaskImplemented, MetricRecorded] and passes both to append (I-ES-2)."""
+        """Handler returns [TaskImplemented, MetricRecorded] (I-ES-2)."""
         mock_parse.return_value = [_task("T-401")]
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            events = handler.handle(_command("T-401"))
+        events = handler.handle(_command("T-401"))
 
         assert len(events) == 2
         event_types = {e.event_type for e in events}
         assert event_types == {"TaskImplemented", "MetricRecorded"}
-
-        appended_batch = mock_store.append.call_args[0][0]
-        assert len(appended_batch) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -122,16 +119,13 @@ class TestIdempotency:
     def test_complete_task_idempotent(
         self, mock_parse, mock_event_store_cls, mock_sync, handler
     ):
-        """Duplicate command_id returns [] without emitting or syncing (I-CMD-1)."""
-        mock_parse.return_value = [_task("T-401")]
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
+        """Task already DONE returns [] without emitting or syncing (I-CMD-1)."""
+        mock_parse.return_value = [_task("T-401", status="DONE")]
 
-        with patch.object(handler, "_check_idempotent", return_value=True):
-            result = handler.handle(_command("T-401"))
+        result = handler.handle(_command("T-401"))
 
         assert result == []
-        mock_store.append.assert_not_called()
+        mock_event_store_cls.return_value.append.assert_not_called()
         mock_sync.assert_not_called()
 
     @patch("sdd.commands.update_state.sync_projections")
@@ -140,16 +134,13 @@ class TestIdempotency:
     def test_complete_task_semantic_idempotent(
         self, mock_parse, mock_event_store_cls, mock_sync, handler
     ):
-        """Semantic duplicate (same task_id+phase_id) is detected and returns [] (I-CMD-2b)."""
-        mock_parse.return_value = [_task("T-401")]
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
+        """Semantic duplicate (task already DONE) returns [] (I-CMD-2b)."""
+        mock_parse.return_value = [_task("T-401", status="DONE")]
 
-        with patch.object(handler, "_check_idempotent", return_value=True):
-            result = handler.handle(_command("T-401"))
+        result = handler.handle(_command("T-401"))
 
         assert result == []
-        mock_store.append.assert_not_called()
+        mock_event_store_cls.return_value.append.assert_not_called()
         mock_sync.assert_not_called()
 
 
@@ -158,18 +149,15 @@ class TestIdempotency:
 # ---------------------------------------------------------------------------
 
 class TestErrorCases:
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_complete_task_missing_task_raises(
-        self, mock_parse, mock_event_store_cls, handler
+        self, mock_parse, handler
     ):
         """MissingContext raised when task_id is absent from TaskSet."""
         mock_parse.return_value = [_task("T-999")]
-        mock_event_store_cls.return_value = MagicMock()
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            with pytest.raises(MissingContext):
-                handler.handle(_command("T-401"))
+        with pytest.raises(MissingContext):
+            handler.handle(_command("T-401"))
 
     @patch("sdd.commands.update_state.sync_projections")
     @patch("sdd.commands.update_state.EventStore")
@@ -177,21 +165,19 @@ class TestErrorCases:
     def test_complete_task_already_done_is_noop(
         self, mock_parse, mock_event_store_cls, mock_sync, handler
     ):
-        """Already-DONE task: returns [], no events, sync_projections called once (§R.11, I-CMD-2b, I-SYNC-1)."""
+        """Already-DONE task: returns [], no events, no sync (§R.11, I-CMD-2b, I-HANDLER-PURE-1)."""
         mock_parse.return_value = [_task("T-401", status="DONE")]
-        mock_event_store_cls.return_value = MagicMock()
         cmd = _command("T-401")
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            result = handler.handle(cmd)
+        result = handler.handle(cmd)
 
         assert result == []
         mock_event_store_cls.return_value.append.assert_not_called()
-        mock_sync.assert_called_once_with(handler._db_path, cmd.taskset_path, cmd.state_path)
+        mock_sync.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
-# Atomicity (I-ES-1)
+# Atomicity: kernel owns EventStore; handler is pure (I-KERNEL-WRITE-1)
 # ---------------------------------------------------------------------------
 
 class TestAtomicity:
@@ -201,16 +187,15 @@ class TestAtomicity:
     def test_batch_is_atomic_on_failure(
         self, mock_parse, mock_event_store_cls, mock_sync, handler
     ):
-        """sync_projections never called when EventStore.append raises (I-ES-1 atomicity, I-SYNC-1)."""
+        """Pure handler returns events without calling EventStore/sync — atomicity owned by kernel (I-KERNEL-WRITE-1)."""
         mock_parse.return_value = [_task("T-401")]
         mock_store = MagicMock()
         mock_event_store_cls.return_value = mock_store
-        mock_store.append.side_effect = RuntimeError("DuckDB write failed")
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            with pytest.raises(RuntimeError, match="DuckDB write failed"):
-                handler.handle(_command("T-401"))
+        events = handler.handle(_command("T-401"))
 
+        assert len(events) == 2
+        mock_store.append.assert_not_called()
         mock_sync.assert_not_called()
 
 
@@ -225,25 +210,23 @@ class TestNoDirectFileWrite:
     def test_no_direct_file_write_in_handler(
         self, mock_parse, mock_event_store_cls, mock_sync, handler
     ):
-        """Handler never calls open() directly; all file mutations go through sync_projections (I-SYNC-1)."""
+        """Handler never calls open() directly; all file mutations go through the kernel (I-CMD-4)."""
         mock_parse.return_value = [_task("T-401")]
         mock_event_store_cls.return_value = MagicMock()
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            with patch("builtins.open") as mock_open:
-                handler.handle(_command("T-401"))
-                mock_open.assert_not_called()
+        with patch("builtins.open") as mock_open:
+            handler.handle(_command("T-401"))
+            mock_open.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
-# Status signal (stdout JSON)  — I-SYNC-1, §R.11
+# Status signal (stdout JSON) — sdd complete routes through execute_and_project
 # ---------------------------------------------------------------------------
 
 class TestStatusSignal:
     def test_complete_new_task_emits_done_signal(self, tmp_path, capsys):
         """main() prints {"status": "done", "task_id": ...} when task transitions TODO → DONE."""
         import yaml
-        from sdd.infra.projections import rebuild_state, rebuild_taskset
 
         taskset = tmp_path / "TaskSet_v4.md"
         taskset.write_text("T-401: My task\n\nStatus:               TODO\n")
@@ -260,6 +243,8 @@ class TestStatusSignal:
         }))
 
         db = str(tmp_path / "events.duckdb")
+        _seed_active_phase(db, phase_id=4, tasks_total=1)
+
         rc = main([
             "complete", "T-401",
             "--phase", "4",
@@ -323,6 +308,8 @@ class TestStatusSignal:
                      "snapshot_event_id": None},
         }))
         db = str(tmp_path / "events.duckdb")
+        _seed_active_phase(db, phase_id=4, tasks_total=1)
+
         rc = main([
             "complete", "T-401",
             "--phase", "4", "--taskset", str(taskset),

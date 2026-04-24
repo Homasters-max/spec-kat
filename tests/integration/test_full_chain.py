@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 
 from sdd.commands.activate_phase import ActivatePhaseCommand, ActivatePhaseHandler
-from sdd.core.events import PhaseActivatedEvent
+from sdd.core.events import PhaseInitializedEvent, PhaseStartedEvent
 from sdd.domain.state.reducer import reduce
 from sdd.infra.event_log import sdd_append, sdd_replay
 
@@ -36,8 +36,8 @@ def _append_phase_activated(db_path: str, phase_id: int = 5) -> None:
 
 
 def test_full_chain_activate_phase(tmp_db_path: str) -> None:
-    """Full chain: ActivatePhaseHandler → PhaseActivatedEvent → sdd_replay → reduce →
-    state.phase_status == 'ACTIVE' (Q3, UC-5-4).
+    """Full chain: ActivatePhaseHandler → [PhaseStarted, PhaseInitialized] → sdd_replay → reduce →
+    state.phase_status == 'ACTIVE' (Q3, UC-5-4, I-PHASE-EVENT-PAIR-1).
 
     Tests the command → event → EventLog → replay → state derivation chain
     without a tautological YAML round-trip.
@@ -49,39 +49,43 @@ def test_full_chain_activate_phase(tmp_db_path: str) -> None:
         command_id=str(uuid.uuid4()),
         command_type="ActivatePhaseCommand",
         payload={},
-        phase_id=5,
+        phase_id=1,  # phase_id=1 so PhaseStarted phase_id == phase_current(0)+1 (A-8 ordering)
         actor="human",
+        tasks_total=5,
     )
 
-    # Step 1: Handler emits PhaseActivatedEvent
+    # Step 1: Handler emits [PhaseStarted, PhaseInitialized] (pure — no I/O)
     handler = ActivatePhaseHandler(tmp_db_path)
     events = handler.handle(cmd)
 
-    # Step 2: Assert the correct event type is returned
-    assert any(isinstance(e, PhaseActivatedEvent) for e in events), (
-        "ActivatePhaseHandler must return a PhaseActivatedEvent"
+    # Step 2: Assert canonical pair is returned (I-PHASE-EVENT-PAIR-1)
+    assert len(events) == 2
+    assert isinstance(events[0], PhaseStartedEvent), (
+        "ActivatePhaseHandler must return PhaseStartedEvent as result[0]"
+    )
+    assert isinstance(events[1], PhaseInitializedEvent), (
+        "ActivatePhaseHandler must return PhaseInitializedEvent as result[1]"
     )
 
-    # Step 3: Simulate CommandRunner appending the emitted event to EventLog
+    # Step 3: Simulate kernel appending the emitted events to EventLog
     for evt in events:
-        sdd_append(
-            evt.event_type,
-            {
-                "command_id": cmd.command_id,
-                "phase_id": getattr(evt, "phase_id", None),
-                "actor": getattr(evt, "actor", None),
-                "timestamp": getattr(evt, "timestamp", ""),
-            },
-            db_path=tmp_db_path,
-            level="L1",
-        )
+        payload: dict = {"phase_id": getattr(evt, "phase_id", None)}
+        if hasattr(evt, "actor"):
+            payload["actor"] = evt.actor
+        if hasattr(evt, "tasks_total"):
+            payload["tasks_total"] = evt.tasks_total
+        if hasattr(evt, "plan_version"):
+            payload["plan_version"] = evt.plan_version
+        if hasattr(evt, "timestamp"):
+            payload["timestamp"] = evt.timestamp
+        sdd_append(evt.event_type, payload, db_path=tmp_db_path, level="L1")
 
     # Step 4: Replay EventLog → reduce → derive state
     raw_events = sdd_replay(db_path=tmp_db_path)
     state = reduce(raw_events)
 
     assert state.phase_status == "ACTIVE", (
-        "After PhaseActivatedEvent, state.phase_status must be 'ACTIVE' (Q1 + Q3)"
+        "After PhaseStarted+PhaseInitialized, state.phase_status must be 'ACTIVE' (Q1 + Q3)"
     )
 
 

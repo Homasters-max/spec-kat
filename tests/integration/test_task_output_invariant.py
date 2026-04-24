@@ -6,6 +6,7 @@ been renamed or removed in subsequent phases).
 Exemptions:
   - Paths under .sdd/_deprecated_tools/ (archived, not on runtime path — I-ENV-BOOT-1a)
   - Paths that are descriptive notes (contain whitespace after stripping)
+  - Paths explicitly marked "(deleted)" in any task's Outputs (intentional deletion)
 """
 from __future__ import annotations
 
@@ -74,15 +75,50 @@ def _parse_done_tasks(taskset_path: Path) -> list[tuple[str, list[Path]]]:
     return results
 
 
-def _is_exempt(path: Path) -> bool:
-    """Paths under .sdd/_deprecated_tools/ are exempt (I-ENV-BOOT-1a)."""
+def _collect_deleted_paths(taskset_path: Path) -> set[Path]:
+    """Collect paths explicitly marked deleted in the TaskSet.
+
+    Matches:
+      - "some/path (deleted..." — Outputs annotation with full path
+      - bare "filename.py deleted (git rm)" — Acceptance criteria; resolved via DONE-task outputs
+    """
+    text = taskset_path.read_text(encoding="utf-8")
+    deleted: set[Path] = set()
+    deleted_basenames: set[str] = set()
+
+    for line in text.splitlines():
+        # Full-path annotation: "src/sdd/guards/pipeline.py (deleted..."
+        m = re.match(r"\s*([\w./_\-]+)\s+\(deleted", line)
+        if m:
+            deleted.add(PROJECT_ROOT / m.group(1))
+            continue
+        # Basename-only: "sdd_run.py deleted (git rm)"
+        m2 = re.search(r"\b([\w\-]+\.py)\s+deleted\b", line)
+        if m2:
+            deleted_basenames.add(m2.group(1))
+
+    # Resolve basenames against all DONE-task declared outputs
+    if deleted_basenames:
+        all_outputs: set[Path] = set()
+        for _task_id, paths in _parse_done_tasks(taskset_path):
+            all_outputs.update(PROJECT_ROOT / p for p in paths)
+        for p in all_outputs:
+            if p.name in deleted_basenames:
+                deleted.add(p)
+
+    return deleted
+
+
+def _is_exempt(path: Path, deleted_paths: set[Path]) -> bool:
+    """Paths under .sdd/_deprecated_tools/ or marked deleted are exempt."""
     try:
         path.relative_to(PROJECT_ROOT / DEPRECATED_PREFIX)
         return True
     except ValueError:
         pass
-    # Also exempt by string prefix (for relative paths not yet resolved)
-    return str(path).startswith(DEPRECATED_PREFIX)
+    if str(path).startswith(DEPRECATED_PREFIX):
+        return True
+    return path in deleted_paths
 
 
 def _collect_cases() -> list[tuple[str, Path, str]]:
@@ -91,11 +127,12 @@ def _collect_cases() -> list[tuple[str, Path, str]]:
     taskset_path = PROJECT_ROOT / f".sdd/tasks/TaskSet_v{phase}.md"
     if not taskset_path.exists():
         return []
+    deleted_paths = _collect_deleted_paths(taskset_path)
     cases = []
     for task_id, paths in _parse_done_tasks(taskset_path):
         for p in paths:
             abs_p = p if p.is_absolute() else PROJECT_ROOT / p
-            if not _is_exempt(abs_p):
+            if not _is_exempt(abs_p, deleted_paths):
                 cases.append((task_id, abs_p, taskset_path.name))
     return cases
 

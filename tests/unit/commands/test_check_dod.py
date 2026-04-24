@@ -129,37 +129,19 @@ class TestDoDConditions:
 
 
 # ---------------------------------------------------------------------------
-# Idempotency (I-CMD-1)
+# Purity (I-HANDLER-PURE-1) — kernel is sole EventStore writer
 # ---------------------------------------------------------------------------
 
-class TestIdempotency:
+class TestPurity:
     @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.read_state")
-    def test_check_dod_idempotent(
+    def test_check_dod_handler_does_not_call_event_store(
         self, mock_read_state, mock_event_store_cls, handler
     ):
-        """Duplicate command_id returns [] without reading state or emitting (I-CMD-1)."""
-        mock_event_store_cls.return_value = MagicMock()
+        """Pure handler: EventStore.append MUST NOT be called inside handle() (I-HANDLER-PURE-1).
 
-        with patch.object(handler, "_check_idempotent", return_value=True):
-            result = handler.handle(_command())
-
-        assert result == []
-        mock_read_state.assert_not_called()
-        mock_event_store_cls.return_value.append.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# Batch atomicity (I-ES-1)
-# ---------------------------------------------------------------------------
-
-class TestBatchAtomicity:
-    @patch("sdd.commands.update_state.EventStore")
-    @patch("sdd.commands.update_state.read_state")
-    def test_phase_completed_batch_atomic(
-        self, mock_read_state, mock_event_store_cls, handler
-    ):
-        """PhaseCompletedEvent + MetricRecorded appended in a single batch call (I-ES-1)."""
+        Kernel (execute_and_project via REGISTRY["check-dod"]) owns EventStore writes.
+        """
         mock_read_state.return_value = _state()
         mock_store = MagicMock()
         mock_event_store_cls.return_value = mock_store
@@ -167,8 +149,24 @@ class TestBatchAtomicity:
         with patch.object(handler, "_check_idempotent", return_value=False):
             handler.handle(_command())
 
-        mock_store.append.assert_called_once()
-        appended = mock_store.append.call_args[0][0]
-        assert len(appended) == 2
-        event_types = {e.event_type for e in appended}
+        mock_store.append.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Batch composition (I-ES-1) — kernel appends as one batch
+# ---------------------------------------------------------------------------
+
+class TestBatchAtomicity:
+    @patch("sdd.commands.update_state.read_state")
+    def test_phase_completed_batch_atomic(
+        self, mock_read_state, handler
+    ):
+        """handle() returns [PhaseCompleted, MetricRecorded] as a single batch for kernel to commit (I-ES-1)."""
+        mock_read_state.return_value = _state()
+
+        with patch.object(handler, "_check_idempotent", return_value=False):
+            events = handler.handle(_command())
+
+        assert len(events) == 2
+        event_types = {e.event_type for e in events}
         assert event_types == {"PhaseCompleted", "MetricRecorded"}

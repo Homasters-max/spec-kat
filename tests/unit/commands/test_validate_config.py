@@ -1,10 +1,9 @@
-"""Tests for ValidateConfigHandler — Spec_v4 §9 Verification row 9.
+"""Tests for validate_project_config — Spec_v4 §9 Verification row 9.
 
-Invariants: I-CMD-1
+Invariants: I-READ-ONLY-EXCEPTION-1, I-2
 """
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
 
 import pytest
@@ -12,24 +11,13 @@ import yaml
 
 from sdd.commands.validate_config import (
     ConfigValidationError,
-    ValidateConfigCommand,
-    ValidateConfigHandler,
+    validate_project_config,
 )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _command(config_path: str, phase_id: int = 4) -> ValidateConfigCommand:
-    return ValidateConfigCommand(
-        command_id=str(uuid.uuid4()),
-        command_type="ValidateConfig",
-        payload={},
-        phase_id=phase_id,
-        config_path=config_path,
-    )
-
 
 def _write_profile(path: Path, data: dict) -> str:
     path.write_text(yaml.dump(data), encoding="utf-8")
@@ -43,19 +31,14 @@ _VALID_PROFILE = {
 }
 
 
-@pytest.fixture
-def handler(tmp_path):
-    return ValidateConfigHandler(db_path=str(tmp_path / "test.duckdb"))
-
-
 # ---------------------------------------------------------------------------
-# test_valid_config_returns_empty
+# test_valid_config_returns_none
 # ---------------------------------------------------------------------------
 
-def test_valid_config_returns_empty(handler, tmp_path):
+def test_valid_config_returns_none(tmp_path):
     profile = _write_profile(tmp_path / "project_profile.yaml", _VALID_PROFILE)
-    result = handler.handle(_command(profile))
-    assert result == []
+    result = validate_project_config(phase_id=4, config_path=profile)
+    assert result is None
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +47,6 @@ def test_valid_config_returns_empty(handler, tmp_path):
 
 @pytest.mark.parametrize("missing_field,profile_override", [
     (
-        # stack.language has no base default — always missing if not in profile
         "stack.language",
         {
             "stack": {},
@@ -73,7 +55,6 @@ def test_valid_config_returns_empty(handler, tmp_path):
         },
     ),
     (
-        # stack.language absent when stack key itself is missing
         "stack.language",
         {
             "build": {"commands": {"test": "pytest"}},
@@ -81,13 +62,13 @@ def test_valid_config_returns_empty(handler, tmp_path):
         },
     ),
 ])
-def test_missing_required_field_raises(handler, tmp_path, missing_field, profile_override):
+def test_missing_required_field_raises(tmp_path, missing_field, profile_override):
     profile = _write_profile(tmp_path / "project_profile.yaml", profile_override)
     with pytest.raises(ConfigValidationError, match=missing_field):
-        handler.handle(_command(profile))
+        validate_project_config(phase_id=4, config_path=profile)
 
 
-def test_wrong_type_raises(handler, tmp_path):
+def test_wrong_type_raises(tmp_path):
     bad_profile = {
         "stack": {"language": 42},  # must be str
         "build": {"commands": {"test": "pytest"}},
@@ -95,17 +76,16 @@ def test_wrong_type_raises(handler, tmp_path):
     }
     profile = _write_profile(tmp_path / "project_profile.yaml", bad_profile)
     with pytest.raises(ConfigValidationError, match="stack.language"):
-        handler.handle(_command(profile))
+        validate_project_config(phase_id=4, config_path=profile)
 
 
 # ---------------------------------------------------------------------------
 # test_validate_config_idempotent
 # ---------------------------------------------------------------------------
 
-def test_validate_config_idempotent(handler, tmp_path):
+def test_validate_config_idempotent(tmp_path):
     profile = _write_profile(tmp_path / "project_profile.yaml", _VALID_PROFILE)
-    cmd = _command(profile)
-    result1 = handler.handle(cmd)
-    result2 = handler.handle(cmd)
-    assert result1 == []
-    assert result2 == []
+    result1 = validate_project_config(phase_id=4, config_path=profile)
+    result2 = validate_project_config(phase_id=4, config_path=profile)
+    assert result1 is None
+    assert result2 is None

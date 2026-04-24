@@ -71,12 +71,6 @@ class ActivatePlanPayload:
 
 
 @dataclass(frozen=True)
-class ValidateConfigPayload:
-    phase_id:    int
-    config_path: str
-
-
-@dataclass(frozen=True)
 class MetricsReportPayload:
     phase_id:    int
     output_path: str | None
@@ -99,7 +93,6 @@ COMMAND_REGISTRY: Final[dict[str, type[Any]]] = {
     "ValidateInvariants": ValidateInvariantsPayload,
     "ActivatePhase":      ActivatePhasePayload,
     "ActivatePlan":       ActivatePlanPayload,
-    "ValidateConfig":     ValidateConfigPayload,
     "MetricsReport":      MetricsReportPayload,
     "RecordDecision":     RecordDecisionPayload,
 }

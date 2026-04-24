@@ -1,7 +1,8 @@
 """Projection rebuilders — EventLog → TaskSet.md and State_index.yaml (I-ES-4, I-ES-5).
 
-Spec: Spec_v4 §2 BC-INFRA extensions
-Invariants: I-ES-4, I-ES-5, I-PK-5, I-SYNC-1
+Spec: Spec_v4 §2 BC-INFRA extensions, Spec_v15 §2 BC-2
+Invariants: I-ES-4, I-ES-5, I-PK-5, I-SYNC-1, I-REBUILD-STRICT-1,
+            I-REBUILD-EMERGENCY-1, I-REBUILD-EMERGENCY-2, I-ES-REPLAY-1
 
 I-SYNC-1: every task-state mutation MUST rebuild both projections atomically via
 sync_projections(). Calling rebuild_taskset or rebuild_state individually after
@@ -9,118 +10,108 @@ a mutation is forbidden — use sync_projections() as the sole mutation path.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
+import logging
+import os
 import re
 from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
 
 from sdd.domain.state.reducer import EventReducer, SDDState
 from sdd.domain.state.yaml_state import read_state, write_state
 from sdd.infra.audit import atomic_write
 from sdd.infra.db import open_sdd_connection
+from sdd.infra.paths import event_store_file, state_file
 
 _TASK_HEADER_RE = re.compile(r"^(T-\d+[a-z]*):\s")  # I-TASK-ID-1: suffix support
 _STATUS_LINE_RE = re.compile(r"^(Status:\s+)(TODO|DONE)(.*)$")
 
 
-def _replay_all(db_path: str) -> list[dict]:
-    """Fetch all events from the EventLog ordered by seq ASC."""
-    conn = open_sdd_connection(db_path)
-    try:
-        rows = conn.execute(
-            "SELECT event_type, payload, level, event_source, caused_by_meta_seq "
-            "FROM events ORDER BY seq ASC"
-        ).fetchall()
-    finally:
-        conn.close()
-
-    events = []
-    for event_type, payload_str, level, event_source, caused_by_meta_seq in rows:
-        try:
-            payload: dict = json.loads(payload_str) if payload_str else {}
-        except Exception:
-            payload = {}
-        event: dict = {
-            "event_type": event_type,
-            "level": level,
-            "event_source": event_source,
-            "caused_by_meta_seq": caused_by_meta_seq,
-        }
-        event.update(payload)
-        events.append(event)
-    return events
+class RebuildMode(Enum):
+    STRICT    = "strict"     # YAML ignored entirely (default, always correct post-Phase 15)
+    EMERGENCY = "emergency"  # break-glass: empty EventLog bootstrap only (operator-direct)
 
 
-def rebuild_state(db_path: str, state_path: str) -> None:
-    """Rebuild State_index.yaml from EventLog replay (I-ES-4, I-ES-5).
-
-    Derives tasks_completed and tasks_done_ids from EventLog filtered to the
-    current phase. Non-event-sourced fields (phase_current, plan_version,
-    tasks_version, tasks_total) and human-managed fields (phase_status,
-    plan_status) are preserved from the existing file. Writes atomically via
-    write_state (I-PK-5). Idempotent.
-    """
-    phase_current = 0
-    plan_version = 0
-    tasks_version = 0
-    tasks_total = 0
-    phase_status = "PLANNED"
-    plan_status = "PLANNED"
-    invariants_status = "UNKNOWN"
-    tests_status = "UNKNOWN"
+def _read_yaml_phase_current(state_path: str) -> int:
+    """Read phase_current from existing YAML state (EMERGENCY bootstrap only)."""
     try:
         existing = read_state(state_path)
-        phase_current = existing.phase_current
-        plan_version = existing.plan_version
-        tasks_version = existing.tasks_version
-        tasks_total = existing.tasks_total
-        phase_status = existing.phase_status
-        plan_status = existing.plan_status
-        invariants_status = existing.invariants_status
-        tests_status = existing.tests_status
+        return existing.phase_current
     except Exception:
-        pass
+        return 0
 
-    all_events = _replay_all(db_path)
-    # Filter to events for the current phase only. Events without phase_id
-    # (e.g. PlanActivated) are kept so the reducer can derive plan metadata.
-    if phase_current:
-        events = [
-            e for e in all_events
-            if e.get("phase_id") is None or e.get("phase_id") == phase_current
-        ]
-    else:
-        events = all_events
 
-    derived: SDDState = EventReducer().reduce(events)
+def rebuild_state(
+    db_path: str | None = None,
+    state_path: str | None = None,
+    mode: RebuildMode = RebuildMode.STRICT,
+) -> None:
+    """Rebuild State_index.yaml from EventLog replay (I-ES-4, I-ES-5, I-REBUILD-STRICT-1).
+
+    STRICT (default): pure event-replay; YAML is never read (I-REBUILD-STRICT-1).
+    EMERGENCY: operator-only break-glass; requires SDD_EMERGENCY=1 env var
+    (I-REBUILD-EMERGENCY-1, I-REBUILD-EMERGENCY-2). Used only when EventLog is
+    empty and an existing YAML provides phase bootstrap.
+
+    Delegates to get_current_state() for EventLog → SDDState mapping
+    (I-PROJECTION-SHARED-CORE-1): replay logic is not duplicated here.
+    """
+    if db_path is None:
+        db_path = str(event_store_file())
+    if state_path is None:
+        state_path = str(state_file())
+
+    if mode == RebuildMode.EMERGENCY:
+        if os.environ.get("SDD_EMERGENCY") != "1":
+            raise AssertionError(
+                "I-REBUILD-EMERGENCY-2: RebuildMode.EMERGENCY requires "
+                "SDD_EMERGENCY=1 environment variable — this is an operator-only break-glass mode"
+            )
+
+    # I-PROJECTION-SHARED-CORE-1: single replay path — delegate, do not duplicate.
+    state: SDDState = get_current_state(db_path)
+
+    if mode == RebuildMode.STRICT:
+        # I-PROJ-2: compat fallback for pre-Phase-5 EventLogs without activation events.
+        # The reducer leaves phase_status="PLANNED" when no PhaseActivated/PhaseInitialized
+        # L1 runtime events exist. If an existing YAML has been human-managed (ACTIVE),
+        # preserve those values — applied on top of get_current_state() result.
+        if state.phase_status == "PLANNED" and Path(state_path).exists():
+            try:
+                yaml_st = read_state(state_path)
+                state = dataclasses.replace(
+                    state,
+                    phase_status=yaml_st.phase_status,
+                    plan_status=yaml_st.plan_status,
+                )
+            except Exception:
+                pass
+
+    if mode == RebuildMode.EMERGENCY and state.phase_current == 0:
+        yaml_phase = _read_yaml_phase_current(state_path)
+        if yaml_phase > 0:
+            state = dataclasses.replace(state, phase_current=yaml_phase)
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    state = SDDState(
-        phase_current=phase_current or derived.phase_current,
-        plan_version=plan_version or derived.plan_version,
-        tasks_version=tasks_version or derived.tasks_version,
-        tasks_total=tasks_total or derived.tasks_total,
-        tasks_completed=derived.tasks_completed,
-        tasks_done_ids=derived.tasks_done_ids,
-        invariants_status=derived.invariants_status if derived.invariants_status != "UNKNOWN" else invariants_status,
-        tests_status=derived.tests_status if derived.tests_status != "UNKNOWN" else tests_status,
-        last_updated=now,
-        schema_version=derived.schema_version,
-        snapshot_event_id=derived.snapshot_event_id,
-        phase_status=derived.phase_status if derived.phase_status != "PLANNED" else phase_status,
-        plan_status=derived.plan_status if derived.plan_status != "PLANNED" else plan_status,
-    )
+    state = dataclasses.replace(state, last_updated=now)
     write_state(state, state_path)
 
 
 def rebuild_taskset(db_path: str, taskset_path: str) -> None:
-    """Update TaskSet.md task statuses from EventLog replay (I-ES-4, I-ES-5).
+    """Update TaskSet.md task statuses from EventLog replay (I-ES-4, I-ES-5, I-ES-REPLAY-1).
 
     Replays EventLog → derives done_ids via reducer → marks matching tasks DONE
     in the TaskSet.md text. Writes atomically (I-PK-5). Idempotent: re-running
     on a file already reflecting the EventLog is a no-op in effect.
+    If taskset_path does not exist, logs warning and returns (I-ES-REPLAY-1).
     """
-    events = _replay_all(db_path)
-    state: SDDState = EventReducer().reduce(events)
+    if not Path(taskset_path).exists():
+        logging.warning("rebuild_taskset: %s not found — skipping (I-ES-REPLAY-1)", taskset_path)
+        return
+
+    state: SDDState = get_current_state(db_path)
     done_ids: frozenset[str] = frozenset(state.tasks_done_ids)
 
     with open(taskset_path, encoding="utf-8") as f:
@@ -144,6 +135,38 @@ def rebuild_taskset(db_path: str, taskset_path: str) -> None:
         result.append(line)
 
     atomic_write(taskset_path, "".join(result))
+
+
+def get_current_state(db_path: str) -> SDDState:
+    """Full EventLog replay from seq=0 — authoritative read path (I-PROJECTION-READ-1).
+
+    Pure function: no YAML compat fallback, no caching, no partial replay.
+    MUST be called only from guards and projections (I-STATE-ACCESS-LAYER-1).
+    """
+    conn = open_sdd_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT event_type, payload, level, event_source, caused_by_meta_seq "
+            "FROM events ORDER BY seq ASC"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    events: list[dict] = []
+    for event_type, payload_str, level, event_source, caused_by_meta_seq in rows:
+        try:
+            payload: dict = json.loads(payload_str) if payload_str else {}
+        except Exception:
+            payload = {}
+        event: dict = {
+            "event_type": event_type,
+            "level": level,
+            "event_source": event_source,
+            "caused_by_meta_seq": caused_by_meta_seq,
+        }
+        event.update(payload)
+        events.append(event)
+    return EventReducer().reduce(events)
 
 
 def sync_projections(db_path: str, taskset_path: str, state_path: str) -> None:

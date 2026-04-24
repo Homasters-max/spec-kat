@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import dataclasses
+import hashlib
+import json
 import logging
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from sdd.core.types import Command
 
 
 @dataclass(frozen=True)
@@ -21,6 +27,7 @@ class DomainEvent:
 
 @dataclass(frozen=True)
 class ErrorEvent(DomainEvent):
+    EVENT_TYPE: ClassVar[str] = "ErrorOccurred"
     error_type: str
     source: str
     recoverable: bool
@@ -56,7 +63,7 @@ class TaskStartGuardRejectedEvent(DomainEvent):
 @dataclass(frozen=True)
 class PhaseInitializedEvent(DomainEvent):
     EVENT_TYPE: ClassVar[str] = "PhaseInitialized"
-    phase_id: str
+    phase_id: int
     tasks_total: int
     plan_version: int
     actor: str
@@ -112,6 +119,20 @@ class PlanActivatedEvent(DomainEvent):
     plan_version: int
     actor:        str
     timestamp:    str
+
+
+@dataclass(frozen=True)
+class PhaseStartedEvent(DomainEvent):
+    EVENT_TYPE: ClassVar[str] = "PhaseStarted"
+    phase_id: int
+    actor: str  # "human"
+
+
+@dataclass(frozen=True)
+class TaskSetDefinedEvent(DomainEvent):
+    EVENT_TYPE: ClassVar[str] = "TaskSetDefined"
+    phase_id: int
+    tasks_total: int
 
 
 @dataclass(frozen=True)
@@ -175,11 +196,16 @@ V1_L1_EVENT_TYPES: frozenset[str] = frozenset({
     "TaskRetryScheduled",
     "NormViolated",
     "TaskStartGuardRejected",
+    # Phase 15 — canonical phase-lifecycle events (I-PHASE-STARTED-1, I-PHASE-COMPLETE-1)
+    "PhaseStarted",
+    "TaskSetDefined",
     # Hook events — written with explicit level="L2"/"L3" by log_tool.py (I-HOOK-3);
     # registered here for C-1 completeness; reducer places them in _KNOWN_NO_HANDLER.
     "ToolUseStarted",
     "ToolUseCompleted",
     "HookError",
+    # Phase 15 — ErrorEvent L2 observability sentinel (I-ERROR-L2-1); reducer ignores via _KNOWN_NO_HANDLER
+    "ErrorOccurred",
 })
 
 V2_L1_EVENT_TYPES: frozenset[str] = V1_L1_EVENT_TYPES  # must be identical (I-EL-6)
@@ -245,6 +271,40 @@ def classify_event_level(event_type: str) -> str:
     if event_type in _L3_EVENT_TYPES:
         return EventLevel.L3
     return EventLevel.L2
+
+
+def compute_command_id(cmd: Command) -> str:
+    """Stable idempotency key — deterministic via dataclasses.asdict, 32 hex chars.
+    Invariant under retry and EventLog state (A-7, A-13, A-22, I-IDEM-1).
+    Uses dataclasses.asdict for recursive deterministic serialization (not str()) —
+    immune to __repr__ variations, new fields, frozenset ordering."""
+    payload_dict = (
+        dataclasses.asdict(cmd.payload)
+        if dataclasses.is_dataclass(cmd.payload)
+        else {"raw": repr(cmd.payload)}
+    )
+    serialized = json.dumps(
+        {"cmd": cmd.command_type, "payload": payload_dict},
+        sort_keys=True,
+    )
+    return hashlib.sha256(serialized.encode()).hexdigest()[:32]
+
+
+def compute_trace_id(cmd: Command, head_seq: int | None) -> str:
+    """Deterministic correlation ID — 16 hex chars (diagnostic; collisions tolerable).
+    head_seq = MAX(seq) before step 1; None when EventStore unavailable (A-9 fallback).
+    Fallback hash is less unique but always computable and non-None (I-TRACE-FALLBACK-1)."""
+    if head_seq is not None:
+        payload = json.dumps(
+            {"cmd": cmd.command_type, "payload": str(cmd.payload), "head": head_seq},
+            sort_keys=True,
+        )
+    else:
+        payload = json.dumps(
+            {"cmd": cmd.command_type, "payload": str(cmd.payload)},
+            sort_keys=True,
+        )
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
 # Module-level C-1 check (I-C1-MODE-1: replaces bare import-time assert)
