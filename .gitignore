@@ -26,6 +26,7 @@ htmlcov/
 fake/
 sdd_plan.md
 sdd_v1/
+.sdd/state/sdd_events.duckdb
 
 # OS
 .DS_Store
