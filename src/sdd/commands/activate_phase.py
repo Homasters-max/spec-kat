@@ -15,13 +15,40 @@ from types import MappingProxyType
 from typing import Any
 
 from sdd.commands._base import CommandHandlerBase
-from sdd.core.errors import InvalidActor, SDDError
+from sdd.core.errors import Inconsistency, InvalidActor, MissingContext, SDDError
 from sdd.core.events import DomainEvent, PhaseInitializedEvent, PhaseStartedEvent, classify_event_level
-from sdd.infra.paths import event_store_file
+from sdd.domain.tasks.parser import parse_taskset
+from sdd.infra.paths import event_store_file, taskset_file
 
 
 def _utc_now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _resolve_tasks_total(phase_id: int, tasks_arg: int | None) -> int:
+    """Single validation point for tasks_total before PhaseInitialized is emitted.
+
+    I-PHASE-INIT-2: tasks_total MUST be consistent with TaskSet at activation time.
+    I-PHASE-INIT-3: tasks_total MUST be > 0.
+
+    Raises:
+        MissingContext: TaskSet absent or contains no tasks.
+        Inconsistency: tasks_arg provided but doesn't match actual TaskSet size.
+    Returns:
+        int > 0
+    """
+    path = taskset_file(phase_id)
+    tasks = parse_taskset(str(path))
+    actual = len(tasks)
+    if actual <= 0:
+        raise MissingContext(f"TaskSet_v{phase_id}.md exists but contains no tasks (I-PHASE-INIT-3)")
+    if tasks_arg is None:
+        return actual
+    if tasks_arg != actual:
+        raise Inconsistency(
+            f"--tasks {tasks_arg} does not match TaskSet_v{phase_id}.md count={actual} (I-PHASE-INIT-2)"
+        )
+    return actual
 
 
 @dataclass(frozen=True)
@@ -88,24 +115,33 @@ class ActivatePhaseHandler(CommandHandlerBase):
 
 
 def main(args: list[str] | None = None) -> int:
+    import warnings
+
     if args is None:
         args = sys.argv[1:]
     parser = argparse.ArgumentParser(prog="activate-phase")
     parser.add_argument("phase_id", type=int)
     parser.add_argument("--actor", default="human")
-    parser.add_argument("--tasks", type=int, default=0, help="Total tasks in phase TaskSet")
+    parser.add_argument("--tasks", type=int, default=None, help="[DEPRECATED] Total tasks; auto-detected from TaskSet")
     parser.add_argument("--db", default=None)
     parsed = parser.parse_args(args)
     db = parsed.db or str(event_store_file())
+    if parsed.tasks is not None:
+        warnings.warn(
+            "--tasks is deprecated; tasks_total is now auto-detected from TaskSet",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     try:
         from sdd.commands.registry import REGISTRY, execute_and_project
+        tasks_total = _resolve_tasks_total(parsed.phase_id, parsed.tasks)
         cmd = ActivatePhaseCommand(
             command_id=str(uuid.uuid4()),
             command_type="ActivatePhaseCommand",
-            payload={},
+            payload={"phase_id": parsed.phase_id, "tasks_total": tasks_total},
             phase_id=parsed.phase_id,
             actor=parsed.actor,
-            tasks_total=parsed.tasks,
+            tasks_total=tasks_total,
         )
         execute_and_project(REGISTRY["activate-phase"], cmd, db_path=db)
         return 0

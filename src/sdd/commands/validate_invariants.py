@@ -8,6 +8,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -27,6 +28,7 @@ from sdd.infra.paths import config_file, event_store_file, taskset_file
 _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _DEFAULT_TIMEOUT_SECS = 300
 _STDOUT_MAX_CHARS = 4096
+TIMEOUT_RETURN_CODE = 124  # follows GNU timeout(1) convention (I-TIMEOUT-1)
 
 
 # ---------------------------------------------------------------------------
@@ -138,17 +140,27 @@ class ValidateInvariantsHandler(CommandHandlerBase):
                 # Handled separately via _run_acceptance_check (I-ACCEPT-1)
                 continue
             t0 = time.monotonic()
-            result = subprocess.run(
+            proc = subprocess.Popen(
                 cmd_str,
                 shell=True,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 cwd=command.cwd,
                 env=env,
-                timeout=timeout,
+                start_new_session=True,  # new process group → killpg on timeout
             )
+            try:
+                stdout_b, stderr_b = proc.communicate(timeout=timeout)
+                returncode = proc.returncode
+            except subprocess.TimeoutExpired:
+                # Kill entire process group so grandchildren (e.g. pytest) also die
+                # and release any DuckDB file locks before we continue (I-CMD-6).
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                stdout_b, stderr_b = proc.communicate()
+                returncode = TIMEOUT_RETURN_CODE
             duration_ms = int((time.monotonic() - t0) * 1000)
 
-            stdout_normalized = _normalize_output(result.stdout + result.stderr)
+            stdout_normalized = _normalize_output(stdout_b + stderr_b)
             now_ms = int(time.time() * 1000)
 
             test_event = _TestRunCompletedEvent(
@@ -160,7 +172,7 @@ class ValidateInvariantsHandler(CommandHandlerBase):
                 caused_by_meta_seq=None,
                 command_id=command.command_id,
                 name=name,
-                returncode=result.returncode,
+                returncode=returncode,
                 stdout_normalized=stdout_normalized,
                 duration_ms=duration_ms,
                 phase_id=command.phase_id,
@@ -176,7 +188,7 @@ class ValidateInvariantsHandler(CommandHandlerBase):
                 caused_by_meta_seq=None,
                 command_id=command.command_id,
                 metric_id=f"quality.{name}",
-                value=float(result.returncode),
+                value=float(returncode),
                 task_id=command.task_id,
                 phase_id=command.phase_id,
             )
@@ -240,8 +252,22 @@ def _run_acceptance_check(
     cwd: str,
     env: dict[str, str],
     timeout: int,
+    test_returncode: int | None = None,
 ) -> int:
-    """Run ruff+pytest acceptance check per I-ACCEPT-1. Returns 0 on pass, 1 on fail."""
+    """Run ruff+acceptance check per I-ACCEPT-1.
+
+    Reuses test_returncode from build loop (I-ACCEPT-REUSE-1).
+    If test_returncode is None: emits ACCEPTANCE_FAILED/NO_TEST_RESULT, returns 1.
+    Returns 0 on pass, 1 on fail.
+    """
+    # I-ACCEPT-REUSE-1: no test result from build loop → deterministic fail
+    if test_returncode is None:
+        print(
+            json.dumps({"error": "ACCEPTANCE_FAILED", "reason": "NO_TEST_RESULT"}),
+            file=sys.stderr,
+        )
+        return 1
+
     # Rule 2: missing output files → structured error + fail
     for rel_path in outputs:
         full_path = os.path.join(cwd, rel_path)
@@ -252,16 +278,22 @@ def _run_acceptance_check(
             )
             return 1
 
-    # Rule 1: empty outputs → skip ruff, warn
+    # Rule 1: empty outputs or no Python outputs → skip ruff, warn
+    py_outputs = [p for p in outputs if p.endswith(".py")]
     if not outputs:
         print(
             json.dumps({"warning": "ACCEPTANCE_RUFF_SKIPPED", "reason": "empty task outputs"}),
             file=sys.stderr,
         )
+    elif not py_outputs:
+        print(
+            json.dumps({"warning": "ACCEPTANCE_RUFF_SKIPPED", "reason": "no Python outputs to lint"}),
+            file=sys.stderr,
+        )
     else:
         # Rule 3: subprocess list API — no shell (I-ACCEPT-1)
         ruff = subprocess.run(
-            ["ruff", "check", *outputs],
+            ["ruff", "check", *py_outputs],
             capture_output=True,
             cwd=cwd,
             env=env,
@@ -279,20 +311,14 @@ def _run_acceptance_check(
             )
             return 1
 
-    pytest = subprocess.run(
-        ["pytest", "tests/", "-q"],
-        capture_output=True,
-        cwd=cwd,
-        env=env,
-        timeout=timeout,
-    )
-    if pytest.returncode != 0:
+    # Reuse test returncode from build loop — no subprocess (I-ACCEPT-REUSE-1)
+    pytest_rc = test_returncode
+    if pytest_rc != 0:
         print(
             json.dumps({
                 "error": "ACCEPTANCE_FAILED",
                 "reason": "TEST_FAILURE",
-                "returncode": pytest.returncode,
-                "output": _normalize_output(pytest.stdout + pytest.stderr)[:512],
+                "returncode": pytest_rc,
             }),
             file=sys.stderr,
         )
@@ -425,7 +451,12 @@ def main(args: list[str] | None = None) -> int:
             if config.get("build", {}).get("commands", {}).get("acceptance"):
                 env = {k: os.environ[k] for k in parsed.env if k in os.environ}
                 timeout = parsed.timeout if parsed.timeout > 0 else _DEFAULT_TIMEOUT_SECS
-                rc = _run_acceptance_check(task_outputs, parsed.cwd, env, timeout)
+                # Extract test result from build loop events (I-ACCEPT-REUSE-1)
+                test_returncode: int | None = None
+                for evt in events:
+                    if isinstance(evt, _TestRunCompletedEvent) and evt.name == "test":
+                        test_returncode = evt.returncode
+                rc = _run_acceptance_check(task_outputs, parsed.cwd, env, timeout, test_returncode)
                 if rc != 0:
                     return rc
 

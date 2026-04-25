@@ -1,0 +1,33 @@
+{
+  "phase": 17,
+  "timestamp": "2026-04-24T22:43:22.869653+00:00",
+  "commit_hash": "67862c36029d6d676dd3c2a9bb8c283395530493",
+  "seed": 0,
+  "vr_full": "PASS",
+  "vr_mutation_kill_rate": null,
+  "vr_mutation_critical_kill_rate": null,
+  "properties": {
+    "P1_determinism": "PASS",
+    "P2_confluence": "PASS",
+    "P3_prefix_consistency": "PASS",
+    "P4_invariant_safety": "PASS",
+    "P5_no_hidden_state": "PASS",
+    "P6_event_integrity": "PASS",
+    "P7_idempotency": "PASS",
+    "P8_concurrency": "PASS",
+    "P9_schema_evolution": "PASS",
+    "P10_performance_slope": "PASS"
+  },
+  "relational_properties": {
+    "RP1_task_completed_delta": "PASS",
+    "RP2_phase_started_reset": "PASS",
+    "RP3_decision_recorded_append": "PASS"
+  },
+  "failure_semantics": {
+    "invalid_command_deterministic": "PASS",
+    "stale_state_error_deterministic": "PASS",
+    "corrupted_log_deterministic": "PASS"
+  },
+  "event_log_hash_sample": "fe62c0133f72dd6c",
+  "status": "STABLE"
+}

@@ -1,4 +1,5 @@
-.PHONY: lint typecheck test check-handler-purity ci
+.PHONY: lint typecheck test check-handler-purity check ci \
+        vr-fast vr-full vr-stress vr-mutation vr-release
 
 lint:
 	ruff check src/
@@ -74,4 +75,30 @@ check-handler-purity:
 	$(file > /tmp/._sdd_purity.py,$(PURITY_CHECK_SCRIPT))
 	@python3 /tmp/._sdd_purity.py; rc=$$?; rm -f /tmp/._sdd_purity.py; exit $$rc
 
-ci: lint typecheck test check-handler-purity
+vr-fast:
+	pytest tests/unit/ tests/integration/ -q
+
+vr-full:
+	pytest tests/ -q
+	pytest tests/property/ -q --hypothesis-seed=0
+	pytest tests/integration/test_runtime_enforcement.py tests/integration/test_evolution.py \
+	       tests/integration/test_failure_semantics.py -v
+
+vr-stress:
+	pytest tests/property/ -q --hypothesis-seed=random -x $(HYPOTHESIS_FLAGS)
+	pytest tests/fuzz/ -q
+
+vr-mutation:
+	mutmut run
+	mutmut results
+	python3 scripts/assert_kill_rate.py --min 0.95 --critical-min 1.0
+
+vr-release:
+	make vr-full
+	make vr-mutation
+	make vr-stress
+	python3 scripts/generate_vr_report.py
+
+check: lint typecheck test check-handler-purity
+
+ci: check vr-fast

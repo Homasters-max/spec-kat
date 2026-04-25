@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+import time
+
 import duckdb
 
 from sdd.infra.paths import event_store_file
+
+_LOCK_RETRY_INTERVAL = 0.25  # seconds between retries
+_LOCK_ERROR_MARKER = "Could not set lock"
+
+
+class DuckDBLockTimeoutError(RuntimeError):
+    """Raised when open_sdd_connection cannot acquire DuckDB file lock within timeout_secs."""
 
 # Safety floor for sequence restart — never let the sequence start below this.
 # Update only when the DuckDB file is recreated or events are manually deleted:
@@ -41,19 +50,45 @@ SDD_MIGRATION_REGISTRY: list[tuple[int, str]] = [
 ]
 
 
-def open_sdd_connection(db_path: str | None = None) -> duckdb.DuckDBPyConnection:
+def open_sdd_connection(
+    db_path: str | None = None,
+    timeout_secs: float = 10.0,
+) -> duckdb.DuckDBPyConnection:
     """Open (or create) a DuckDB connection and ensure the v2 schema is present.
 
     Idempotent: N calls on the same path all succeed with identical schema (I-PK-1).
     Restarts the sequence on every call so seq is strictly increasing across
     reconnections (I-EL-5b). See CLAUDE.md §0.12 SDD-SEQ-1.
+
+    Retries up to timeout_secs if the file lock is held by another process,
+    sleeping _LOCK_RETRY_INTERVAL between attempts. Non-lock errors raise immediately.
     """
     if db_path is None:
         db_path = str(event_store_file())
-    conn = duckdb.connect(db_path)
-    ensure_sdd_schema(conn)
-    _restart_sequence(conn)
-    return conn
+    # In-memory connections have no file lock — skip retry entirely (I-LOCK-2)
+    if db_path == ":memory:":
+        conn = duckdb.connect(db_path)
+        ensure_sdd_schema(conn)
+        _restart_sequence(conn)
+        return conn
+    deadline = time.monotonic() + timeout_secs
+    last_exc: Exception | None = None
+    while True:
+        try:
+            conn = duckdb.connect(db_path)
+            ensure_sdd_schema(conn)
+            _restart_sequence(conn)
+            return conn
+        except duckdb.IOException as exc:
+            if _LOCK_ERROR_MARKER not in str(exc):
+                raise
+            last_exc = exc
+            if time.monotonic() >= deadline:
+                raise DuckDBLockTimeoutError(
+                    f"DuckDB lock timeout after {timeout_secs}s on '{db_path}': {last_exc}"
+                )
+            time.sleep(_LOCK_RETRY_INTERVAL)
+    raise AssertionError("unreachable")  # noqa: unreachable
 
 
 def _restart_sequence(conn: duckdb.DuckDBPyConnection) -> None:

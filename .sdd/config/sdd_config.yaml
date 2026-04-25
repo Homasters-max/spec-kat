@@ -1,0 +1,2 @@
+anomaly_zscore_threshold: 2.0
+trend_epsilon: 1.0e-9

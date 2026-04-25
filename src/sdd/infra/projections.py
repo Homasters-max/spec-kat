@@ -47,8 +47,11 @@ def rebuild_state(
     db_path: str | None = None,
     state_path: str | None = None,
     mode: RebuildMode = RebuildMode.STRICT,
-) -> None:
+) -> SDDState:
     """Rebuild State_index.yaml from EventLog replay (I-ES-4, I-ES-5, I-REBUILD-STRICT-1).
+
+    Returns the SDDState written to disk so callers can propagate it to
+    rebuild_taskset without a second replay (I-REPLAY-1).
 
     STRICT (default): pure event-replay; YAML is never read (I-REBUILD-STRICT-1).
     EMERGENCY: operator-only break-glass; requires SDD_EMERGENCY=1 env var
@@ -97,21 +100,28 @@ def rebuild_state(
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     state = dataclasses.replace(state, last_updated=now)
     write_state(state, state_path)
+    return state
 
 
-def rebuild_taskset(db_path: str, taskset_path: str) -> None:
+def rebuild_taskset(
+    db_path: str,
+    taskset_path: str,
+    state: SDDState | None = None,
+) -> None:
     """Update TaskSet.md task statuses from EventLog replay (I-ES-4, I-ES-5, I-ES-REPLAY-1).
 
-    Replays EventLog → derives done_ids via reducer → marks matching tasks DONE
-    in the TaskSet.md text. Writes atomically (I-PK-5). Idempotent: re-running
-    on a file already reflecting the EventLog is a no-op in effect.
+    Accepts an optional pre-computed state to avoid a second replay within the
+    same CLI invocation (I-REPLAY-1). When state is None, replays from db_path.
+
+    Writes atomically (I-PK-5). Idempotent.
     If taskset_path does not exist, logs warning and returns (I-ES-REPLAY-1).
     """
     if not Path(taskset_path).exists():
         logging.warning("rebuild_taskset: %s not found — skipping (I-ES-REPLAY-1)", taskset_path)
         return
 
-    state: SDDState = get_current_state(db_path)
+    if state is None:
+        state = get_current_state(db_path)
     done_ids: frozenset[str] = frozenset(state.tasks_done_ids)
 
     with open(taskset_path, encoding="utf-8") as f:
@@ -174,7 +184,7 @@ def sync_projections(db_path: str, taskset_path: str, state_path: str) -> None:
 
     Single mandatory path: always call this instead of rebuild_taskset /
     rebuild_state individually. Guarantees TaskSet.md and State_index.yaml
-    are always co-consistent after any write.
+    are always co-consistent after any write. Single EventLog replay (I-REPLAY-1).
     """
-    rebuild_taskset(db_path, taskset_path)
-    rebuild_state(db_path, state_path)
+    state = rebuild_state(db_path, state_path)
+    rebuild_taskset(db_path, taskset_path, state=state)

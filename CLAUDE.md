@@ -133,6 +133,9 @@ Each ref file carries `update_trigger` header. Update when source section change
 | I-SPEC-EXEC-1 | CLI contains only: REGISTRY lookup + execute_and_project; no direct kernel calls outside registry.py |
 | I-HANDLER-PURE-1 | `handle()` methods return events only — no EventStore, no rebuild_state, no sync_projections |
 | I-ERROR-1 | Write Kernel MUST emit ErrorEvent before raising at every failure stage |
+| I-RRL-1 | Scope override = вызов scope_policy.py::resolve_scope. Inline exceptions в scope.py запрещены. |
+| I-RRL-2 | Rule resolution MUST be deterministic: одинаковые inputs → идентичное решение + идентичный override metadata. |
+| I-RRL-3 | Silent override запрещён. Любой override MUST emit override metadata в JSON output. |
 
 Violation of any invariant → ERROR → STOP → `sdd report-error`.
 
@@ -187,6 +190,12 @@ SEM-9   Context always built via build_context.py — LLM does not choose what t
 SEM-10  LLM MUST use reason + violated_invariant from JSON stderr when command fails
 SEM-11  Read-only CLI commands that bypass REGISTRY MUST satisfy I-READ-ONLY-EXCEPTION-1
 SEM-12  LLM MUST NOT invoke recovery as blind first action; classify from JSON stderr first
+SEM-13  ALL session preconditions MUST execute as a strict linear dependency chain —
+        one tool call per step, stop on first non-zero exit code. The execution order
+        is defined in .sdd/contracts/cli.schema.yaml (execution_order field).
+        Parallel tool calls are NOT isolated: a failure in one cancels all sibling calls.
+        Guards (phase-guard, task-guard, check-scope, norm-guard) MUST run sequentially
+        in declaration order. Violation = undefined state.
 ```
 
 ---
@@ -196,7 +205,7 @@ SEM-12  LLM MUST NOT invoke recovery as blind first action; classify from JSON s
 | Command | Purpose |
 |---------|---------|
 | `sdd complete T-NNN` | Mark task DONE after implementation |
-| `sdd validate T-NNN` | Run invariant checks after implementation |
+| `sdd validate T-NNN --result PASS\|FAIL` | Run invariant checks after implementation |
 | `sdd show-state` | Read current phase/task state |
 | `sdd query-events` | Inspect event log |
 | `sdd report-error` | Structured error reporting |

@@ -20,6 +20,7 @@ from functools import partial
 from typing import Any, Literal
 
 from sdd.commands._base import CommandHandlerBase, NoOpHandler
+from sdd.core.execution_context import kernel_context
 from sdd.core.errors import (
     CommitError,
     GuardViolationError,
@@ -341,160 +342,161 @@ def execute_command(
 
     Implements Spec_v15 §2 BC-15-REGISTRY steps 0–5 (A-7..A-22).
     """
-    _db  = db_path    or str(event_store_file())
-    _st  = state_path or str(state_file())
-    _ts_override = taskset_path   # A-18: deferred — resolved from state.phase_current after step 1
-    _nrm = norm_path  or str(norm_catalog_file())
+    with kernel_context("execute_command"):
+        _db  = db_path    or str(event_store_file())
+        _st  = state_path or str(state_file())
+        _ts_override = taskset_path   # A-18: deferred — resolved from state.phase_current after step 1
+        _nrm = norm_path  or str(norm_catalog_file())
 
-    # Step 0: stable idempotency key + per-execution trace correlation (A-7, A-9)
-    command_id = compute_command_id(cmd)          # A-7: payload-only, stable across all retries
-    context_hash: str = "FAIL:UNKNOWN"            # A-10: overwritten on success or exc type known
-    try:
-        head_seq: int | None = EventStore(_db).max_seq()
-    except Exception:
-        head_seq = None                            # A-9: trace_id fallback path
-    trace_id = compute_trace_id(cmd, head_seq)    # A-9: None-safe; diagnostic per-execution ID
-
-    # Step 1: build GuardContext from EventLog replay (NEVER from YAML — I-CMD-11)
-    try:
-        state = get_current_state(_db)
-    except Exception as exc:
-        exc_type = type(exc).__name__[:20]
-        context_hash = f"FAIL:{exc_type}"         # A-10: type-specific sentinel
-        error_event = _make_error_event(
-            stage="BUILD_CONTEXT", spec=spec,
-            error_type=type(exc).__name__,
-            reason=f"EVENTLOG_REPLAY_FAILED.{type(exc).__name__}",
-            human_reason="EventLog replay failed — database may be inaccessible or corrupted",
-            violated_invariant=None,
-            trace_id=trace_id,
-            context_hash=context_hash,
-            error_code=5,
-        )
-        _write_error_to_audit_log(error_event)
-        raise
-
-    context_hash = compute_context_hash(state)
-
-    # A-18: resolve taskset path from replay-derived phase (I-CMD-PHASE-RESOLVE-1)
-    _ts = _ts_override or str(taskset_file(state.phase_current))
-
-    # A-13: validate phase_id in task-scoped payloads (I-CMD-PAYLOAD-PHASE-1)
-    if spec.uses_task_id:
-        payload = getattr(cmd, "payload", {})
-        cmd_phase_id = payload.get("phase_id") if hasattr(payload, "get") else getattr(cmd, "phase_id", None)
-        if cmd_phase_id is not None and cmd_phase_id != state.phase_current:
-            raise InvariantViolationError(
-                f"I-CMD-PAYLOAD-PHASE-1: payload.phase_id={cmd_phase_id} "
-                f"!= state.phase_current={state.phase_current}"
-            )
-
-    phase = PhaseState(phase_id=state.phase_current, status=state.phase_status)
-    task_id = _extract_task_id(cmd)
-    task = _find_task(_ts, task_id) if (spec.uses_task_id and task_id) else None
-    norms = load_catalog(_nrm, strict=True)
-    ctx = GuardContext(
-        state=state,
-        phase=phase,
-        task=task,
-        norms=norms,
-        event_log=EventLogView(db_path=_db),
-        task_graph=load_dag(_ts) if spec.uses_task_id else DAG(deps={}),
-        now=_utc_now_iso(),
-    )
-
-    # Step 2: guard pipeline — pure; returns (result, audit_events) (A-20)
-    guards = _build_spec_guards(spec, task_id)
-    guard_result, audit_events = _run_domain_pipeline(ctx, guards, stop_on_deny=True)
-
-    # A-15: DENY without diagnostic fields is a kernel programming error (I-GUARD-REASON-1)
-    if guard_result.outcome is GuardOutcome.DENY and guard_result.reason is None:
-        error_event = _make_error_event(
-            stage="GUARD", spec=spec, error_type="KernelInvariantError",
-            reason="KERNEL_INVARIANT.I-GUARD-REASON-1",
-            human_reason="Internal kernel error: guard returned DENY without diagnostic fields",
-            violated_invariant="I-GUARD-REASON-1",
-            trace_id=trace_id, context_hash=context_hash, error_code=7,
-        )
+        # Step 0: stable idempotency key + per-execution trace correlation (A-7, A-9)
+        command_id = compute_command_id(cmd)          # A-7: payload-only, stable across all retries
+        context_hash: str = "FAIL:UNKNOWN"            # A-10: overwritten on success or exc type known
         try:
-            EventStore(_db).append([error_event], source="kernel_invariant_check")
+            head_seq: int | None = EventStore(_db).max_seq()
         except Exception:
-            _write_error_to_audit_log(error_event)
-        raise KernelInvariantError("I-GUARD-REASON-1: DENY result must populate reason")
+            head_seq = None                            # A-9: trace_id fallback path
+        trace_id = compute_trace_id(cmd, head_seq)    # A-9: None-safe; diagnostic per-execution ID
 
-    # Step 3: DENY — append audit + ErrorEvent; raise GuardViolationError
-    if guard_result.outcome is GuardOutcome.DENY:
-        error_event = _make_error_event(
-            stage="GUARD", spec=spec,
-            error_type="GuardViolationError",
-            reason=guard_result.reason or "GUARD_DENIED",
-            human_reason=guard_result.human_reason or guard_result.message,
-            violated_invariant=guard_result.violated_invariant,
-            trace_id=trace_id, context_hash=context_hash, error_code=1,
-        )
+        # Step 1: build GuardContext from EventLog replay (NEVER from YAML — I-CMD-11)
         try:
-            EventStore(_db).append(audit_events + [error_event], source="guards")
-        except Exception:
-            _write_error_to_audit_log(error_event)
-        raise GuardViolationError(guard_result.message)
-
-    # Step 4: call handler (pure: no I/O inside handle())
-    try:
-        handler_events = spec.handler_class(_db).handle(cmd)
-    except Exception as exc:
-        error_events = getattr(exc, "_sdd_error_events", [])
-        error_code = 2 if isinstance(exc, InvariantViolationError) else 3
-        error_event = _make_error_event(
-            stage="EXECUTE", spec=spec,
-            error_type=type(exc).__name__,
-            reason=f"HANDLER_EXCEPTION.{type(exc).__name__}",
-            human_reason=getattr(exc, "human_reason", f"Handler failed: {type(exc).__name__}")[:140],
-            violated_invariant=getattr(exc, "invariant_id", None),
-            trace_id=trace_id, context_hash=context_hash, error_code=error_code,
-        )
-        try:
-            EventStore(_db).append(error_events + [error_event], source="error_boundary")
-        except Exception:
-            _write_error_to_audit_log(error_event)
-        raise
-
-    # Step 5: atomic check+write — A-17 eliminates TOCTOU between max_seq() read and INSERT.
-    # EventStore.append verifies max_seq == head_seq inside a DuckDB transaction before INSERT
-    # (I-OPTLOCK-1, I-OPTLOCK-ATOMIC-1). StaleStateError raised by append if head has advanced.
-    if handler_events:
-        try:
-            EventStore(_db).append(
-                handler_events,
-                source=spec.handler_class.__module__,
-                command_id=command_id,
-                expected_head=head_seq,   # A-17: transaction-level check before INSERT
-            )
-        except StaleStateError:
+            state = get_current_state(_db)
+        except Exception as exc:
+            exc_type = type(exc).__name__[:20]
+            context_hash = f"FAIL:{exc_type}"         # A-10: type-specific sentinel
             error_event = _make_error_event(
-                stage="COMMIT", spec=spec, error_type="StaleStateError",
-                reason=f"EVENTLOG_CHANGED.expected={head_seq}",
-                human_reason="Event log was modified during execution — please retry the command",
-                violated_invariant="I-OPTLOCK-1",
-                trace_id=trace_id, context_hash=context_hash, error_code=6,
+                stage="BUILD_CONTEXT", spec=spec,
+                error_type=type(exc).__name__,
+                reason=f"EVENTLOG_REPLAY_FAILED.{type(exc).__name__}",
+                human_reason="EventLog replay failed — database may be inaccessible or corrupted",
+                violated_invariant=None,
+                trace_id=trace_id,
+                context_hash=context_hash,
+                error_code=5,
+            )
+            _write_error_to_audit_log(error_event)
+            raise
+
+        context_hash = compute_context_hash(state)
+
+        # A-18: resolve taskset path from replay-derived phase (I-CMD-PHASE-RESOLVE-1)
+        _ts = _ts_override or str(taskset_file(state.phase_current))
+
+        # A-13: validate phase_id in task-scoped payloads (I-CMD-PAYLOAD-PHASE-1)
+        if spec.uses_task_id:
+            payload = getattr(cmd, "payload", {})
+            cmd_phase_id = payload.get("phase_id") if hasattr(payload, "get") else getattr(cmd, "phase_id", None)
+            if cmd_phase_id is not None and cmd_phase_id != state.phase_current:
+                raise InvariantViolationError(
+                    f"I-CMD-PAYLOAD-PHASE-1: payload.phase_id={cmd_phase_id} "
+                    f"!= state.phase_current={state.phase_current}"
+                )
+
+        phase = PhaseState(phase_id=state.phase_current, status=state.phase_status)
+        task_id = _extract_task_id(cmd)
+        task = _find_task(_ts, task_id) if (spec.uses_task_id and task_id) else None
+        norms = load_catalog(_nrm, strict=True)
+        ctx = GuardContext(
+            state=state,
+            phase=phase,
+            task=task,
+            norms=norms,
+            event_log=EventLogView(db_path=_db),
+            task_graph=load_dag(_ts) if spec.uses_task_id else DAG(deps={}),
+            now=_utc_now_iso(),
+        )
+
+        # Step 2: guard pipeline — pure; returns (result, audit_events) (A-20)
+        guards = _build_spec_guards(spec, task_id)
+        guard_result, audit_events = _run_domain_pipeline(ctx, guards, stop_on_deny=True)
+
+        # A-15: DENY without diagnostic fields is a kernel programming error (I-GUARD-REASON-1)
+        if guard_result.outcome is GuardOutcome.DENY and guard_result.reason is None:
+            error_event = _make_error_event(
+                stage="GUARD", spec=spec, error_type="KernelInvariantError",
+                reason="KERNEL_INVARIANT.I-GUARD-REASON-1",
+                human_reason="Internal kernel error: guard returned DENY without diagnostic fields",
+                violated_invariant="I-GUARD-REASON-1",
+                trace_id=trace_id, context_hash=context_hash, error_code=7,
             )
             try:
-                EventStore(_db).append([error_event], source="optimistic_lock")
+                EventStore(_db).append([error_event], source="kernel_invariant_check")
+            except Exception:
+                _write_error_to_audit_log(error_event)
+            raise KernelInvariantError("I-GUARD-REASON-1: DENY result must populate reason")
+
+        # Step 3: DENY — append audit + ErrorEvent; raise GuardViolationError
+        if guard_result.outcome is GuardOutcome.DENY:
+            error_event = _make_error_event(
+                stage="GUARD", spec=spec,
+                error_type="GuardViolationError",
+                reason=guard_result.reason or "GUARD_DENIED",
+                human_reason=guard_result.human_reason or guard_result.message,
+                violated_invariant=guard_result.violated_invariant,
+                trace_id=trace_id, context_hash=context_hash, error_code=1,
+            )
+            try:
+                EventStore(_db).append(audit_events + [error_event], source="guards")
+            except Exception:
+                _write_error_to_audit_log(error_event)
+            raise GuardViolationError(guard_result.message)
+
+        # Step 4: call handler (pure: no I/O inside handle())
+        try:
+            handler_events = spec.handler_class(_db).handle(cmd)
+        except Exception as exc:
+            error_events = getattr(exc, "_sdd_error_events", [])
+            error_code = 2 if isinstance(exc, InvariantViolationError) else 3
+            error_event = _make_error_event(
+                stage="EXECUTE", spec=spec,
+                error_type=type(exc).__name__,
+                reason=f"HANDLER_EXCEPTION.{type(exc).__name__}",
+                human_reason=getattr(exc, "human_reason", f"Handler failed: {type(exc).__name__}")[:140],
+                violated_invariant=getattr(exc, "invariant_id", None),
+                trace_id=trace_id, context_hash=context_hash, error_code=error_code,
+            )
+            try:
+                EventStore(_db).append(error_events + [error_event], source="error_boundary")
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise
-        except Exception as commit_exc:
-            error_event = _make_error_event(
-                stage="COMMIT", spec=spec,
-                error_type="CommitError",
-                reason=f"EVENT_COMMIT_FAILED.{type(commit_exc).__name__}",
-                human_reason="EventStore write failed — database may be locked or corrupted",
-                violated_invariant=None,
-                trace_id=trace_id, context_hash=context_hash, error_code=4,
-            )
-            _write_error_to_audit_log(error_event)
-            raise CommitError(str(commit_exc)) from commit_exc
 
-    return handler_events
+        # Step 5: atomic check+write — A-17 eliminates TOCTOU between max_seq() read and INSERT.
+        # EventStore.append verifies max_seq == head_seq inside a DuckDB transaction before INSERT
+        # (I-OPTLOCK-1, I-OPTLOCK-ATOMIC-1). StaleStateError raised by append if head has advanced.
+        if handler_events:
+            try:
+                EventStore(_db).append(
+                    handler_events,
+                    source=spec.handler_class.__module__,
+                    command_id=command_id,
+                    expected_head=head_seq,   # A-17: transaction-level check before INSERT
+                )
+            except StaleStateError:
+                error_event = _make_error_event(
+                    stage="COMMIT", spec=spec, error_type="StaleStateError",
+                    reason=f"EVENTLOG_CHANGED.expected={head_seq}",
+                    human_reason="Event log was modified during execution — please retry the command",
+                    violated_invariant="I-OPTLOCK-1",
+                    trace_id=trace_id, context_hash=context_hash, error_code=6,
+                )
+                try:
+                    EventStore(_db).append([error_event], source="optimistic_lock")
+                except Exception:
+                    _write_error_to_audit_log(error_event)
+                raise
+            except Exception as commit_exc:
+                error_event = _make_error_event(
+                    stage="COMMIT", spec=spec,
+                    error_type="CommitError",
+                    reason=f"EVENT_COMMIT_FAILED.{type(commit_exc).__name__}",
+                    human_reason="EventStore write failed — database may be locked or corrupted",
+                    violated_invariant=None,
+                    trace_id=trace_id, context_hash=context_hash, error_code=4,
+                )
+                _write_error_to_audit_log(error_event)
+                raise CommitError(str(commit_exc)) from commit_exc
+
+        return handler_events
 
 
 # ---------------------------------------------------------------------------
@@ -507,14 +509,17 @@ def project_all(
     state_path: str | None = None,
     taskset_path: str | None = None,
 ) -> None:
-    """Projection Engine: always uses RebuildMode.STRICT (I-REBUILD-EMERGENCY-1)."""
+    """Projection Engine: always uses RebuildMode.STRICT (I-REBUILD-EMERGENCY-1).
+
+    Single EventLog replay: rebuild_state result propagated to rebuild_taskset (I-REPLAY-1).
+    """
     if projection == ProjectionType.NONE:
         return
     _db = db_path    or str(event_store_file())
     _st = state_path or str(state_file())
-    rebuild_state(_db, _st, mode=RebuildMode.STRICT)
+    state = rebuild_state(_db, _st, mode=RebuildMode.STRICT)
     if projection == ProjectionType.FULL and taskset_path:
-        rebuild_taskset(_db, taskset_path)
+        rebuild_taskset(_db, taskset_path, state=state)
 
 
 # ---------------------------------------------------------------------------

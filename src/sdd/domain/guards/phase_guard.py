@@ -51,6 +51,7 @@ def make_phase_guard(command_str: str, task_id: str | None) -> Guard:
                 outcome=GuardOutcome.DENY,
                 guard_name="PhaseGuard",
                 message=deny_reason,
+                reason=f"GUARD_DENY.PhaseGuard.{failed_check}",
                 norm_id=None,
                 task_id=task_id,
             )

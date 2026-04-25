@@ -60,6 +60,15 @@ def _ok_result(returncode: int = 0) -> MagicMock:
     return r
 
 
+def _popen_mock(returncode: int = 0, stdout: bytes = b"ok\n", stderr: bytes = b"") -> MagicMock:
+    """Return a MagicMock that looks like a subprocess.Popen instance."""
+    proc = MagicMock()
+    proc.returncode = returncode
+    proc.pid = 12345
+    proc.communicate.return_value = (stdout, stderr)
+    return proc
+
+
 @pytest.fixture
 def handler(tmp_path):
     return ValidateInvariantsHandler(db_path=str(tmp_path / "test.duckdb"))
@@ -71,25 +80,25 @@ def handler(tmp_path):
 
 class TestRunsAllCommands:
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_runs_all_build_commands(self, mock_run, mock_load, handler):
-        """Handler invokes subprocess.run once per entry in build.commands (I-CMD-6)."""
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_runs_all_build_commands(self, mock_popen, mock_load, handler):
+        """Handler invokes subprocess.Popen once per entry in build.commands (I-CMD-6)."""
         mock_load.return_value = _fake_config("lint", "typecheck", "test")
-        mock_run.return_value = _ok_result()
+        mock_popen.return_value = _popen_mock()
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             events = handler.handle(_command())
 
-        assert mock_run.call_count == 3
-        called_cmds = [c.args[0] for c in mock_run.call_args_list]
+        assert mock_popen.call_count == 3
+        called_cmds = [c.args[0] for c in mock_popen.call_args_list]
         assert set(called_cmds) == {"run-lint", "run-typecheck", "run-test"}
 
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_emits_metric_per_command(self, mock_run, mock_load, handler):
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_emits_metric_per_command(self, mock_popen, mock_load, handler):
         """Handler emits TestRunCompletedEvent + MetricRecorded for each build command."""
         mock_load.return_value = _fake_config("lint", "typecheck", "test")
-        mock_run.return_value = _ok_result()
+        mock_popen.return_value = _popen_mock()
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             events = handler.handle(_command())
@@ -104,16 +113,16 @@ class TestRunsAllCommands:
         assert metric_ids == {"quality.lint", "quality.typecheck", "quality.test"}
 
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_no_extra_commands(self, mock_run, mock_load, handler):
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_no_extra_commands(self, mock_popen, mock_load, handler):
         """Handler runs only commands declared in build.commands — no additions (I-CMD-6)."""
         mock_load.return_value = _fake_config("lint")
-        mock_run.return_value = _ok_result()
+        mock_popen.return_value = _popen_mock()
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             events = handler.handle(_command())
 
-        assert mock_run.call_count == 1
+        assert mock_popen.call_count == 1
         assert len(events) == 2  # one TestRunCompleted + one MetricRecorded
 
 
@@ -123,21 +132,21 @@ class TestRunsAllCommands:
 
 class TestContinuesOnFailure:
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_continues_on_failure(self, mock_run, mock_load, handler):
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_continues_on_failure(self, mock_popen, mock_load, handler):
         """Non-zero returncode does not abort the loop — all commands execute (I-CMD-6)."""
         mock_load.return_value = _fake_config("lint", "typecheck", "test")
         # lint fails, rest succeed
-        mock_run.side_effect = [
-            _ok_result(returncode=1),
-            _ok_result(returncode=0),
-            _ok_result(returncode=0),
+        mock_popen.side_effect = [
+            _popen_mock(returncode=1),
+            _popen_mock(returncode=0),
+            _popen_mock(returncode=0),
         ]
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             events = handler.handle(_command())
 
-        assert mock_run.call_count == 3
+        assert mock_popen.call_count == 3
         assert len(events) == 6
 
         lint_metric = next(
@@ -153,8 +162,8 @@ class TestContinuesOnFailure:
 
 class TestIdempotency:
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_validate_inv_idempotent(self, mock_run, mock_load, handler):
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_validate_inv_idempotent(self, mock_popen, mock_load, handler):
         """Duplicate command_id returns [] without running any subprocess (I-CMD-1)."""
         mock_load.return_value = _fake_config("lint", "test")
 
@@ -162,7 +171,7 @@ class TestIdempotency:
             result = handler.handle(_command())
 
         assert result == []
-        mock_run.assert_not_called()
+        mock_popen.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -171,60 +180,73 @@ class TestIdempotency:
 
 class TestSubprocessConstraints:
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_subprocess_uses_explicit_cwd(self, mock_run, mock_load, handler):
-        """subprocess.run is called with cwd=command.cwd — never os.getcwd() (I-CMD-13)."""
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_subprocess_uses_explicit_cwd(self, mock_popen, mock_load, handler):
+        """subprocess.Popen is called with cwd=command.cwd — never os.getcwd() (I-CMD-13)."""
         mock_load.return_value = _fake_config("lint")
-        mock_run.return_value = _ok_result()
+        mock_popen.return_value = _popen_mock()
         cmd = _command(cwd="/explicit/project/root")
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             handler.handle(cmd)
 
-        _, kwargs = mock_run.call_args
+        _, kwargs = mock_popen.call_args
         assert kwargs["cwd"] == "/explicit/project/root"
 
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_subprocess_env_whitelist(self, mock_run, mock_load, handler):
-        """subprocess.run env contains only vars from env_whitelist; no os.environ fallback (I-CMD-13)."""
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_subprocess_env_whitelist(self, mock_popen, mock_load, handler):
+        """subprocess.Popen env contains only vars from env_whitelist; no os.environ fallback (I-CMD-13)."""
         mock_load.return_value = _fake_config("lint")
-        mock_run.return_value = _ok_result()
+        mock_popen.return_value = _popen_mock()
 
         with patch("sdd.commands.validate_invariants.os.environ", {"PATH": "/usr/bin", "HOME": "/root", "SECRET": "x"}):
             cmd = _command(env_whitelist=("PATH",))
             with patch.object(handler, "_check_idempotent", return_value=False):
                 handler.handle(cmd)
 
-        _, kwargs = mock_run.call_args
+        _, kwargs = mock_popen.call_args
         assert kwargs["env"] == {"PATH": "/usr/bin"}
         assert "HOME" not in kwargs["env"]
         assert "SECRET" not in kwargs["env"]
 
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_subprocess_env_empty_when_whitelist_empty(self, mock_run, mock_load, handler):
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_subprocess_env_empty_when_whitelist_empty(self, mock_popen, mock_load, handler):
         """Empty env_whitelist → subprocess receives empty env dict (I-CMD-13)."""
         mock_load.return_value = _fake_config("lint")
-        mock_run.return_value = _ok_result()
+        mock_popen.return_value = _popen_mock()
         cmd = _command(env_whitelist=())
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             handler.handle(cmd)
 
-        _, kwargs = mock_run.call_args
+        _, kwargs = mock_popen.call_args
         assert kwargs["env"] == {}
 
+    @patch("sdd.commands.validate_invariants.os.killpg")
+    @patch("sdd.commands.validate_invariants.os.getpgid", return_value=12345)
     @patch("sdd.commands.validate_invariants.load_config")
-    @patch("sdd.commands.validate_invariants.subprocess.run")
-    def test_subprocess_timeout_raises(self, mock_run, mock_load, handler):
-        """subprocess.TimeoutExpired propagates out of handle() (I-CMD-13)."""
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_subprocess_timeout_records_failure_and_continues(
+        self, mock_popen, mock_load, mock_getpgid, mock_killpg, handler
+    ):
+        """Timeout kills process group, records returncode=124 (TIMEOUT_RETURN_CODE), continues loop (I-CMD-6, I-TIMEOUT-1)."""
         mock_load.return_value = _fake_config("test")
-        mock_run.side_effect = subprocess.TimeoutExpired(cmd="pytest tests/", timeout=30)
+        proc = _popen_mock()
+        proc.communicate.side_effect = [
+            subprocess.TimeoutExpired(cmd="pytest tests/", timeout=30),
+            (b"", b""),  # second communicate() call after kill
+        ]
+        mock_popen.return_value = proc
 
         with patch.object(handler, "_check_idempotent", return_value=False):
-            with pytest.raises(subprocess.TimeoutExpired):
-                handler.handle(_command(timeout_secs=30))
+            events = handler.handle(_command(timeout_secs=30))
+
+        mock_killpg.assert_called_once_with(12345, __import__("signal").SIGKILL)
+        assert len(events) == 2
+        metric = next(e for e in events if e.event_type == "MetricRecorded")
+        assert metric.value == 124.0  # I-TIMEOUT-1: TIMEOUT_RETURN_CODE
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +316,7 @@ class TestCheckIm1Invariant:
 class TestAcceptanceEnforcement:
     @patch("sdd.commands.validate_invariants.subprocess.run")
     def test_acceptance_command_runs(self, mock_run, tmp_path):
-        """_run_acceptance_check calls ruff and pytest when outputs exist and both pass."""
+        """_run_acceptance_check calls ruff and reuses test_returncode when both pass (BC-22-2)."""
         output_file = tmp_path / "module.py"
         output_file.write_text("x = 1\n")
         mock_run.return_value = _ok_result(0)
@@ -304,10 +326,11 @@ class TestAcceptanceEnforcement:
             cwd=str(tmp_path),
             env={},
             timeout=30,
+            test_returncode=0,
         )
 
         assert rc == 0
-        assert mock_run.call_count == 2  # ruff + pytest
+        assert mock_run.call_count == 1  # ruff only; pytest reused via test_returncode
 
     @patch("sdd.commands.validate_invariants.subprocess.run")
     def test_acceptance_blocks_done_on_lint_failure(self, mock_run, tmp_path):
@@ -321,6 +344,7 @@ class TestAcceptanceEnforcement:
             cwd=str(tmp_path),
             env={},
             timeout=30,
+            test_returncode=0,
         )
 
         assert rc == 1
@@ -328,19 +352,21 @@ class TestAcceptanceEnforcement:
 
     @patch("sdd.commands.validate_invariants.subprocess.run")
     def test_acceptance_blocks_done_on_test_failure(self, mock_run, tmp_path):
-        """_run_acceptance_check returns 1 when pytest exits non-zero (I-ACCEPT-1)."""
+        """_run_acceptance_check returns 1 when test_returncode != 0 (BC-22-2, I-ACCEPT-REUSE-1)."""
         output_file = tmp_path / "module.py"
         output_file.write_text("x = 1\n")
-        mock_run.side_effect = [_ok_result(0), _ok_result(returncode=1)]
+        mock_run.return_value = _ok_result(0)
 
         rc = _run_acceptance_check(
             outputs=[str(output_file)],
             cwd=str(tmp_path),
             env={},
             timeout=30,
+            test_returncode=1,
         )
 
         assert rc == 1
+        assert mock_run.call_count == 1  # only ruff called; no pytest subprocess
 
     @patch("sdd.commands.validate_invariants.subprocess.run")
     def test_outputs_expansion(self, mock_run, tmp_path):
@@ -356,6 +382,7 @@ class TestAcceptanceEnforcement:
             cwd=str(tmp_path),
             env={},
             timeout=30,
+            test_returncode=0,
         )
 
         ruff_call = mock_run.call_args_list[0]

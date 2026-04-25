@@ -1,0 +1,266 @@
+# SENAR Norm Catalog — SER/SDD
+# Supervised Engineering & Normative AI Regulation
+# Schema version: 1
+# Priority: second only to specs/SDD_Spec_v1.md
+# Enforcement: all norms are "hard" — violation → STOP
+
+schema_version: 1
+description: "SENAR Norm Catalog — SER/SDD v1"
+
+norm_resolution_policy:
+  resolution_model:
+    type: explicit_override_only
+    description: "Task inputs may override only norms listed in overrides. Norms are safety boundaries, not recommendations."
+  overrides:
+    TASK_INPUT_OVERRIDE:
+      allowed_norms: [NORM-SCOPE-001, NORM-SCOPE-002]
+  non_overridable: [NORM-SCOPE-003, NORM-SCOPE-004]
+
+norms:
+
+  # ─────────────────────────────────────────────────────────────────────
+  # ACTOR AUTHORIZATION NORMS  (map to I-SDD-15..18, I-SDD-G6..G9)
+  # ─────────────────────────────────────────────────────────────────────
+
+  - norm_id: NORM-ACTOR-001
+    description: "LLM MUST NOT emit SpecApproved"
+    actor: llm
+    applies_to_phases: []          # all phases
+    forbidden_actions:
+      - SpecApproved
+    sdd_invariant_refs:
+      - I-SDD-15
+      - I-SDD-G6
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-002
+    description: "LLM MUST NOT emit PlanActivated"
+    actor: llm
+    applies_to_phases: []
+    forbidden_actions:
+      - PlanActivated
+    sdd_invariant_refs:
+      - I-SDD-16
+      - I-SDD-G7
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-003
+    description: "LLM MUST NOT emit PhaseCompleted"
+    actor: llm
+    applies_to_phases: []
+    forbidden_actions:
+      - PhaseCompleted
+    sdd_invariant_refs:
+      - I-SDD-17
+      - I-SDD-G8
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-004
+    description: "LLM MAY implement/validate tasks and emit TaskImplemented for TODO tasks in current active phase"
+    actor: llm
+    applies_to_phases: []
+    allowed_actions:
+      - TaskImplemented
+      - implement_task
+      - validate_task
+      - check_dod
+      - sync_state
+      - record_decision
+    conditions:
+      task_status_must_be: TODO
+      phase_must_be_active: true
+      one_task_per_command: true
+    # Event schema ref (SDD_Spec_v1.md §3):
+    # TaskImplemented{task_id: str, phase_id: str, timestamp: str}
+    sdd_invariant_refs:
+      - I-SDD-G3
+      - I-SDD-11
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-005
+    description: "Human MUST NOT emit TaskImplemented or TaskValidated — these are LLM-only events"
+    actor: human
+    applies_to_phases: []
+    forbidden_actions:
+      - TaskImplemented
+      - TaskValidated
+    # Event schema refs (SDD_Spec_v1.md §3):
+    # TaskImplemented{task_id: str, phase_id: str, timestamp: str}
+    # TaskValidated{task_id: str, result: Literal["PASS","FAIL"], phase_id: str, timestamp: str}
+    sdd_invariant_refs:
+      - I-SDD-18
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-ACTIVATE-PHASE
+    description: "Human MAY emit activate_phase (ActivatePhaseCommand) — phase activation is a human-only action"
+    actor: human
+    applies_to_phases: []
+    allowed_actions:
+      - activate_phase
+    sdd_invariant_refs:
+      - I-ACT-1
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-ACTIVATE-PLAN
+    description: "Human MAY emit activate_plan (ActivatePlanCommand) — plan activation is a human-only action"
+    actor: human
+    applies_to_phases: []
+    allowed_actions:
+      - activate_plan
+    sdd_invariant_refs:
+      - I-ACT-1
+    enforcement: hard
+
+  # ─────────────────────────────────────────────────────────────────────
+  # SCOPE CONTROL NORMS  (map to Runtime v3 §14-15, I-SDD-19..20)
+  # ─────────────────────────────────────────────────────────────────────
+
+  - norm_id: NORM-SCOPE-001
+    description: "LLM MUST NOT read paths matching tests/** (directory traversal)"
+    actor: llm
+    applies_to_phases: []
+    forbidden_read_patterns:
+      - "tests/**"
+      - "tests/*"
+    exception: "files explicitly listed in the task Inputs field (TASK-INPUT-LAYER override)"
+    overridable_by: TASK-INPUT-LAYER
+    sdd_invariant_refs: []
+    senar_category: ScopeViolation
+    enforcement: hard
+
+  - norm_id: NORM-SCOPE-002
+    description: "LLM MUST NOT read src/** unless the file is listed in Task Inputs"
+    actor: llm
+    applies_to_phases: []
+    forbidden_read_patterns:
+      - "src/**"
+    exception: "files explicitly listed in the task Inputs field"
+    overridable_by: TASK-INPUT-LAYER
+    senar_category: ScopeViolation
+    enforcement: hard
+
+  - norm_id: NORM-SCOPE-003
+    description: "LLM MUST NOT use glob patterns (* or **) in any file access"
+    actor: llm
+    applies_to_phases: []
+    forbidden_patterns:
+      - "*"
+      - "**"
+    senar_category: ScopeViolation
+    enforcement: hard
+
+  - norm_id: NORM-SCOPE-004
+    description: "LLM MUST NOT write to .sdd/specs/** (specs directory is immutable)"
+    actor: llm
+    applies_to_phases: []
+    forbidden_write_patterns:
+      - ".sdd/specs/**"
+      - ".sdd/specs/*"
+    sdd_invariant_refs:
+      - I-SDD-19
+      - I-SDD-20
+    enforcement: hard
+
+  # ─────────────────────────────────────────────────────────────────────
+  # PHASE TRANSITION NORMS  (map to Kernel v2 §5, §18.3)
+  # ─────────────────────────────────────────────────────────────────────
+
+  - norm_id: NORM-PHASE-001
+    description: "LLM MUST NOT set phase.status or plan.status to ACTIVE (human-only transition)"
+    actor: llm
+    applies_to_phases: []
+    forbidden_actions:
+      - set_phase_active
+      - set_plan_active
+    sdd_invariant_refs:
+      - I-SDD-G7
+    enforcement: hard
+
+  - norm_id: NORM-PHASE-002
+    description: "LLM may set phase.status/plan.status ACTIVE→COMPLETE ONLY via Check DoD (all tasks DONE + invariants PASS + tests PASS)"
+    actor: llm
+    applies_to_phases: []
+    allowed_actions:
+      - set_phase_complete
+      - set_plan_complete
+    conditions:
+      mechanism: "update_state.py validate --check-dod"
+      all_tasks_done: true
+      invariants_pass: true
+      tests_pass: true
+    sdd_invariant_refs:
+      - I-SDD-G5
+    enforcement: hard
+
+  # ─────────────────────────────────────────────────────────────────────
+  # SUPERVISION GATE NORMS  (human approval checkpoints)
+  # ─────────────────────────────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────────────────────────────
+  # INTEGRITY NORMS  (Dual Reality protection, Risk #2)
+  # ─────────────────────────────────────────────────────────────────────
+
+  - norm_id: NORM-INTEGRITY-001
+    description: "Spec files in specs/ MUST NOT be modified after SpecApproved event — hash must match"
+    actor: llm
+    applies_to_phases: []
+    sdd_invariant_refs:
+      - I-SDD-HASH
+      - I-SDD-19
+      - NORM-SCOPE-004
+    enforcement: hard
+    check_mechanism: "validate_invariants.py _check_i_sdd_hash — compares sha256 of file vs spec_hash in SpecApproved payload"
+
+  # ─────────────────────────────────────────────────────────────────────
+
+  - norm_id: NORM-GATE-001
+    description: "Spec approval is a human supervision checkpoint — required before PlanCreated"
+    actor: human
+    applies_to_phases: []
+    gate_type: approval
+    triggers_on: SpecApproved
+    required_before: PlanCreated
+    sdd_invariant_refs:
+      - I-SDD-9
+      - I-SDD-G1
+    enforcement: hard
+
+  - norm_id: NORM-GATE-002
+    description: "Plan activation is a human supervision checkpoint — required before TaskSetCreated"
+    actor: human
+    applies_to_phases: []
+    gate_type: approval
+    triggers_on: PlanActivated
+    required_before: TaskSetCreated
+    sdd_invariant_refs:
+      - I-SDD-10
+      - I-SDD-G2
+    enforcement: hard
+
+  - norm_id: NORM-GATE-003
+    description: "Phase completion is a human supervision checkpoint — required before next phase start"
+    actor: human
+    applies_to_phases: []
+    gate_type: approval
+    triggers_on: PhaseCompleted
+    required_before: next_phase_start
+    sdd_invariant_refs:
+      - I-SDD-13
+      - I-SDD-G5
+    enforcement: hard
+
+  # ─────────────────────────────────────────────────────────────────────
+  # TASK OUTPUT INTEGRITY
+  # ─────────────────────────────────────────────────────────────────────
+
+  - norm_id: I-TASK-OUTPUT-1
+    description: "Every DONE task must have all declared Outputs present on disk"
+    actor: llm
+    applies_to_phases: []
+    rule: "For each task with Status==DONE in TaskSet_vN.md, every path listed under Outputs: must exist."
+    check_mechanism: "pytest tests/integration/test_task_output_invariant.py"
+    enforcement: hard
+
+  # ─────────────────────────────────────────────────────────────────────
+  # ENVIRONMENT BOOT INVARIANTS
+  # ─────────────────────────────────────────────────────────────────────

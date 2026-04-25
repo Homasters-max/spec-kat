@@ -66,6 +66,7 @@ class DependencyGuard:
                     message=reason,
                     norm_id="I-CMD-11",
                     task_id=task_id,
+                    reason=reason,
                 ),
                 [event],
             )

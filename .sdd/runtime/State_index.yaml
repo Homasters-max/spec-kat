@@ -1,0 +1,40 @@
+# SSOT Runtime State — projection derived from TaskSet + validation results.
+#
+# Model: TaskSet_vN.md is the source of truth for individual task statuses.
+#        This file is a derived aggregate — always re-derivable via Sync State.
+#
+# Human MAY directly edit:
+#   - phase.status  (PLANNED → ACTIVE only)
+#   - plan.status   (PLANNED → ACTIVE only)
+#
+# Editing tasks.*, invariants.*, tests.* manually is INVALID.
+# If done, immediately run "Sync State from TaskSet N" to re-align.
+#
+# LLM sets phase.status / plan.status ACTIVE → COMPLETE only via Check DoD
+# (deterministic: all tasks done + invariants PASS + tests PASS).
+
+phase:
+  current: 23
+  status: COMPLETE
+plan:
+  version: 23
+  status: COMPLETE
+tasks:
+  version: 23
+  total: 4
+  completed: 4
+  done_ids:
+  - T-2301
+  - T-2302
+  - T-2303
+  - T-2304
+invariants:
+  status: PASS
+tests:
+  status: PASS
+meta:
+  last_updated: '2026-04-25T02:46:23Z'
+  schema_version: 1
+  snapshot_event_id: null
+
+# state_hash: ff6d2ad8ed2aeaf6fa91cc42c130ed544a64366326c69035b65cd8a99cfd6796

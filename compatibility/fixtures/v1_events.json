@@ -1,0 +1,152 @@
+[
+  {
+    "event_type": "TaskImplemented",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-001",
+      "appended_at": 1700000001000,
+      "level": "L1",
+      "event_source": "runtime",
+      "caused_by_meta_seq": null,
+      "task_id": "T-0101",
+      "phase_id": 1,
+      "timestamp": "2023-11-14T12:00:01Z"
+    }
+  },
+  {
+    "event_type": "TaskValidated",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-002",
+      "appended_at": 1700000002000,
+      "level": "L1",
+      "event_source": "runtime",
+      "caused_by_meta_seq": null,
+      "task_id": "T-0101",
+      "phase_id": 1,
+      "result": "PASS",
+      "timestamp": "2023-11-14T12:00:02Z"
+    }
+  },
+  {
+    "event_type": "PhaseInitialized",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-003",
+      "appended_at": 1700000003000,
+      "level": "L1",
+      "event_source": "meta",
+      "caused_by_meta_seq": null,
+      "phase_id": 1,
+      "tasks_total": 10,
+      "plan_version": 1,
+      "actor": "human",
+      "timestamp": "2023-11-14T12:00:03Z"
+    }
+  },
+  {
+    "event_type": "PhaseActivated",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-004",
+      "appended_at": 1700000004000,
+      "level": "L1",
+      "event_source": "meta",
+      "caused_by_meta_seq": null,
+      "phase_id": 1,
+      "actor": "human",
+      "timestamp": "2023-11-14T12:00:04Z"
+    }
+  },
+  {
+    "event_type": "PhaseCompleted",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-005",
+      "appended_at": 1700000005000,
+      "level": "L1",
+      "event_source": "meta",
+      "caused_by_meta_seq": null,
+      "phase_id": 1,
+      "total_tasks": 10,
+      "timestamp": "2023-11-14T12:00:05Z"
+    }
+  },
+  {
+    "event_type": "DecisionRecorded",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-006",
+      "appended_at": 1700000006000,
+      "level": "L1",
+      "event_source": "meta",
+      "caused_by_meta_seq": null,
+      "decision_id": "DEC-001",
+      "title": "Use DuckDB for event store",
+      "summary": "DuckDB selected as event store backend for its embedded, zero-dependency model.",
+      "phase_id": 1,
+      "timestamp": "2023-11-14T12:00:06Z"
+    }
+  },
+  {
+    "event_type": "NormViolated",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-007",
+      "appended_at": 1700000007000,
+      "level": "L1",
+      "event_source": "runtime",
+      "caused_by_meta_seq": null,
+      "actor": "llm",
+      "action": "read_sdd_file_directly",
+      "norm_id": "NORM-SCOPE-001",
+      "task_id": "T-0102",
+      "timestamp": "2023-11-14T12:00:07Z"
+    }
+  },
+  {
+    "event_type": "StateDerivationCompleted",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-008",
+      "appended_at": 1700000008000,
+      "level": "L1",
+      "event_source": "runtime",
+      "caused_by_meta_seq": null,
+      "phase_id": "1",
+      "tasks_total": 10,
+      "tasks_completed": 10,
+      "derived_from": "EventStore",
+      "timestamp": "2023-11-14T12:00:08Z"
+    }
+  },
+  {
+    "event_type": "PlanActivated",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-009",
+      "appended_at": 1700000009000,
+      "level": "L1",
+      "event_source": "meta",
+      "caused_by_meta_seq": null,
+      "plan_version": 1,
+      "actor": "human",
+      "timestamp": "2023-11-14T12:00:09Z"
+    }
+  },
+  {
+    "event_type": "TaskStartGuardRejected",
+    "schema_version": 1,
+    "payload": {
+      "event_id": "evt-010",
+      "appended_at": 1700000010000,
+      "level": "L1",
+      "event_source": "runtime",
+      "caused_by_meta_seq": null,
+      "task_id": "T-0103",
+      "missing_invariant": "I-INV-001",
+      "required_ids": ["T-0101", "T-0102"],
+      "timestamp": "2023-11-14T12:00:10Z"
+    }
+  }
+]

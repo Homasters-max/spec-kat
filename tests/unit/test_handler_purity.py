@@ -273,3 +273,56 @@ def test_commands_registry_uses_domain_pipeline_directly() -> None:
         "registry.py must import run_guard_pipeline from sdd.domain.guards.pipeline, "
         "not from the adapter (I-PIPELINE-SINGLE-SOURCE-1)"
     )
+
+
+# ---------------------------------------------------------------------------
+# I-EXEC-CONTEXT-1: write entry points must be wrapped in kernel_context
+# ---------------------------------------------------------------------------
+
+_WRITE_ENTRY_POINTS: frozenset[str] = frozenset({"execute_command"})
+
+
+def _has_kernel_context_wrapper(func_node: ast.FunctionDef) -> bool:
+    """Return True if func_node contains a `with kernel_context(...):` statement."""
+    for node in ast.walk(func_node):
+        if not isinstance(node, ast.With):
+            continue
+        for item in node.items:
+            expr = item.context_expr
+            if (
+                isinstance(expr, ast.Call)
+                and isinstance(expr.func, ast.Name)
+                and expr.func.id == "kernel_context"
+            ):
+                return True
+    return False
+
+
+def test_write_entry_points_wrapped_in_kernel_context() -> None:
+    """All write entry points in registry.py must be wrapped in kernel_context (I-EXEC-CONTEXT-1).
+
+    AST-scan verifies that every function in _WRITE_ENTRY_POINTS contains a
+    `with kernel_context(...):` context manager, ensuring side-effecting operations
+    (EventStore.append) run only inside the declared execution context.
+    """
+    registry_path = Path("src/sdd/commands/registry.py").absolute()
+    assert registry_path.exists(), f"registry.py not found: {registry_path}"
+    source = registry_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    found: dict[str, bool] = {}  # fn_name → wrapped?
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name in _WRITE_ENTRY_POINTS:
+            found[node.name] = _has_kernel_context_wrapper(node)
+
+    missing = _WRITE_ENTRY_POINTS - found.keys()
+    assert not missing, (
+        f"Write entry points not found in registry.py (I-EXEC-CONTEXT-1): {sorted(missing)}"
+    )
+
+    not_wrapped = [name for name, wrapped in found.items() if not wrapped]
+    assert not not_wrapped, (
+        f"Write entry points missing kernel_context wrapper (I-EXEC-CONTEXT-1): "
+        f"{not_wrapped}"
+    )

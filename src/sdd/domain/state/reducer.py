@@ -278,16 +278,19 @@ class EventReducer:
                 phase_status = "COMPLETE"
                 plan_status = "COMPLETE"
             elif event_type == "PhaseStarted":
-                # I-PHASE-STARTED-1: new phase begins; A-8 soft ordering guard
+                # I-PHASE-STARTED-1: new phase begins; A-8 ordering guard.
+                # phase_id < phase_current → phase regression, data corruption → error.
+                # phase_id == phase_current → normal replay of known phase → silent skip.
+                # PhaseInitialized is the authoritative commit point; PhaseStarted defers to it.
                 raw_phase_id = event.get("phase_id")
                 if isinstance(raw_phase_id, int):
-                    if raw_phase_id != phase_current + 1:
-                        logging.warning(
-                            "EventReducer: PhaseStarted phase_id=%r != phase_current+1=%r"
-                            " — skipping (A-8, I-PHASE-SEQ-1)",
-                            raw_phase_id, phase_current + 1,
+                    if raw_phase_id < phase_current:
+                        logging.error(
+                            "EventReducer: PhaseStarted phase_id=%r < phase_current=%r"
+                            " — phase regression detected (A-8, I-PHASE-SEQ-1)",
+                            raw_phase_id, phase_current,
                         )
-                    else:
+                    elif raw_phase_id > phase_current:
                         phase_current = raw_phase_id
                         phase_status = "ACTIVE"
                         plan_status = "ACTIVE"

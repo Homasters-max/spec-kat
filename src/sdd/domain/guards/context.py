@@ -70,6 +70,9 @@ class GuardContext:
     now:        str                  # ISO8601 UTC — injected for determinism
 
 
+_SENTINEL_DEPS: frozenset[str] = frozenset({"—", "-", ""})
+
+
 def load_dag(taskset_path: str) -> DAG:
     """Parse TaskSet_vN.md and build a DAG from declared depends_on fields.
 
@@ -80,5 +83,7 @@ def load_dag(taskset_path: str) -> DAG:
     deps: dict[str, frozenset[str]] = {}
     for task in tasks:
         if task.depends_on:
-            deps[task.task_id] = frozenset(task.depends_on)
+            real_deps = frozenset(d for d in task.depends_on if d not in _SENTINEL_DEPS)
+            if real_deps:
+                deps[task.task_id] = real_deps
     return DAG(deps=deps)

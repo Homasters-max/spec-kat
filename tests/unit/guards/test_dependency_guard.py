@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sdd.domain.guards.context import DAG, EventLogView, GuardContext, GuardOutcome, PhaseState
+from sdd.domain.guards.context import DAG, EventLogView, GuardContext, GuardOutcome, PhaseState, load_dag
 from sdd.domain.guards.dependency_guard import DependencyGuard
 
 
@@ -81,3 +81,31 @@ def test_dependency_guard_unknown_task_has_no_deps():
 
     assert result.outcome == GuardOutcome.ALLOW
     assert events == []
+
+
+def test_load_dag_filters_sentinel_depends_on(tmp_path):
+    """load_dag must filter sentinel values ('—', '-', '') from depends_on (I-CMD-11)."""
+    taskset = tmp_path / "TaskSet_v1.md"
+    taskset.write_text(
+        "## T-001: Sentinel task\n"
+        "Status: TODO\n"
+        "Depends on: —\n"
+        "\n"
+        "## T-002: Dash task\n"
+        "Status: TODO\n"
+        "Depends on: -\n",
+        encoding="utf-8",
+    )
+    dag = load_dag(str(taskset))
+    assert dag.dependencies("T-001") == frozenset()
+    assert dag.dependencies("T-002") == frozenset()
+
+
+def test_dependency_guard_deny_populates_reason():
+    """DependencyGuard must set GuardResult.reason on DENY (I-GUARD-REASON-1)."""
+    ctx = _make_ctx(done_ids=[], task_deps=["T-100"])
+    result, _ = DependencyGuard.check(ctx, "T-001")
+
+    assert result.outcome == GuardOutcome.DENY
+    assert result.reason is not None
+    assert result.reason != ""

@@ -1,0 +1,108 @@
+stack:
+  language: python
+  version: "3.12"
+  lint: ruff
+  typecheck: mypy
+
+build:
+  commands:
+    lint:       ruff check src/
+    typecheck:  mypy src/sdd/
+    test:       pytest tests/unit/ tests/integration/ -q
+    test_full:  pytest tests/ -q
+    acceptance: "ruff check {outputs} && pytest tests/unit/ tests/integration/ -q"
+
+testing:
+  coverage_threshold: 80
+
+scope:
+  source_root: src/sdd/
+  forbidden_dirs:
+    - sdd_v1/
+    - .sdd/state/
+
+code_rules:
+  forbidden_patterns:
+    - pattern: "duckdb\\.connect"
+      applies_to: "src/sdd/**/*.py"
+      exclude:
+        - "src/sdd/infra/db.py"
+      severity: hard
+      message: "Direct duckdb.connect outside infra/db.py violates I-EL-9 — use sdd_append/sdd_append_batch"
+
+    - pattern: "from sdd\\.hooks"
+      applies_to: "src/sdd/**/*.py"
+      exclude:
+        - "src/sdd/hooks/"
+      severity: hard
+      message: "Importing hooks/ from inside sdd/ violates I-HOOKS-ISO — hooks are subprocess-only"
+
+    - pattern: "import sdd\\.hooks"
+      applies_to: "src/sdd/**/*.py"
+      exclude:
+        - "src/sdd/hooks/"
+      severity: hard
+      message: "Importing hooks/ from inside sdd/ violates I-HOOKS-ISO — hooks are subprocess-only"
+
+    - pattern: "sys\\.path\\s*(\\.append|\\.insert|\\[).*\\.sdd"
+      applies_to: "src/sdd/**/*.py"
+      severity: hard
+      message: "I-LEGACY-0a: sys.path manipulation toward .sdd/ is forbidden in src/sdd"
+
+    - pattern: "subprocess.*\\.sdd[/\\\\]tools"
+      applies_to: "src/sdd/**/*.py"
+      severity: hard
+      message: "I-LEGACY-0b: direct subprocess invocation of .sdd/tools/ is forbidden"
+
+    - pattern: "\\.sdd[/\\\\]tools"
+      applies_to: "src/sdd/**/*.py"
+      severity: hard
+      message: "I-RUNTIME-1: src/sdd/ must not reference .sdd/tools/ — all executable logic resides in src/sdd/ only"
+
+    - pattern: "\\.sdd[/\\\\]tools"
+      applies_to: "src/sdd/**/*.py"
+      severity: hard
+      message: "I-RUNTIME-LINEAGE-1: execution path must not originate from .sdd/tools/ — use sdd CLI entrypoint chain"
+
+    - pattern: "\\.sdd[/\\\\]tools"
+      applies_to: "src/sdd/**/*.py"
+      severity: hard
+      message: "I-TOOL-PATH-1: resolved path must not contain .sdd/tools — dynamic imports, importlib, and pathlib reconstruction to legacy adapters are forbidden"
+
+    - pattern: "if __name__ == [\"']__main__[\"']"
+      applies_to: "src/sdd/**/*.py"
+      exclude:
+        - "src/sdd/cli.py"
+        - "src/sdd/hooks/log_tool.py"
+        - "src/sdd/hooks/log_bash.py"
+        - "src/sdd/guards/task.py"
+        - "src/sdd/guards/phase.py"
+        - "src/sdd/guards/norm.py"
+        - "src/sdd/guards/scope.py"
+      severity: hard
+      message: "I-ENTRY-1: direct module execution forbidden; use sdd CLI (hooks are exempt)"
+
+    - pattern: "\\.sdd[/\\\\]"
+      applies_to: "src/sdd/**/*.py"
+      exclude:
+        - "src/sdd/infra/paths.py"
+        - "src/sdd/cli.py"
+        - "src/sdd/guards/scope.py"
+        - "src/sdd/commands/show_spec.py"
+      severity: hard
+      message: "I-PATH-1: hardcoded .sdd/ paths forbidden in src/sdd/ — use sdd.infra.paths"
+
+event_log:
+  path: .sdd/state/sdd_events.duckdb
+  meta_source: meta
+  runtime_source: runtime
+
+domain:
+  glossary:
+    sdd_append: "sole write path for domain events; enforces I-EL-9"
+    sdd_replay: "deterministic read path; default level=L1 source=runtime (I-EL-10)"
+    meta_context: "context manager that sets caused_by_meta_seq on runtime events (I-EL-8)"
+    event_source: "meta=governance, runtime=application domain"
+    L1: "domain truth events — replay, SSOT, forever retention"
+    L2: "operational/telemetry events — 90 days, compactable"
+    L3: "debug events — archived after TTL, never deleted (I-EL-7)"

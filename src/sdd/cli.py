@@ -38,11 +38,20 @@ def validate(args: tuple[str, ...]) -> None:
     sys.exit(main(["validate", *args]))
 
 
-@cli.command("show-state")
-def show_state() -> None:
+@cli.command("show-state", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def show_state(args: tuple[str, ...]) -> None:
     """Print current State_index.yaml as a markdown table."""
     from sdd.commands.show_state import main
-    sys.exit(main([]))
+    sys.exit(main(list(args)))
+
+
+@cli.command("path", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def path_cmd(args: tuple[str, ...]) -> None:
+    """Resolve canonical SDD resource paths (§BOOTSTRAP STATE RULE)."""
+    from sdd.commands.show_path import main
+    sys.exit(main(list(args)))
 
 
 @cli.command("activate-phase", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -90,7 +99,8 @@ def sync_state(args: tuple[str, ...]) -> None:
 @click.option("--task", "task_id", default=None, help="Task ID (T-NNN)")
 @click.option("--check", "check_id", default=None, help="Specific invariant check (I-XXX)")
 @click.option("--scope", default=None, help="Scope for check (e.g. full-src)")
-def validate_invariants(phase: int, task_id: str | None, check_id: str | None, scope: str | None) -> None:
+@click.option("--timeout", "timeout_secs", type=int, default=0, help="Subprocess timeout in seconds (0 = default 300)")
+def validate_invariants(phase: int, task_id: str | None, check_id: str | None, scope: str | None, timeout_secs: int) -> None:
     """Run validation checks for a task and record results."""
     from sdd.commands.validate_invariants import main
     args: list[str] = ["--phase", str(phase)]
@@ -100,6 +110,8 @@ def validate_invariants(phase: int, task_id: str | None, check_id: str | None, s
         args += ["--check", check_id]
     if scope:
         args += ["--scope", scope]
+    if timeout_secs:
+        args += ["--timeout", str(timeout_secs)]
     sys.exit(main(args))
 
 
