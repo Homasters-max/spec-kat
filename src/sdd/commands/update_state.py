@@ -422,6 +422,11 @@ def main(args: list[str] | None = None) -> int:
             if _task_obj is not None and _task_obj.status == "DONE":
                 print(json.dumps({"status": "noop", "task_id": parsed.task_id}))
                 return 0
+            # I-BOOTSTRAP-2: bootstrap tasks are PRE-RESOLVED — skip event emission permanently
+            from sdd.infra.bootstrap_manifest import contains as _bootstrap_contains
+            if _bootstrap_contains(parsed.task_id):
+                print(json.dumps({"status": "noop", "task_id": parsed.task_id, "reason": "bootstrap_pre_resolved"}))
+                return 0
             # Route through Write Kernel (I-SPEC-EXEC-1, I-KERNEL-WRITE-1, I-KERNEL-PROJECT-1)
             from sdd.commands.registry import REGISTRY, execute_and_project
             events = execute_and_project(

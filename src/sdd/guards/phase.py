@@ -10,11 +10,35 @@ import json
 import re
 import sys
 
+from sdd.core.errors import AlreadyActivated, InvalidPhaseSequence
 from sdd.infra import paths as _paths
-from sdd.infra.projections import get_current_state
 
 # Extracts a full Task ID (with optional suffix) from a command string.
 _CMD_TASK_RE = re.compile(r"(T-\d+[a-z]*)")
+
+
+def check_phase_activation_guard(phase_id: int, db_path: str) -> None:
+    """Raise if phase_id cannot be activated given current state (I-PHASE-SEQ-FORWARD-1).
+
+    AlreadyActivated  — phase_id <= phase_current (re-activation or going back)
+    InvalidPhaseSequence — phase_id > phase_current + 1 (skipping phases)
+    Returns None on success (phase_id == phase_current + 1).
+
+    Reads state via get_current_state (I-STATE-ACCESS-LAYER-1, I-PROJECTION-GUARD-1).
+    """
+    from sdd.infra.projections import get_current_state
+    state = get_current_state(db_path)
+    current = state.phase_current
+    if phase_id <= current:
+        raise AlreadyActivated(
+            f"I-PHASE-SEQ-FORWARD-1: phase {phase_id} is already activated "
+            f"(phase_current={current})."
+        )
+    if phase_id > current + 1:
+        raise InvalidPhaseSequence(
+            f"I-PHASE-SEQ-FORWARD-1: cannot skip phases; "
+            f"requested phase_id={phase_id} but phase_current={current}."
+        )
 
 
 def _extract_phase_from_task(task_id: str) -> int | None:
@@ -139,27 +163,6 @@ def main(argv: list[str] | None = None) -> int:
         "sdd_event_rejected": None,
     }, indent=2))
     return 0
-
-
-def check_phase_activation_guard(phase_id: int, db_path: str) -> None:
-    """Enforce I-PHASE-SEQ-FORWARD-1: phase activation must be forward-sequential.
-
-    Gets current state via get_current_state() (I-STATE-ACCESS-LAYER-1, I-PROJECTION-GUARD-1).
-    Raises AlreadyActivated if phase_id <= state.phase_current.
-    Raises InvalidPhaseSequence if phase_id > state.phase_current + 1.
-    Returns normally if phase_id == state.phase_current + 1 (valid next phase).
-    """
-    from sdd.core.errors import AlreadyActivated, InvalidPhaseSequence
-
-    state = get_current_state(db_path)
-    if phase_id <= state.phase_current:
-        raise AlreadyActivated(
-            f"phase {phase_id} already activated; current phase is {state.phase_current}"
-        )
-    if phase_id > state.phase_current + 1:
-        raise InvalidPhaseSequence(
-            f"cannot skip phases: current is {state.phase_current}, requested {phase_id}"
-        )
 
 
 if __name__ == "__main__":

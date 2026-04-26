@@ -25,6 +25,7 @@ dev = [
     "types-PyYAML",
     "hypothesis>=6.100",
     "mutmut>=2.0,<3.0",
+    "pytest-timeout>=2.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -47,7 +48,7 @@ explicit_package_bases = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "--tb=short"
+addopts = "--tb=short --timeout=30"
 
 [tool.coverage.run]
 source = ["sdd"]

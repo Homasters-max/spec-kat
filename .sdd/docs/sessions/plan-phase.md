@@ -43,13 +43,14 @@ FORBIDDEN: direct reads of `.sdd/specs/`, `.sdd/plans/`, `.sdd/tasks/`.
 
 ---
 
-## Phase Index Invariants (PI-1..5)
+## Phase Index Invariants (PI-1..6)
 
 - PI-1: every phase referenced by any command MUST exist in Phases_index.md
 - PI-2: Phase.id is unique and monotonic
 - PI-3: Phase.spec points to `.sdd/specs/` OR is TODO (future phases)
 - PI-4: Phase.status ∈ {PLANNED, ACTIVE, COMPLETE}
 - PI-5: exactly one phase has status ACTIVE at any time
+- PI-6: after Plan_vN.md is written, Phases_index.md MUST contain an entry for Phase N with `spec = Spec_vN.md` and `plan = Plan_vN.md`; LLM MUST update Phases_index.md before completing the session
 
 ---
 
@@ -82,6 +83,24 @@ Anti-patterns (APG-1..3):
 - SDD-3: TaskSet MUST cover all Plan milestones
 - SDD-4: Tasks MUST NOT introduce entities absent in Spec
 - SDD-5: Validation MUST reference Spec, invariants, acceptance criterion
+
+---
+
+## Auto-actions (after Plan_vN.md written)
+
+Execute in order before ending the session:
+
+1. **Update Phases_index.md** — ensure Phase N entry exists with:
+   - `spec: Spec_vN.md` (points to approved spec in `.sdd/specs/`)
+   - `plan: Plan_vN.md` (points to the just-written plan)
+   - `status: PLANNED` (if new phase entry; do NOT change existing status)
+2. **Validate I-PHASES-INDEX-1**:
+   ```
+   sdd validate-invariants --check I-PHASES-INDEX-1
+   ```
+   Must return `passed: true`. On failure → STOP → `sdd report-error`.
+
+> I-PHASES-INDEX-1: `Phases_index.md` MUST contain an entry for every Phase N that has a `Plan_vN.md`; each entry MUST have non-empty `spec` and `plan` fields.
 
 ---
 

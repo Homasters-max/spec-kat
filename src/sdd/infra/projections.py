@@ -152,18 +152,27 @@ def get_current_state(db_path: str) -> SDDState:
 
     Pure function: no YAML compat fallback, no caching, no partial replay.
     MUST be called only from guards and projections (I-STATE-ACCESS-LAYER-1).
+    Filters out invalidated seqs (I-INVALID-2) before reducer dispatch.
     """
-    conn = open_sdd_connection(db_path)
+    conn = open_sdd_connection(db_path, read_only=True)
     try:
+        inv_rows = conn.execute(
+            "SELECT payload->>'target_seq' FROM events WHERE event_type = 'EventInvalidated'"
+        ).fetchall()
+        invalidated_seqs: frozenset[int] = frozenset(
+            int(r[0]) for r in inv_rows if r[0] is not None
+        )
         rows = conn.execute(
-            "SELECT event_type, payload, level, event_source, caused_by_meta_seq "
+            "SELECT seq, event_type, payload, level, event_source, caused_by_meta_seq "
             "FROM events ORDER BY seq ASC"
         ).fetchall()
     finally:
         conn.close()
 
     events: list[dict] = []
-    for event_type, payload_str, level, event_source, caused_by_meta_seq in rows:
+    for seq, event_type, payload_str, level, event_source, caused_by_meta_seq in rows:
+        if seq in invalidated_seqs:
+            continue
         try:
             payload: dict = json.loads(payload_str) if payload_str else {}
         except Exception:

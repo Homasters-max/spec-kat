@@ -4,7 +4,6 @@
 ## Preconditions
 
 - `Plan_vN.md` exists in `.sdd/plans/`
-- `Plan_vN.md` Status = ACTIVE
 - State Guard passes
 
 ---
@@ -18,6 +17,17 @@
 ```
 
 FORBIDDEN: direct reads of `.sdd/plans/`, `.sdd/tasks/`.
+
+---
+
+## Content Check (I-SESSION-PI-6)
+
+Before proceeding to Output, verify `Plan_vN.md` contains:
+
+- `## Milestones` section (non-empty)
+- `## Risk Notes` section (non-empty)
+
+If either section is absent or empty → ERROR (MissingContext) → STOP → `sdd report-error --type MissingContext --message "Plan_vN.md missing required section"`.
 
 ---
 
@@ -74,6 +84,25 @@ Anti-patterns — CRITICAL:
 - SDD-2: every Task MUST reference exactly one Spec section + ≥1 invariant
 - SDD-3: TaskSet MUST cover all Plan milestones (no gaps)
 - SDD-4: Tasks MUST NOT introduce entities absent in Spec
+
+---
+
+## Auto-actions (I-SESSION-AUTO-1)
+
+After `TaskSet_vN.md` is written, LLM MUST execute in order:
+
+```bash
+# 1. Record session event
+sdd record-session --type DECOMPOSE --phase N
+
+# 2. Activate phase with LLM executor flag
+sdd activate-phase N --executed-by llm
+```
+
+Then confirm:
+```bash
+sdd show-state   ← task count must match TaskSet
+```
 
 ---
 

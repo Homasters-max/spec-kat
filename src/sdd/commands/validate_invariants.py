@@ -19,6 +19,7 @@ from typing import Any, ClassVar
 
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.errors import SDDError
+from sdd.core.execution_context import kernel_context
 from sdd.core.events import DomainEvent, classify_event_level
 from sdd.domain.metrics.aggregator import MetricsAggregator
 from sdd.infra.config_loader import load_config
@@ -53,7 +54,8 @@ class ValidateInvariantsCommand:
     cwd:           str
     env_whitelist: tuple[str, ...]
     timeout_secs:  int
-    task_outputs:  tuple[str, ...]
+    task_outputs:    tuple[str, ...]
+    validation_mode: str = "task"  # "task" | "system"
 
     def __post_init__(self) -> None:
         if not self.payload:
@@ -118,11 +120,13 @@ class ValidateInvariantsHandler(CommandHandlerBase):
 
     @error_event_boundary(source=__name__)
     def handle(self, command: ValidateInvariantsCommand) -> list[DomainEvent]:
-        if self._check_idempotent(command):
+        if self._check_idempotent(command):  # type: ignore[arg-type]
             return []
 
         config = load_config(command.config_path)
         build_commands: dict[str, str] = config.get("build", {}).get("commands", {})
+        if command.validation_mode == "task":
+            build_commands = {k: v for k, v in build_commands.items() if not k.startswith("test")}
 
         timeout = command.timeout_secs if command.timeout_secs > 0 else _DEFAULT_TIMEOUT_SECS
 
@@ -402,6 +406,8 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=int, default=0)
     parser.add_argument("--env", nargs="*", default=list(_DEFAULT_ENV_WHITELIST))
     parser.add_argument("--db", default=None)
+    parser.add_argument("--system", action="store_true", default=False,
+                        help="System mode: run all build commands including test (full suite gate)")
     parser.add_argument("--check", default=None,
                         help="Invariant ID to check against forbidden_patterns (e.g. I-LEGACY-0a)")
     parser.add_argument("--scope", default=None, choices=["full-src"],
@@ -440,10 +446,12 @@ def main(args: list[str] | None = None) -> int:
             env_whitelist=tuple(parsed.env),
             timeout_secs=parsed.timeout,
             task_outputs=tuple(task_outputs),
+            validation_mode="system" if parsed.system else "task",
         )
-        events = ValidateInvariantsHandler(db_path).handle(cmd)
-        if events:
-            EventStore(db_path).append(events, source=__name__)
+        with kernel_context("execute_command"):
+            events = ValidateInvariantsHandler(db_path).handle(cmd)
+            if events:
+                EventStore(db_path).append(events, source=__name__)
 
         # Acceptance check (I-ACCEPT-1): only when --task given and acceptance field present
         if parsed.task:
@@ -452,7 +460,8 @@ def main(args: list[str] | None = None) -> int:
                 env = {k: os.environ[k] for k in parsed.env if k in os.environ}
                 timeout = parsed.timeout if parsed.timeout > 0 else _DEFAULT_TIMEOUT_SECS
                 # Extract test result from build loop events (I-ACCEPT-REUSE-1)
-                test_returncode: int | None = None
+                # In task mode, test is intentionally skipped — treat as 0 (not failed)
+                test_returncode: int | None = 0 if cmd.validation_mode == "task" else None
                 for evt in events:
                     if isinstance(evt, _TestRunCompletedEvent) and evt.name == "test":
                         test_returncode = evt.returncode

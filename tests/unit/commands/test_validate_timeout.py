@@ -66,7 +66,7 @@ def test_timeout_records_124_and_continues(
     mock_popen, mock_load, mock_killpg, mock_getpgid, handler
 ):
     """Timeout sets returncode=TIMEOUT_RETURN_CODE (124), loop continues (I-TIMEOUT-1, I-CMD-6)."""
-    mock_load.return_value = _fake_config("lint", "test")
+    mock_load.return_value = _fake_config("lint", "checks")
 
     timeout_proc = MagicMock()
     timeout_proc.pid = 12345
@@ -90,15 +90,15 @@ def test_timeout_records_124_and_continues(
     assert lint_event.returncode == TIMEOUT_RETURN_CODE
     assert lint_event.returncode == 124
 
-    test_event = next(e for e in test_events if e.name == "test")
-    assert test_event.returncode == 0
+    checks_event = next(e for e in test_events if e.name == "checks")
+    assert checks_event.returncode == 0
 
 
 @patch("sdd.commands.validate_invariants.load_config")
 @patch("sdd.commands.validate_invariants.subprocess.Popen")
 def test_uses_start_new_session(mock_popen, mock_load, handler):
     """All Popen calls in build loop MUST use start_new_session=True (I-CMD-7)."""
-    mock_load.return_value = _fake_config("lint", "test")
+    mock_load.return_value = _fake_config("lint", "checks")
     mock_popen.return_value = _popen_mock()
 
     with patch.object(handler, "_check_idempotent", return_value=False):

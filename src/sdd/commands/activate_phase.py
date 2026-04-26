@@ -1,10 +1,12 @@
 """ActivatePhaseCommand + ActivatePhaseHandler — Spec_v15 §2 BC-4, Phase_v15.5 §3–§7.
 
-Invariants: I-ACT-1, I-HANDLER-BATCH-PURE-1, I-PHASE-EMIT-1, I-PHASE-EVENT-PAIR-1
+Invariants: I-ACT-1, I-HANDLER-BATCH-PURE-1, I-PHASE-EMIT-1, I-PHASE-EVENT-PAIR-1,
+            I-SESSION-ACTOR-1, I-SESSION-PLAN-HASH-1
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 import time
 import uuid
@@ -18,11 +20,27 @@ from sdd.commands._base import CommandHandlerBase
 from sdd.core.errors import Inconsistency, InvalidActor, MissingContext, SDDError
 from sdd.core.events import DomainEvent, PhaseInitializedEvent, PhaseStartedEvent, classify_event_level
 from sdd.domain.tasks.parser import parse_taskset
-from sdd.infra.paths import event_store_file, taskset_file
+from sdd.infra.paths import event_store_file, plan_file, taskset_file
 
 
 def _utc_now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _compute_plan_hash(phase_id: int) -> str:
+    """Read Plan_vN.md and return sha256[:16] — I-SESSION-PLAN-HASH-1.
+
+    Raises MissingContext if the plan file is absent.
+    Called at CLI level to keep handler pure (I-HANDLER-BATCH-PURE-1).
+    """
+    path = plan_file(phase_id)
+    try:
+        content = path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise MissingContext(
+            f"Plan_v{phase_id}.md not found at {path} (I-SESSION-PLAN-HASH-1)"
+        ) from exc
+    return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
 def _resolve_tasks_total(phase_id: int, tasks_arg: int | None) -> int:
@@ -59,6 +77,8 @@ class ActivatePhaseCommand:
     phase_id: int
     actor: str
     tasks_total: int  # passed from CLI --tasks N; handler is pure (I-HANDLER-BATCH-PURE-1)
+    plan_hash: str = ""       # sha256(Plan_vN.md)[:16]; "" when --executed-by absent
+    executed_by: str = ""     # I-SESSION-ACTOR-1: caller identity; "" when absent
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "payload", MappingProxyType(dict(self.payload)))
@@ -105,6 +125,8 @@ class ActivatePhaseHandler(CommandHandlerBase):
             plan_version=command.phase_id,
             actor=command.actor,
             timestamp=now_iso,
+            plan_hash=command.plan_hash,
+            executed_by=command.executed_by,
         )
         return [phase_started, phase_init]
 
@@ -123,6 +145,8 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("phase_id", type=int)
     parser.add_argument("--actor", default="human")
     parser.add_argument("--tasks", type=int, default=None, help="[DEPRECATED] Total tasks; auto-detected from TaskSet")
+    parser.add_argument("--executed-by", default=None, dest="executed_by",
+                        help="Record caller identity in PhaseInitialized payload (I-SESSION-ACTOR-1)")
     parser.add_argument("--db", default=None)
     parsed = parser.parse_args(args)
     db = parsed.db or str(event_store_file())
@@ -135,13 +159,18 @@ def main(args: list[str] | None = None) -> int:
     try:
         from sdd.commands.registry import REGISTRY, execute_and_project
         tasks_total = _resolve_tasks_total(parsed.phase_id, parsed.tasks)
+        plan_hash = _compute_plan_hash(parsed.phase_id) if parsed.executed_by else ""
+        executed_by = parsed.executed_by or ""
         cmd = ActivatePhaseCommand(
             command_id=str(uuid.uuid4()),
             command_type="ActivatePhaseCommand",
-            payload={"phase_id": parsed.phase_id, "tasks_total": tasks_total},
+            payload={"phase_id": parsed.phase_id, "tasks_total": tasks_total,
+                     "executed_by": executed_by, "plan_hash": plan_hash},
             phase_id=parsed.phase_id,
             actor=parsed.actor,
             tasks_total=tasks_total,
+            plan_hash=plan_hash,
+            executed_by=executed_by,
         )
         execute_and_project(REGISTRY["activate-phase"], cmd, db_path=db)
         return 0

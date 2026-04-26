@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 
 from sdd.core.errors import Inconsistency, MissingState
-from sdd.domain.state.reducer import SDDState, compute_state_hash
+from sdd.domain.state.reducer import FrozenPhaseSnapshot, SDDState, compute_state_hash
 from sdd.infra.audit import atomic_write
 
 # Header comment block preserved on every write_state call.
@@ -66,6 +66,44 @@ def read_state(path: str) -> SDDState:
     done_ids_raw = tasks.get("done_ids") or []
     tasks_done_ids: tuple[str, ...] = tuple(str(t) for t in done_ids_raw)
 
+    # REDUCER_VERSION mismatch → YAML cache is stale (produced by older reducer).
+    # phases_known/phases_snapshots are unavailable from old YAML; fall back to empty defaults.
+    # The next write command (rebuild_state STRICT) will rewrite YAML with correct version.
+    stored_reducer_version = int(meta.get("reducer_version", 1))
+    version_match = stored_reducer_version == SDDState.REDUCER_VERSION
+
+    if version_match:
+        # Deserialize phases_known (BC-PC-2)
+        phases_known_raw = data.get("phases_known") or []
+        phases_known: frozenset[int] = frozenset(int(p) for p in phases_known_raw)
+
+        # Deserialize phases_snapshots (BC-PC-9)
+        phases_snapshots: tuple[FrozenPhaseSnapshot, ...] = tuple(
+            FrozenPhaseSnapshot(
+                phase_id=int(s["phase_id"]),
+                phase_status=str(s.get("phase_status", "PLANNED")),
+                plan_status=str(s.get("plan_status", "PLANNED")),
+                tasks_total=int(s.get("tasks_total", 0)),
+                tasks_completed=int(s.get("tasks_completed", 0)),
+                tasks_done_ids=tuple(str(t) for t in (s.get("tasks_done_ids") or [])),
+                plan_version=int(s.get("plan_version", 0)),
+                tasks_version=int(s.get("tasks_version", 0)),
+                invariants_status=str(s.get("invariants_status", "UNKNOWN")),
+                tests_status=str(s.get("tests_status", "UNKNOWN")),
+            )
+            for s in (data.get("phases_snapshots") or [])
+            if isinstance(s, dict) and "phase_id" in s
+        )
+    else:
+        import logging as _logging
+        _logging.warning(
+            "yaml_state: REDUCER_VERSION mismatch (stored=%d, expected=%d);"
+            " phases_known/phases_snapshots unavailable — run sync-state to rebuild.",
+            stored_reducer_version, SDDState.REDUCER_VERSION,
+        )
+        phases_known = frozenset()
+        phases_snapshots = ()
+
     state = SDDState(
         phase_current=int(phase.get("current", 0)),
         plan_version=int(plan.get("version", 0)),
@@ -80,6 +118,8 @@ def read_state(path: str) -> SDDState:
         snapshot_event_id=_parse_optional_int(meta.get("snapshot_event_id")),
         phase_status=str(phase.get("status", "PLANNED")),
         plan_status=str(plan.get("status", "PLANNED")),
+        phases_known=phases_known,
+        phases_snapshots=phases_snapshots,
     )
 
     # Verify integrity: recompute hash and compare against stored comment (I-ST-8).
@@ -100,6 +140,23 @@ def write_state(state: SDDState, path: str) -> None:
     state_hash written as a comment for human reference: # state_hash: <hex>
     """
     done_ids_list = list(state.tasks_done_ids)
+
+    # Serialize phases_snapshots as a list of dicts (BC-PC-9, AC-14)
+    snapshots_list = [
+        {
+            "phase_id": s.phase_id,
+            "phase_status": s.phase_status,
+            "plan_status": s.plan_status,
+            "tasks_total": s.tasks_total,
+            "tasks_completed": s.tasks_completed,
+            "tasks_done_ids": list(s.tasks_done_ids),
+            "plan_version": s.plan_version,
+            "tasks_version": s.tasks_version,
+            "invariants_status": s.invariants_status,
+            "tests_status": s.tests_status,
+        }
+        for s in sorted(state.phases_snapshots, key=lambda s: s.phase_id)
+    ]
 
     data: dict[str, Any] = {
         "phase": {
@@ -126,7 +183,10 @@ def write_state(state: SDDState, path: str) -> None:
             "last_updated": state.last_updated or _utcnow_iso(),
             "schema_version": state.schema_version,
             "snapshot_event_id": state.snapshot_event_id,
+            "reducer_version": state.REDUCER_VERSION,
         },
+        "phases_known": sorted(state.phases_known),
+        "phases_snapshots": snapshots_list,
     }
 
     yaml_body = yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)

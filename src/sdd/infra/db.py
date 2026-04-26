@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import time
+from pathlib import Path
 
 import duckdb
 
@@ -34,7 +36,13 @@ CREATE TABLE IF NOT EXISTS events (
     level              VARCHAR  DEFAULT NULL,
     event_source       VARCHAR  NOT NULL DEFAULT 'runtime',
     caused_by_meta_seq BIGINT   DEFAULT NULL,
-    expired            BOOLEAN  NOT NULL DEFAULT FALSE
+    expired            BOOLEAN  NOT NULL DEFAULT FALSE,
+    batch_id           TEXT     DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sdd_schema_meta (
+    key   VARCHAR NOT NULL PRIMARY KEY,
+    value INTEGER NOT NULL
 )
 """
 
@@ -49,10 +57,13 @@ SDD_MIGRATION_REGISTRY: list[tuple[int, str]] = [
     (4, "ALTER TABLE events ADD COLUMN IF NOT EXISTS batch_id TEXT DEFAULT NULL"),
 ]
 
+_MAX_SCHEMA_VERSION: int = max(v for v, _ in SDD_MIGRATION_REGISTRY)
+
 
 def open_sdd_connection(
-    db_path: str | None = None,
+    db_path: str,
     timeout_secs: float = 10.0,
+    read_only: bool = False,
 ) -> duckdb.DuckDBPyConnection:
     """Open (or create) a DuckDB connection and ensure the v2 schema is present.
 
@@ -60,16 +71,28 @@ def open_sdd_connection(
     Restarts the sequence on every call so seq is strictly increasing across
     reconnections (I-EL-5b). See CLAUDE.md §0.12 SDD-SEQ-1.
 
+    read_only=True: skips _restart_sequence for callers that never INSERT.  The
+    sequence state is left unchanged; the next write connection will restart it.
+    This is safe because sequence restarts are idempotent and only matter before
+    the first nextval() call on a connection.
+
     Retries up to timeout_secs if the file lock is held by another process,
     sleeping _LOCK_RETRY_INTERVAL between attempts. Non-lock errors raise immediately.
     """
-    if db_path is None:
-        db_path = str(event_store_file())
+    if not db_path:
+        raise ValueError("I-DB-1 violated")
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        timeout_secs = 0.0
+        if Path(db_path).resolve() == event_store_file().resolve():
+            raise RuntimeError(
+                f"I-DB-TEST-1 violated: test must not open production DB '{db_path}'"
+            )
     # In-memory connections have no file lock — skip retry entirely (I-LOCK-2)
     if db_path == ":memory:":
         conn = duckdb.connect(db_path)
         ensure_sdd_schema(conn)
-        _restart_sequence(conn)
+        if not read_only:
+            _restart_sequence(conn)
         return conn
     deadline = time.monotonic() + timeout_secs
     last_exc: Exception | None = None
@@ -77,7 +100,8 @@ def open_sdd_connection(
         try:
             conn = duckdb.connect(db_path)
             ensure_sdd_schema(conn)
-            _restart_sequence(conn)
+            if not read_only:
+                _restart_sequence(conn)
             return conn
         except duckdb.IOException as exc:
             if _LOCK_ERROR_MARKER not in str(exc):
@@ -100,17 +124,51 @@ def _restart_sequence(conn: duckdb.DuckDBPyConnection) -> None:
 
 
 def ensure_sdd_schema(conn: duckdb.DuckDBPyConnection) -> None:
-    """Create the events table + sequence if absent, then run pending migrations."""
+    """Create the events table + sequence if absent, then run pending migrations.
+
+    Schema version is persisted in sdd_schema_meta so migrations run at most once
+    per DB file (not on every open_sdd_connection call).  This prevents DDL-lock
+    storms in Hypothesis tests where hundreds of connections are opened per run.
+    """
     conn.execute(_SDD_DDL)
 
+    # Fast path: read version from meta table written on a previous connection.
+    need_meta_write = False
     try:
         row = conn.execute(
-            "SELECT COALESCE(MAX(schema_version), 0) FROM events"
+            "SELECT value FROM sdd_schema_meta WHERE key = 'schema_version'"
         ).fetchone()
-        stored_version: int = row[0] if row and row[0] is not None else 0
+        stored_version: int = row[0] if row else -1
     except Exception:
-        stored_version = 0
+        stored_version = -1
 
-    for target_version, ddl in SDD_MIGRATION_REGISTRY:
-        if target_version > stored_version:
+    if stored_version < 0:
+        # Meta table absent or empty: first connection to this DB file.
+        # Always fall back to MAX(schema_version) — covers both fresh DBs (returns 0,
+        # migrations are no-ops via IF NOT EXISTS) and legacy DBs (runs pending ALTERs).
+        need_meta_write = True
+        try:
+            ver_row = conn.execute(
+                "SELECT COALESCE(MAX(schema_version), 0) FROM events"
+            ).fetchone()
+            stored_version = ver_row[0] if ver_row and ver_row[0] is not None else 0
+        except Exception:
+            stored_version = 0
+
+    pending = [(v, ddl) for v, ddl in SDD_MIGRATION_REGISTRY if v > stored_version]
+    if pending:
+        # DuckDB forbids ALTER TABLE when an index exists; drop it first and recreate below.
+        conn.execute("DROP INDEX IF EXISTS idx_event_type")
+        for _, ddl in pending:
             conn.execute(ddl)
+        need_meta_write = True
+
+    if need_meta_write:
+        # Index is created once per DB file alongside the meta record.
+        # Subsequent connections skip both (fast path: index already present).
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_event_type ON events (event_type)")
+        conn.execute(
+            "INSERT INTO sdd_schema_meta (key, value) VALUES ('schema_version', ?)"
+            " ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+            [_MAX_SCHEMA_VERSION],
+        )

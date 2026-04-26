@@ -68,6 +68,8 @@ class PhaseInitializedEvent(DomainEvent):
     plan_version: int
     actor: str
     timestamp: str
+    plan_hash: str = ""
+    executed_by: str = ""
 
 
 @dataclass(frozen=True)
@@ -146,6 +148,30 @@ class DecisionRecordedEvent(DomainEvent):
 
 
 @dataclass(frozen=True)
+class PhaseContextSwitchedEvent(DomainEvent):
+    """Signals an explicit context switch between phases (Spec_v24 §3 BC-PC-1).
+
+    Emitted by sdd switch-phase (T-2407+). Reducer handler added in T-2404+.
+    I-PHASE-CONTEXT-1: from_phase MUST differ from to_phase.
+    """
+    EVENT_TYPE: ClassVar[str] = "PhaseContextSwitched"
+    from_phase:  int
+    to_phase:    int
+    actor:       str
+    timestamp:   str
+
+
+@dataclass(frozen=True)
+class SessionDeclaredEvent(DomainEvent):
+    EVENT_TYPE: ClassVar[str] = "SessionDeclared"
+    session_type: str   # e.g. "IMPLEMENT", "VALIDATE", "PLAN", etc.
+    task_id: str | None
+    phase_id: int
+    plan_hash: str      # I-SESSION-PLAN-HASH-1
+    timestamp: str
+
+
+@dataclass(frozen=True)
 class ToolUseStartedEvent(DomainEvent):
     EVENT_TYPE: ClassVar[str] = "ToolUseStarted"
     tool_name:    str
@@ -206,6 +232,12 @@ V1_L1_EVENT_TYPES: frozenset[str] = frozenset({
     "HookError",
     # Phase 15 — ErrorEvent L2 observability sentinel (I-ERROR-L2-1); reducer ignores via _KNOWN_NO_HANDLER
     "ErrorOccurred",
+    # Phase 24 — PhaseContextSwitch (Spec_v24 §3 BC-PC-1; I-PHASE-CONTEXT-1)
+    "PhaseContextSwitched",
+    # Phase 28 — EventInvalidated: Write Kernel guard rejection sentinel (I-EL-6; C-1)
+    "EventInvalidated",
+    # Phase 29 — SessionDeclared: session declaration audit event (I-SESSION-DECLARED-1)
+    "SessionDeclared",
 })
 
 V2_L1_EVENT_TYPES: frozenset[str] = V1_L1_EVENT_TYPES  # must be identical (I-EL-6)

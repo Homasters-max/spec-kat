@@ -10,7 +10,7 @@ import inspect
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 
@@ -92,6 +92,7 @@ FROZEN_SIGNATURES: dict[str, list[tuple[str, str]]] = {
         ("source", "str"),
         ("command_id", "str | None"),
         ("expected_head", "int | None"),
+        ("allow_outside_kernel", "Literal['bootstrap', 'test'] | None"),
     ],
     "reduce": [
         ("events", "list[dict[str, object]]"),

@@ -1,4 +1,4 @@
-"""BC-INFRA metrics — record_metric, MetricEvent, load_metrics, compute_trend, detect_anomalies."""
+"""BC-INFRA metrics — record_metric, MetricEvent, load_metrics, get_phase_metrics, compute_trend, detect_anomalies."""
 from __future__ import annotations
 
 import json
@@ -104,16 +104,17 @@ def record_metric(
 # ─── Trend + Anomaly Analysis (BC-METRICS-EXT, §2.2, §4.0b–§4.4) ─────────────
 
 
-def load_metrics(metric_ids: list[str], window: int = 10) -> list[MetricRecord]:
+def load_metrics(metric_ids: list[str], db_path: str, window: int = 10) -> list[MetricRecord]:
     """All DuckDB I/O isolated here — NOT in compute_trend or detect_anomalies (§4.0b).
 
     Queries the metrics partition ordered by seq ASC; returns the last `window`
     phases per metric_id, sorted by (metric_id, phase) ASC.
     Returns [] for unknown metric_ids.
+    db_path MUST be explicit (I-DB-1).
     """
     from sdd.infra.db import open_sdd_connection  # local import keeps module top-level clean
 
-    conn = open_sdd_connection()
+    conn = open_sdd_connection(db_path)
     try:
         rows = conn.execute(
             "SELECT payload FROM events "
@@ -152,6 +153,44 @@ def load_metrics(metric_ids: list[str], window: int = 10) -> list[MetricRecord]:
         entries = sorted(grouped[mid])  # sort by phase ASC
         for ph, val in entries[-window:]:
             result.append(MetricRecord(phase=ph, metric_id=mid, value=val))
+    return result
+
+
+def get_phase_metrics(phase_n: int, db_path: str) -> list[MetricRecord]:
+    """Return all MetricRecorded events for phase_n (I-DB-1: db_path required).
+
+    Queries the metrics partition and filters by phase_id == phase_n.
+    Returns [] if no metrics recorded for the phase.
+    """
+    from sdd.infra.db import open_sdd_connection
+
+    conn = open_sdd_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT payload FROM events "
+            "WHERE partition_key = 'metrics' "
+            "ORDER BY seq ASC"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    result: list[MetricRecord] = []
+    for (payload_str,) in rows:
+        try:
+            payload = json.loads(payload_str) if isinstance(payload_str, str) else payload_str
+        except (json.JSONDecodeError, TypeError):
+            continue
+        mid = payload.get("metric_id") or payload.get("metric")
+        phase_raw = payload.get("phase_id") or payload.get("phase")
+        value_raw = payload.get("value")
+        if mid is None or phase_raw is None or value_raw is None:
+            continue
+        try:
+            if int(phase_raw) != phase_n:
+                continue
+            result.append(MetricRecord(phase=phase_n, metric_id=str(mid), value=float(value_raw)))
+        except (TypeError, ValueError):
+            continue
     return result
 
 

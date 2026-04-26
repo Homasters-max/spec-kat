@@ -66,6 +66,7 @@ norms:
       - check_dod
       - sync_state
       - record_decision
+      - declare_session
     conditions:
       task_status_must_be: TODO
       phase_must_be_active: true
@@ -101,6 +102,16 @@ norms:
       - I-ACT-1
     enforcement: hard
 
+  - norm_id: NORM-ACTOR-SWITCH-PHASE
+    description: "Human MAY emit switch_phase (SwitchPhaseCommand) — context switch is a human-only action"
+    actor: human
+    applies_to_phases: []
+    allowed_actions:
+      - switch_phase
+    sdd_invariant_refs:
+      - I-PHASE-CONTEXT-1
+    enforcement: hard
+
   - norm_id: NORM-ACTOR-ACTIVATE-PLAN
     description: "Human MAY emit activate_plan (ActivatePlanCommand) — plan activation is a human-only action"
     actor: human
@@ -109,6 +120,18 @@ norms:
       - activate_plan
     sdd_invariant_refs:
       - I-ACT-1
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-INVALIDATE-EVENT
+    description: "Human MAY invalidate_event — EventInvalidated emission is a human-only recovery action (BC-WG-5)"
+    actor: human
+    applies_to_phases: []
+    allowed_actions:
+      - invalidate_event
+    sdd_invariant_refs:
+      - I-INVALID-1
+      - I-INVALID-3
+      - I-INVALID-4
     enforcement: hard
 
   # ─────────────────────────────────────────────────────────────────────

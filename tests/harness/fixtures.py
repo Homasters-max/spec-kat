@@ -71,7 +71,7 @@ def state_builder(db_factory):
     def _build(events: list[DomainEvent]) -> SDDState:
         db_path = db_factory()
         if events:
-            EventStore(db_path).append(events, source="test_seed")
+            EventStore(db_path).append(events, source="test_seed", allow_outside_kernel="test")
         return get_current_state(db_path)
 
     return _build

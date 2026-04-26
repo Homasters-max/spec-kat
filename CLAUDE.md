@@ -54,13 +54,41 @@ If unsure of position: `sdd show-state`
 
 ```
 Planner sequence:
-  DRAFT_SPEC → [human approves] → PLAN Phase N
-  PLAN Phase N → [human activates] → DECOMPOSE Phase N
-  DECOMPOSE → [human: sdd activate-phase N] → IMPLEMENT (first task)
+
+  DRAFT_SPEC vN
+    → LLM AUTO: sdd record-session --type DRAFT_SPEC --phase N   (I-SESSION-DECLARED-1)
+    → LLM: creates .sdd/specs_draft/Spec_vN.md
+    → [human: approves — moves file to .sdd/specs/]              ← HUMAN GATE
+
+  PLAN Phase N
+    → LLM AUTO: sdd record-session --type PLAN --phase N         (I-SESSION-DECLARED-1)
+    → LLM: writes Plan_vN.md
+    → LLM AUTO: updates Phases_index.md; validates I-PHASES-INDEX-1  (I-SESSION-PI-6)
+    → [Auto-action] display: "Phases_index updated. Phase N = PLANNED"
+    → suggests: "DECOMPOSE Phase N"
+
+  DECOMPOSE Phase N
+    → Preconditions: Plan_vN.md EXISTS + content check (Milestones + Risk Notes) +
+                     Spec_vN.md in .sdd/specs/
+    → LLM AUTO: sdd record-session --type DECOMPOSE --phase N    (I-SESSION-DECLARED-1)
+    → LLM: writes TaskSet_vN.md
+    → LLM AUTO: sdd activate-phase N --executed-by llm           (I-SESSION-AUTO-1)
+    → LLM AUTO: sdd show-state
+    → suggests: "IMPLEMENT T-N01"
 
 IMPLEMENT/VALIDATE cycle:
-  IMPLEMENT T-NNN → VALIDATE T-NNN       (passed)
-  VALIDATE T-NNN  → IMPLEMENT T-NNN      (failed: fix and re-implement)
+
+  IMPLEMENT T-NNN
+    → LLM AUTO: sdd record-session --type IMPLEMENT --phase N    (I-SESSION-DECLARED-1)
+    → LLM: implements code
+    → LLM AUTO: sdd complete T-NNN
+    → suggests next TODO task or VALIDATE
+
+  VALIDATE T-NNN
+    → LLM AUTO: sdd record-session --type VALIDATE --phase N     (I-SESSION-DECLARED-1)
+    → LLM: runs checks
+    → LLM AUTO: sdd validate T-NNN --result PASS|FAIL
+
   VALIDATE T-NNN [last task] → SUMMARIZE Phase N
   SUMMARIZE → CHECK_DOD
 
@@ -68,8 +96,10 @@ Error transitions (from ANY session):
   any → RECOVERY   (on any error)
   RECOVERY → any   (on resolution: re-declare session type)
 
-Special: [human runs sdd activate-phase N] → no LLM session needed;
-  LLM confirms: sdd show-state
+Auto-action display rule (I-SESSION-VISIBLE-1):
+  [Auto-action] sdd <command>
+  [Result] <outcome summary>
+  [State] <key state fields>
 ```
 
 ---
@@ -136,6 +166,36 @@ Each ref file carries `update_trigger` header. Update when source section change
 | I-RRL-1 | Scope override = вызов scope_policy.py::resolve_scope. Inline exceptions в scope.py запрещены. |
 | I-RRL-2 | Rule resolution MUST be deterministic: одинаковые inputs → идентичное решение + идентичный override metadata. |
 | I-RRL-3 | Silent override запрещён. Любой override MUST emit override metadata в JSON output. |
+| I-DB-1 | `open_sdd_connection(db_path)` — `db_path` MUST be explicit non-empty str |
+| I-DB-2 | CLI is the single point that resolves `event_store_file()` for default DB path |
+| I-DB-TEST-1 | Tests MUST NOT open production DB; path equality via `Path.resolve()` |
+| I-DB-TEST-2 | In test context (`PYTEST_CURRENT_TEST`): `timeout_secs = 0.0` (fail-fast) |
+| I-TASK-MODE-1 | В task mode из build_commands исключаются все команды, ключ которых начинается с `"test"` (`k.startswith("test")`) |
+| I-PHASE-SEQ-1 | `activate-phase` MUST satisfy `phase_id == current + 1`; no skipping, no regression |
+| I-PHASE-AUTH-1 | ONLY `PhaseInitialized` and `PhaseContextSwitched` MAY mutate `phase_current`. `PhaseStarted` MUST NOT mutate any state field. |
+| I-PHASE-STARTED-1 | `PhaseStarted` MUST NOT be used by any reducer logic or guard logic. It is informational only. Code: `# DO NOT ADD LOGIC HERE`. |
+| I-PHASE-CONTEXT-1 | `switch-phase` MUST emit `PhaseContextSwitched`; MUST NOT emit `PhaseStarted` or `PhaseInitialized` |
+| I-PHASE-CONTEXT-2 | `switch-phase` MUST target a phase in `phases_known` |
+| I-PHASE-CONTEXT-3 | `switch-phase` MUST fail if `phases_known` is empty |
+| I-PHASE-CONTEXT-4 | `switch-phase N` where `N == phase_current` MUST be rejected (no-op guard) |
+| I-PHASE-LIFECYCLE-1 | `PhaseContextSwitched` MUST NOT override `phase_status`; MUST restore stored snapshot value (preserves COMPLETE) |
+| I-PHASE-LIFECYCLE-2 | `PhaseCompleted` is terminal: `phase_status = "COMPLETE"` in snapshot MUST NOT be overwritten by any event except a new `PhaseInitialized` for the same phase |
+| I-PHASE-REDUCER-1 | `PhaseStarted` during replay: DEBUG log only; no state change in any branch |
+| I-PHASES-KNOWN-1 | `SDDState.phases_known` MUST be `frozenset[int]`; updated ONLY on `PhaseInitialized` replay; `PhaseContextSwitched` MUST NOT modify it |
+| I-PHASES-KNOWN-2 | `phases_known == {s.phase_id for s in phases_snapshots}` at all times |
+| I-PHASE-SNAPSHOT-1 | `phases_snapshots` MUST contain exactly one entry per `phase_id ∈ phases_known`; updated by all phase-scoped events matching that `phase_id` |
+| I-PHASE-SNAPSHOT-2 | Flat state MUST be a projection of `phases_snapshots[phase_current]` after any `_fold` |
+| I-PHASE-SNAPSHOT-3 | `PhaseInitialized` MUST overwrite (not append) snapshot for `phase_id`; unconditional |
+| I-PHASE-SNAPSHOT-4 | `PhaseContextSwitched` MUST have a corresponding snapshot; absence MUST raise `Inconsistency` (guard failure or corrupted EventLog) |
+| I-CMD-IDEM-1 | Navigation commands (`switch-phase`) MUST NOT be idempotent. `CommandSpec.idempotent=False` → `execute_command` MUST pass `command_id=uuid4()` (NOT `None`) to `EventStore.append`. Each invocation MUST produce a unique event in EventLog. |
+| I-CMD-IDEM-2 | Handler-level idempotency (`_check_idempotent`) MAY exist as an additional guard, but MUST NOT contradict `CommandSpec.idempotent`. If `spec.idempotent=False`, handler MUST NOT silently suppress event emission via noop. |
+| I-CMD-NAV-1 | Navigation events (`PhaseContextSwitched`) are order-sensitive (temporal semantics). Final state is defined by the last event in sequence. Navigation events MUST NOT be deduplicated at any layer. `SwitchPhaseHandler` SHOULD NOT emit event if `phase_id == phase_current` (guard already enforces this — this invariant documents the design intent). |
+| I-SESSION-AUTO-1 | LLM MUST run `sdd activate-phase N --executed-by llm` automatically at end of DECOMPOSE. No human CLI step required. |
+| I-SESSION-DECLARED-1 | LLM MUST emit `SessionDeclared` event at start of every session (PLAN/DECOMPOSE/IMPLEMENT/VALIDATE) before any auto-action, via `sdd record-session`. |
+| I-SESSION-VISIBLE-1 | Every auto-invoked CLI MUST be shown in LLM output as `[Auto-action] ... / [Result] ...`. Silent state mutations are forbidden. |
+| I-SESSION-ACTOR-1 | `activate-phase` MUST always pass `actor="human"`. `executed_by="llm"` goes into payload field only, not actor field. VALID_ACTORS remains `{"human"}`. |
+| I-SESSION-PI-6 | LLM MUST update Phases_index.md at end of PLAN session. Must validate I-PHASES-INDEX-1 after update. |
+| I-PHASES-INDEX-1 | `phases_known ⊆ Phases_index.ids`. Violation → LLM MUST update Phases_index before proceeding. Phases_index is a derived view, never a truth source (I-1). |
 
 Violation of any invariant → ERROR → STOP → `sdd report-error`.
 
@@ -162,10 +222,15 @@ LLM MUST NOT invoke recovery as a blind first action (SEM-12).
 - Generates plans, task sets, implementation, validation reports, summaries
 - Marks tasks DONE via `sdd complete T-NNN`
 - Sets invariants/tests status via `sdd validate T-NNN`
+- Emits `SessionDeclared` event at start of every session via `sdd record-session` (I-SESSION-DECLARED-1)
+- Auto-runs `sdd activate-phase N --executed-by llm` at end of DECOMPOSE (I-SESSION-AUTO-1)
+- Updates Phases_index.md at end of PLAN session; validates I-PHASES-INDEX-1 (I-SESSION-PI-6)
+- Displays every auto-action as `[Auto-action] ... / [Result] ...` (I-SESSION-VISIBLE-1)
 
 **LLM MUST NOT:**
 - Modify .sdd/specs/ (immutable, SDD-9)
-- Run `sdd activate-phase` (human-only, NORM-ACTOR-001)
+- Run `sdd activate-phase` without `--executed-by llm` outside DECOMPOSE session (NORM-ACTOR-001);
+  exception: DECOMPOSE auto-action with `--executed-by llm` is explicitly allowed (I-SESSION-AUTO-1)
 - Execute multiple tasks in one command (§R.10)
 - Emit SpecApproved, PlanActivated, PhaseCompleted events directly
 - Use glob patterns in file access (NORM-SCOPE-003)

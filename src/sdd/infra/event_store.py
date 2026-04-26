@@ -11,10 +11,12 @@ import logging
 import time
 import uuid
 from dataclasses import asdict
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 
 from sdd.core.errors import SDDError, StaleStateError
 from sdd.core.events import DomainEvent
+from sdd.core.execution_context import assert_in_kernel
 from sdd.infra.db import open_sdd_connection
 from sdd.infra.event_log import EventInput, sdd_append_batch
 
@@ -55,10 +57,60 @@ class EventStore:
 
     def __init__(self, db_path: str) -> None:
         self._db_path = db_path
+        self._invalidated_cache: frozenset[int] | None = None
+
+    def _get_invalidated_seqs(self) -> frozenset[int]:
+        """Pre-scan EventInvalidated events with per-instance cache (I-INVALID-CACHE-1).
+
+        Cache is reset to None on every append() call.
+        Uses idx_event_type index for O(log N) scan.
+        """
+        if self._invalidated_cache is not None:
+            return self._invalidated_cache
+        conn = open_sdd_connection(self._db_path, read_only=True)
+        try:
+            rows = conn.execute(
+                "SELECT payload->>'target_seq' FROM events "
+                "WHERE event_type = 'EventInvalidated'"
+            ).fetchall()
+        finally:
+            conn.close()
+        result = frozenset(int(r[0]) for r in rows if r[0] is not None)
+        self._invalidated_cache = result
+        return result
+
+    def replay(
+        self,
+        after_seq: int | None = None,
+        level: str = "L1",
+        source: str = "runtime",
+        include_expired: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Replay events with pre-filter for invalidated seqs (I-INVALID-2).
+
+        Invalidated events are excluded before returning to caller; reducer
+        never receives them. Each filtered event is logged at DEBUG level.
+        """
+        from sdd.infra.event_log import sdd_replay
+        invalidated = self._get_invalidated_seqs()
+        raw_events = sdd_replay(
+            after_seq=after_seq,
+            db_path=self._db_path,
+            level=level,
+            source=source,
+            include_expired=include_expired,
+        )
+        filtered = []
+        for e in raw_events:
+            if e["seq"] in invalidated:
+                _log.debug("EventStore.replay: skipping invalidated seq=%d", e["seq"])
+                continue
+            filtered.append(e)
+        return filtered
 
     def max_seq(self) -> int | None:
         """Return the current MAX(seq) from the EventLog, or None if empty."""
-        conn = open_sdd_connection(self._db_path)
+        conn = open_sdd_connection(self._db_path, read_only=True)
         try:
             row = conn.execute("SELECT MAX(seq) FROM events").fetchone()
             if row and row[0] is not None:
@@ -73,6 +125,7 @@ class EventStore:
         source: str,
         command_id: str | None = None,
         expected_head: int | None = None,
+        allow_outside_kernel: Literal["bootstrap", "test"] | None = None,
     ) -> None:
         """Atomically append *events* to the EventLog.
 
@@ -88,9 +141,31 @@ class EventStore:
                        MAX(seq) is verified == expected_head inside the DuckDB transaction
                        before INSERT. Raises StaleStateError if head has advanced.
 
+        allow_outside_kernel: bypass for authorized callers outside execute_command.
+                              'bootstrap' — maintenance path (reconcile_bootstrap).
+                              'test'      — test harness (fixtures.py, test seeding).
+                              None        — default: kernel guard enforced for production DB.
+
         Raises EventStoreError on any DB write failure.
         Raises StaleStateError when expected_head does not match current MAX(seq).
+        Raises KernelContextError when called on production DB outside execute_command.
+        Raises ValueError when allow_outside_kernel has an unrecognized value.
         """
+        # I-INVALID-CACHE-1: reset per-instance cache on every append
+        self._invalidated_cache = None
+
+        # I-KERNEL-WRITE-1, I-DB-WRITE-2: guard — production DB writes must be inside execute_command
+        _VALID_BYPASS: frozenset[str] = frozenset({"bootstrap", "test"})
+        if allow_outside_kernel is not None and allow_outside_kernel not in _VALID_BYPASS:
+            raise ValueError(
+                f"Invalid allow_outside_kernel={allow_outside_kernel!r}; "
+                "allowed: 'bootstrap', 'test', None"
+            )
+        if allow_outside_kernel is None:
+            from sdd.infra.paths import event_store_file
+            if Path(self._db_path).resolve() == Path(str(event_store_file())).resolve():
+                assert_in_kernel("EventStore.append")
+
         if not events:
             return
 

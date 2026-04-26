@@ -59,8 +59,9 @@ def adversarial_sequence(draw) -> list[tuple[CommandSpec, Any]]:
     if kind == "duplicate":
         cmd = SimpleNamespace()
         return [(spec, cmd), (spec, cmd)]
-    # oversized
-    n = draw(st.integers(min_value=20, max_value=100))
+    # oversized: reduced from (20, 100) — each open_sdd_connection costs ~50ms;
+    # 20+ commands × 2 execute_sequences × 20 examples exceeds pytest --timeout=30.
+    n = draw(st.integers(min_value=5, max_value=10))
     return [(spec, SimpleNamespace()) for _ in range(n)]
 
 

@@ -13,11 +13,15 @@ from sdd.infra.event_log import sdd_append
 
 
 def _advance_to_phase(phase_id: int, db_path: str) -> None:
-    """Emit PhaseStarted events sequentially up to phase_id (A-8 soft guard requires order)."""
+    """Emit PhaseInitialized events sequentially up to phase_id.
+
+    Uses PhaseInitialized (not PhaseStarted) because PhaseInitialized is the sole
+    authoritative setter of phase_current per I-PHASE-AUTH-1.
+    """
     for p in range(1, phase_id + 1):
         sdd_append(
-            "PhaseStarted",
-            {"phase_id": p, "actor": "human"},
+            "PhaseInitialized",
+            {"phase_id": p, "tasks_total": 1, "plan_version": p, "actor": "human", "timestamp": "2026-01-01T00:00:00Z"},
             db_path=db_path,
             level="L1",
         )

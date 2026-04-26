@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pathlib
 import subprocess
 import time
 import uuid
@@ -8,7 +9,14 @@ import uuid
 import duckdb
 import pytest
 
-from sdd.infra.db import SDD_SEQ_CHECKPOINT, _restart_sequence, ensure_sdd_schema, open_sdd_connection
+from sdd.infra.db import (
+    DuckDBLockTimeoutError,
+    SDD_SEQ_CHECKPOINT,
+    _restart_sequence,
+    ensure_sdd_schema,
+    open_sdd_connection,
+)
+from sdd.infra.paths import event_store_file
 
 _V2_COLUMNS = {
     "seq",
@@ -121,6 +129,47 @@ def test_restart_sequence_above_checkpoint_when_db_has_higher_seq(tmp_path) -> N
     next_val = conn.execute("SELECT nextval('sdd_event_seq')").fetchone()[0]
     assert next_val == latest_seq + 1, (
         f"Expected latest_seq+1 ({latest_seq + 1}), got {next_val}"
+    )
+    conn.close()
+
+
+def test_db_path_required() -> None:
+    """I-DB-1: ValueError raised when db_path is empty string."""
+    with pytest.raises(ValueError, match="I-DB-1"):
+        open_sdd_connection("")
+
+
+def test_fail_fast_in_test_context(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """I-DB-TEST-2: PYTEST_CURRENT_TEST forces timeout_secs=0.0 — no lock retries."""
+    db_path = str(tmp_path / "locked.duckdb")
+
+    def _raise_lock(*args, **kwargs):
+        raise duckdb.IOException("Could not set lock on file 'x'")
+
+    monkeypatch.setattr(duckdb, "connect", _raise_lock)
+    start = time.monotonic()
+    with pytest.raises(DuckDBLockTimeoutError):
+        open_sdd_connection(db_path, timeout_secs=60.0)
+    elapsed = time.monotonic() - start
+    assert elapsed < 1.0, f"Expected immediate failure (timeout forced 0.0), took {elapsed:.2f}s"
+
+
+def test_production_db_guard(sdd_home: pathlib.Path) -> None:
+    """I-DB-TEST-1: RuntimeError when test context tries to open production DB."""
+    prod_path = str(event_store_file())
+    with pytest.raises(RuntimeError, match="I-DB-TEST-1"):
+        open_sdd_connection(prod_path)
+
+
+def test_idx_event_type_exists_after_ensure_schema(tmp_path: pathlib.Path) -> None:
+    """idx_event_type index must be present in DuckDB schema after ensure_sdd_schema()."""
+    db_path = str(tmp_path / "idx_test.duckdb")
+    conn = duckdb.connect(db_path)
+    ensure_sdd_schema(conn)
+    rows = conn.execute("SELECT index_name FROM duckdb_indexes() WHERE table_name = 'events'").fetchall()
+    index_names = {row[0] for row in rows}
+    assert "idx_event_type" in index_names, (
+        f"I-DB-1: idx_event_type index missing from events table; found: {index_names}"
     )
     conn.close()
 

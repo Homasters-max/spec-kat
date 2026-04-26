@@ -1,4 +1,4 @@
-"""Tests for infra/metrics.py — I-M-1, I-EL-11."""
+"""Tests for infra/metrics.py — I-M-1, I-EL-11, I-DB-1, I-DB-2."""
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from sdd.infra.db import open_sdd_connection
-from sdd.infra.metrics import record_metric
+from sdd.infra.metrics import get_phase_metrics, record_metric
 
 
 def test_record_metric_batch_with_task_completed(tmp_db_path: str) -> None:
@@ -75,3 +75,9 @@ def test_i_m_1_enforced(tmp_db_path: str) -> None:
     assert rows == [], (
         "Neither TaskCompleted nor MetricRecorded should be present after failed batch"
     )
+
+
+def test_get_phase_metrics_requires_db_path() -> None:
+    """I-DB-1, I-DB-2: db_path is required — calling without it raises TypeError."""
+    with pytest.raises(TypeError):
+        get_phase_metrics(1)  # type: ignore[call-arg]

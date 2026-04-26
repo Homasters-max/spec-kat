@@ -5,15 +5,42 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 from dataclasses import asdict, dataclass, field
 from typing import ClassVar
 
-from sdd.core.errors import UnknownEventType
+from sdd.core.errors import Inconsistency, UnknownEventType
 from sdd.core.events import V1_L1_EVENT_TYPES
 
 # Pre-filter constants (I-REDUCER-1): only runtime L1 events are eligible for dispatch.
 _REDUCER_REQUIRES_SOURCE: str = "runtime"
 _REDUCER_REQUIRES_LEVEL: str = "L1"
+
+
+# ---------------------------------------------------------------------------
+# FrozenPhaseSnapshot (BC-PC-9)
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class FrozenPhaseSnapshot:
+    """Immutable per-phase state snapshot.
+
+    Created by PhaseInitialized. Updated (via replace) by task events matching phase_id.
+    Restored (not mutated) by PhaseContextSwitched.
+
+    I-PHASE-SNAPSHOT-3: PhaseInitialized ALWAYS overwrites snapshot for phase_id.
+    I-PHASE-SNAPSHOT-1: phases_snapshots MUST contain exactly one entry per phase in phases_known.
+    """
+    phase_id:          int
+    phase_status:      str    # "PLANNED" | "ACTIVE" | "COMPLETE"
+    plan_status:       str    # "PLANNED" | "ACTIVE" | "COMPLETE"
+    tasks_total:       int
+    tasks_completed:   int
+    tasks_done_ids:    tuple[str, ...]
+    plan_version:      int
+    tasks_version:     int
+    invariants_status: str    # "UNKNOWN" | "PASS" | "FAIL"
+    tests_status:      str    # "UNKNOWN" | "PASS" | "FAIL"
 
 
 # ---------------------------------------------------------------------------
@@ -39,12 +66,20 @@ class SDDState:
     phase_status: str               # "PLANNED" | "ACTIVE" | "COMPLETE"
     plan_status: str                # "PLANNED" | "ACTIVE" | "COMPLETE"
 
+    # --- Multi-phase fields (BC-PC-2, BC-PC-9) ---
+    phases_known:     frozenset[int] = field(default_factory=frozenset)
+    phases_snapshots: tuple[FrozenPhaseSnapshot, ...] = field(default_factory=tuple)
+
     state_hash: str = field(default="", init=False)  # computed in __post_init__ (I-ST-8)
 
-    REDUCER_VERSION: ClassVar[int] = 1
+    REDUCER_VERSION: ClassVar[int] = 2  # bump: adds phases_known + phases_snapshots
 
     # Human-managed fields excluded from state_hash (I-ST-11).
-    _HUMAN_FIELDS: ClassVar[frozenset[str]] = frozenset({"phase_status", "plan_status", "state_hash"})
+    # phases_known + phases_snapshots excluded until yaml_state.py serialises them (T-2405).
+    _HUMAN_FIELDS: ClassVar[frozenset[str]] = frozenset({
+        "phase_status", "plan_status", "state_hash",
+        "phases_known", "phases_snapshots",
+    })
 
     def __post_init__(self) -> None:
         data = {k: v for k, v in asdict(self).items() if k not in self._HUMAN_FIELDS}
@@ -62,10 +97,30 @@ def _make_empty_state() -> SDDState:
         invariants_status="UNKNOWN", tests_status="UNKNOWN",
         last_updated="", schema_version=1, snapshot_event_id=None,
         phase_status="PLANNED", plan_status="PLANNED",
+        phases_known=frozenset(), phases_snapshots=(),
     )
 
 
 EMPTY_STATE: SDDState = _make_empty_state()
+
+
+def _check_snapshot_coherence(state: SDDState) -> bool:
+    """I-PHASE-SNAPSHOT-2: flat state MUST equal phases_snapshots[phase_current]."""
+    snap_map = {s.phase_id: s for s in state.phases_snapshots}
+    snap = snap_map.get(state.phase_current)
+    if snap is None:
+        return len(state.phases_snapshots) == 0  # empty state is coherent
+    return (
+        state.phase_status        == snap.phase_status
+        and state.plan_status     == snap.plan_status
+        and state.tasks_total     == snap.tasks_total
+        and state.tasks_completed == snap.tasks_completed
+        and set(state.tasks_done_ids) == set(snap.tasks_done_ids)
+        and state.plan_version    == snap.plan_version
+        and state.tasks_version   == snap.tasks_version
+        and state.invariants_status == snap.invariants_status
+        and state.tests_status    == snap.tests_status
+    )
 
 
 def compute_state_hash(state: SDDState) -> str:
@@ -111,6 +166,8 @@ class EventReducer:
         "ToolUseStarted", "ToolUseCompleted", "HookError",
         # Phase 15 — ErrorEvent L2 observability; reducer ignores (I-ERROR-L2-1)
         "ErrorOccurred",
+        # Phase 28 — Write Kernel guard rejection sentinel; no reducer logic (I-EL-6)
+        "EventInvalidated",
     })
 
     # Minimal event schema registry: required payload fields per handled event type.
@@ -121,9 +178,13 @@ class EventReducer:
         "PhaseActivated":    frozenset({"phase_id", "actor", "timestamp"}),  # I-REDUCER-LEGACY-1: kept for backward compat
         "PlanActivated":     frozenset({"plan_version", "actor", "timestamp"}),
         # Phase 15 handlers (I-PHASE-COMPLETE-1, I-PHASE-STARTED-1, I-PHASE-ORDER-1)
-        "PhaseCompleted":    frozenset({"phase_id"}),
-        "PhaseStarted":      frozenset({"phase_id", "actor"}),
-        "TaskSetDefined":    frozenset({"phase_id", "tasks_total"}),
+        "PhaseCompleted":         frozenset({"phase_id"}),
+        "PhaseStarted":           frozenset({"phase_id", "actor"}),
+        "TaskSetDefined":         frozenset({"phase_id", "tasks_total"}),
+        # BC-PC-1: navigation event (not lifecycle); handler: restore snapshot for to_phase
+        "PhaseContextSwitched":   frozenset({"from_phase", "to_phase", "actor", "timestamp"}),
+        # Phase 29 — SessionDeclared: audit-only; logging.debug only, no state mutation (I-SESSION-DECLARED-1)
+        "SessionDeclared":        frozenset({"session_type", "task_id", "phase_id", "plan_hash", "timestamp"}),
     }
 
     # Completeness identity (I-ST-10): every V1_L1_EVENT_TYPE must be classified.
@@ -214,6 +275,12 @@ class EventReducer:
         phase_status = base.phase_status
         plan_status = base.plan_status
 
+        # Multi-phase accumulators (BC-PC-9, I-PHASE-SNAPSHOT-1..3)
+        phases_known_set: set[int] = set(base.phases_known)
+        phases_snapshots_map: dict[int, FrozenPhaseSnapshot] = {
+            s.phase_id: s for s in base.phases_snapshots
+        }
+
         for event in filtered_events:
             event_type = event.get("event_type", "")
 
@@ -240,9 +307,11 @@ class EventReducer:
             # Handler dispatch.
             events_processed += 1
             if event_type == "PhaseInitialized":
+                # I-PHASE-AUTH-1: ЕДИНСТВЕННАЯ авторитетная точка для phase_current.
                 raw_phase_id = event.get("phase_id", phase_current)
                 if isinstance(raw_phase_id, int):
                     phase_current = raw_phase_id
+                    phases_known_set.add(raw_phase_id)
                 raw_tasks_total = event.get("tasks_total", tasks_total)
                 if isinstance(raw_tasks_total, int):
                     tasks_total = raw_tasks_total
@@ -257,16 +326,64 @@ class EventReducer:
                 tasks_done_ids_set = set()
                 invariants_status = "UNKNOWN"
                 tests_status = "UNKNOWN"
+                # I-PHASE-SNAPSHOT-3: unconditional overwrite (re-activation resets snapshot)
+                if isinstance(raw_phase_id, int):
+                    phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
+                        phase_id=raw_phase_id,
+                        phase_status="ACTIVE",
+                        plan_status="ACTIVE",
+                        tasks_total=tasks_total,
+                        tasks_completed=0,
+                        tasks_done_ids=(),
+                        plan_version=plan_version,
+                        tasks_version=tasks_version,
+                        invariants_status="UNKNOWN",
+                        tests_status="UNKNOWN",
+                    )
             elif event_type == "TaskImplemented":
                 task_id = event.get("task_id")
+                raw_phase_id = event.get("phase_id")
                 if isinstance(task_id, str) and task_id not in tasks_done_ids_set:
                     tasks_done_ids_set.add(task_id)
                     tasks_completed += 1
+                # Update snapshot for the event's phase_id (key fix for D-5)
+                if isinstance(raw_phase_id, int) and raw_phase_id in phases_snapshots_map:
+                    snap = phases_snapshots_map[raw_phase_id]
+                    if isinstance(task_id, str) and task_id not in snap.tasks_done_ids:
+                        new_done = tuple(sorted(set(snap.tasks_done_ids) | {task_id}))
+                        phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
+                            phase_id=raw_phase_id,
+                            phase_status=snap.phase_status,
+                            plan_status=snap.plan_status,
+                            tasks_total=snap.tasks_total,
+                            tasks_completed=snap.tasks_completed + 1,
+                            tasks_done_ids=new_done,
+                            plan_version=snap.plan_version,
+                            tasks_version=snap.tasks_version,
+                            invariants_status=snap.invariants_status,
+                            tests_status=snap.tests_status,
+                        )
             elif event_type == "TaskValidated":
                 result = event.get("result", "")
+                raw_phase_id = event.get("phase_id")
                 if result in ("PASS", "FAIL") and isinstance(result, str):
                     tests_status = result
                     invariants_status = result
+                if isinstance(raw_phase_id, int) and raw_phase_id in phases_snapshots_map:
+                    snap = phases_snapshots_map[raw_phase_id]
+                    if result in ("PASS", "FAIL"):
+                        phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
+                            phase_id=raw_phase_id,
+                            phase_status=snap.phase_status,
+                            plan_status=snap.plan_status,
+                            tasks_total=snap.tasks_total,
+                            tasks_completed=snap.tasks_completed,
+                            tasks_done_ids=snap.tasks_done_ids,
+                            plan_version=snap.plan_version,
+                            tasks_version=snap.tasks_version,
+                            invariants_status=result,
+                            tests_status=result,
+                        )
             elif event_type == "PhaseActivated":
                 # I-REDUCER-2: accumulator updated, not base state mutated (Q1)
                 phase_status = "ACTIVE"
@@ -274,43 +391,112 @@ class EventReducer:
                 # I-REDUCER-2: accumulator updated, not base state mutated (Q1)
                 plan_status = "ACTIVE"
             elif event_type == "PhaseCompleted":
-                # I-PHASE-COMPLETE-1: terminal transition for the current phase
+                # I-PHASE-COMPLETE-1: terminal transition; I-PHASE-LIFECYCLE-2: COMPLETE is terminal
+                raw_phase_id = event.get("phase_id")
                 phase_status = "COMPLETE"
                 plan_status = "COMPLETE"
+                if isinstance(raw_phase_id, int) and raw_phase_id in phases_snapshots_map:
+                    snap = phases_snapshots_map[raw_phase_id]
+                    phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
+                        phase_id=raw_phase_id,
+                        phase_status="COMPLETE",
+                        plan_status="COMPLETE",
+                        tasks_total=snap.tasks_total,
+                        tasks_completed=snap.tasks_completed,
+                        tasks_done_ids=snap.tasks_done_ids,
+                        plan_version=snap.plan_version,
+                        tasks_version=snap.tasks_version,
+                        invariants_status=snap.invariants_status,
+                        tests_status=snap.tests_status,
+                    )
+            elif event_type == "PhaseContextSwitched":
+                # BC-PC-1, I-PHASE-LIFECYCLE-1: restore snapshot for to_phase;
+                # phase_status taken from snapshot — preserves COMPLETE, NOT forced ACTIVE.
+                # I-PHASES-KNOWN-1: MUST NOT modify phases_known.
+                # I-PHASE-SNAPSHOT-4: missing snapshot → Inconsistency (guard failure or corrupt log).
+                raw_to_phase = event.get("to_phase")
+                if isinstance(raw_to_phase, int):
+                    if raw_to_phase not in phases_snapshots_map:
+                        raise Inconsistency(
+                            f"I-PHASE-SNAPSHOT-4: PhaseContextSwitched to_phase={raw_to_phase}"
+                            f" has no snapshot; phases_known={sorted(phases_known_set)}."
+                            f" EventLog may be corrupted."
+                        )
+                    snap = phases_snapshots_map[raw_to_phase]
+                    phase_current      = snap.phase_id
+                    phase_status       = snap.phase_status
+                    plan_status        = snap.plan_status
+                    tasks_total        = snap.tasks_total
+                    tasks_completed    = snap.tasks_completed
+                    tasks_done_ids_set = set(snap.tasks_done_ids)
+                    plan_version       = snap.plan_version
+                    tasks_version      = snap.tasks_version
+                    invariants_status  = snap.invariants_status
+                    tests_status       = snap.tests_status
             elif event_type == "PhaseStarted":
-                # I-PHASE-STARTED-1: new phase begins; A-8 ordering guard.
-                # phase_id < phase_current → phase regression, data corruption → error.
-                # phase_id == phase_current → normal replay of known phase → silent skip.
-                # PhaseInitialized is the authoritative commit point; PhaseStarted defers to it.
+                # DO NOT ADD LOGIC HERE — I-PHASE-AUTH-1, I-PHASE-STARTED-1
+                # PhaseStarted is an informational signal only; PhaseInitialized is authoritative.
                 raw_phase_id = event.get("phase_id")
                 if isinstance(raw_phase_id, int):
                     if raw_phase_id < phase_current:
-                        logging.error(
+                        logging.debug(
                             "EventReducer: PhaseStarted phase_id=%r < phase_current=%r"
-                            " — phase regression detected (A-8, I-PHASE-SEQ-1)",
+                            " — regression replay, PhaseInitialized is authoritative"
+                            " (I-PHASE-AUTH-1, I-PHASE-STARTED-1)",
                             raw_phase_id, phase_current,
                         )
-                    elif raw_phase_id > phase_current:
-                        phase_current = raw_phase_id
-                        phase_status = "ACTIVE"
-                        plan_status = "ACTIVE"
-                        tasks_total = 0
-                        tasks_completed = 0
-                        tasks_done_ids_set = set()
-                        invariants_status = "UNKNOWN"
-                        tests_status = "UNKNOWN"
+                    elif raw_phase_id == phase_current:
+                        logging.debug(
+                            "EventReducer: PhaseStarted phase_id=%r == phase_current — normal replay, skip",
+                            raw_phase_id,
+                        )
+                    else:
+                        logging.debug(
+                            "EventReducer: PhaseStarted phase_id=%r > phase_current=%r"
+                            " — PhaseInitialized will follow and is authoritative (I-PHASE-AUTH-1)",
+                            raw_phase_id, phase_current,
+                        )
+                # NO state mutations in any branch.
+            elif event_type == "SessionDeclared":
+                # DO NOT ADD LOGIC HERE — I-SESSION-DECLARED-1
+                # SessionDeclared is an audit-only causal anchor; no state mutation permitted.
+                logging.debug(
+                    "EventReducer: SessionDeclared session_type=%r task_id=%r phase_id=%r"
+                    " — audit event, no state mutation (I-SESSION-DECLARED-1)",
+                    event.get("session_type"),
+                    event.get("task_id"),
+                    event.get("phase_id"),
+                )
+                # NO state mutations in any branch.
             elif event_type == "TaskSetDefined":
-                # I-PHASE-ORDER-1: A-19 soft ordering guard — ignore if phase mismatch
+                # I-PHASE-ORDER-1: A-19 soft ordering guard — flat state only for current phase.
+                # Snapshot is always updated for the target phase_id (fixes tasks_total drift).
                 raw_phase_id = event.get("phase_id")
                 raw_tasks_total = event.get("tasks_total")
                 if isinstance(raw_phase_id, int) and raw_phase_id != phase_current:
                     logging.warning(
                         "EventReducer: TaskSetDefined phase_id=%r != phase_current=%r"
-                        " — skipping (A-19, I-PHASE-ORDER-1)",
+                        " — updating snapshot only, not flat state (A-19, I-PHASE-ORDER-1)",
                         raw_phase_id, phase_current,
                     )
                 elif isinstance(raw_tasks_total, int):
                     tasks_total = raw_tasks_total
+                # Always update snapshot.tasks_total for the target phase (prevents completed > total drift)
+                if isinstance(raw_phase_id, int) and isinstance(raw_tasks_total, int):
+                    if raw_phase_id in phases_snapshots_map:
+                        snap = phases_snapshots_map[raw_phase_id]
+                        phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
+                            phase_id=snap.phase_id,
+                            phase_status=snap.phase_status,
+                            plan_status=snap.plan_status,
+                            tasks_total=raw_tasks_total,
+                            tasks_completed=snap.tasks_completed,
+                            tasks_done_ids=snap.tasks_done_ids,
+                            plan_version=snap.plan_version,
+                            tasks_version=snap.tasks_version,
+                            invariants_status=snap.invariants_status,
+                            tests_status=snap.tests_status,
+                        )
 
         state = SDDState(
             phase_current=phase_current,
@@ -326,7 +512,12 @@ class EventReducer:
             snapshot_event_id=snapshot_event_id,
             phase_status=phase_status,
             plan_status=plan_status,
+            phases_known=frozenset(phases_known_set),
+            phases_snapshots=tuple(phases_snapshots_map.values()),
         )
+        # I-PHASE-SNAPSHOT-2: coherence check (enabled via SDD_DEBUG_INVARIANTS=1)
+        if os.environ.get("SDD_DEBUG_INVARIANTS"):
+            assert _check_snapshot_coherence(state), "I-PHASE-SNAPSHOT-2 violated"
         diagnostics = ReducerDiagnostics(
             events_total=events_total,
             events_filtered_source=events_filtered_source,

@@ -74,3 +74,19 @@ def taskset_file(phase: int) -> Path:
 
 def plan_file(phase: int) -> Path:
     return get_sdd_root() / "plans" / f"Plan_v{phase}.md"
+
+
+def bootstrap_manifest_file() -> Path:
+    return get_sdd_root() / "runtime" / "bootstrap_manifest.json"
+
+
+def spatial_index_file() -> Path:
+    return get_sdd_root() / "state" / "spatial_index.json"
+
+
+def nav_session_file() -> Path:
+    return get_sdd_root() / "state" / "nav_session.json"
+
+
+def nav_session_lock_file() -> Path:
+    return get_sdd_root() / "state" / "nav_session.lock"

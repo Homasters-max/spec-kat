@@ -20,6 +20,8 @@ def _sdd_root() -> Path:
 @click.version_option(package_name="sdd")
 def cli() -> None:
     """SDD — Spec-Driven Development governance CLI."""
+    from sdd.guards.norm import validate_registry_actions
+    validate_registry_actions()
 
 
 @cli.command("complete", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -62,6 +64,14 @@ def activate_phase(args: tuple[str, ...]) -> None:
     sys.exit(main(list(args)))
 
 
+@cli.command("switch-phase", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def switch_phase(args: tuple[str, ...]) -> None:
+    """Switch working context to a previously activated phase."""
+    from sdd.commands.switch_phase import main
+    sys.exit(main(list(args)))
+
+
 @cli.command("replay", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def replay(args: tuple[str, ...]) -> None:
@@ -94,6 +104,22 @@ def sync_state(args: tuple[str, ...]) -> None:
     sys.exit(main(["sync", *args]))
 
 
+@cli.command("bootstrap-complete", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def bootstrap_complete(args: tuple[str, ...]) -> None:
+    """Bootstrap execution mode: complete a task without phase guard (I-BOOTSTRAP-1)."""
+    from sdd.commands.bootstrap_complete import main
+    sys.exit(main(list(args)))
+
+
+@cli.command("reconcile-bootstrap", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def reconcile_bootstrap(args: tuple[str, ...]) -> None:
+    """Backfill EventLog for bootstrap-completed tasks (stub until PhaseContextSwitch)."""
+    from sdd.commands.reconcile_bootstrap import main
+    sys.exit(main(list(args)))
+
+
 @cli.command("validate-invariants")
 @click.option("--phase", type=int, required=True, help="Phase number")
 @click.option("--task", "task_id", default=None, help="Task ID (T-NNN)")
@@ -113,6 +139,14 @@ def validate_invariants(phase: int, task_id: str | None, check_id: str | None, s
     if timeout_secs:
         args += ["--timeout", str(timeout_secs)]
     sys.exit(main(args))
+
+
+@cli.command("invalidate-event", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def invalidate_event(args: tuple[str, ...]) -> None:
+    """Neutralize an invalid EventLog entry (BC-WG-5)."""
+    from sdd.commands.invalidate_event import main
+    sys.exit(main(list(args)))
 
 
 @cli.command("report-error", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -147,7 +181,7 @@ def validate_config(phase: int, config_path: str | None) -> None:
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def phase_guard(args: tuple[str, ...]) -> None:
     """Check PhaseGuard preconditions (PG-1..PG-3)."""
-    from sdd.commands.phase_guard import main
+    from sdd.guards.phase import main
     sys.exit(main(list(args)))
 
 
@@ -155,7 +189,7 @@ def phase_guard(args: tuple[str, ...]) -> None:
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def task_guard(args: tuple[str, ...]) -> None:
     """Verify task Status == TODO before implementation."""
-    from sdd.commands.task_guard import main
+    from sdd.guards.task import main
     sys.exit(main(list(args)))
 
 
@@ -163,7 +197,7 @@ def task_guard(args: tuple[str, ...]) -> None:
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def check_scope(args: tuple[str, ...]) -> None:
     """Validate file access against SENAR scope norms."""
-    from sdd.commands.check_scope import main
+    from sdd.guards.scope import main
     sys.exit(main(list(args)))
 
 
@@ -171,7 +205,7 @@ def check_scope(args: tuple[str, ...]) -> None:
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def norm_guard(args: tuple[str, ...]) -> None:
     """Check actor/action against SENAR norm catalog."""
-    from sdd.commands.norm_guard import main
+    from sdd.guards.norm import main
     sys.exit(main(list(args)))
 
 
@@ -239,6 +273,38 @@ def record_decision(decision_id: str, title: str, summary: str, phase: int | Non
         phase_id=phase,
     )
     execute_and_project(REGISTRY["record-decision"], command, db_path=_db)
+    sys.exit(0)
+
+
+@cli.command("record-session")
+@click.option("--type", "session_type", required=True, help="Session type (IMPLEMENT, VALIDATE, PLAN, etc.)")
+@click.option("--phase", type=int, default=None, help="Phase number (defaults to current phase from EventLog replay)")
+@click.option("--task", "task_id", default=None, help="Task ID (T-NNN)")
+@click.option("--plan-hash", "plan_hash", default="", help="Plan hash for session-plan binding (I-SESSION-PLAN-HASH-1)")
+def record_session(session_type: str, phase: int | None, task_id: str | None, plan_hash: str) -> None:
+    """Declare session type — emits SessionDeclaredEvent for audit trail (I-SESSION-DECLARED-1)."""
+    import uuid
+
+    from sdd.commands.record_session import RecordSessionCommand
+    from sdd.commands.registry import REGISTRY, execute_and_project, get_current_state
+
+    _root = _sdd_root()
+    _db = str(_root / "state" / "sdd_events.duckdb")
+
+    if phase is None:
+        state = get_current_state(_db)
+        phase = state.phase_current
+
+    command = RecordSessionCommand(
+        command_id=str(uuid.uuid4()),
+        command_type="RecordSession",
+        payload={"session_type": session_type, "task_id": task_id, "phase_id": phase, "plan_hash": plan_hash},
+        session_type=session_type,
+        task_id=task_id,
+        phase_id=phase,
+        plan_hash=plan_hash,
+    )
+    execute_and_project(REGISTRY["record-session"], command, db_path=_db)
     sys.exit(0)
 
 

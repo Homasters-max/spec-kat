@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 try:
     import yaml
@@ -28,6 +28,22 @@ class NormEntry:
 class NormCatalog:
     entries: tuple[NormEntry, ...]
     strict:  bool = True  # default=DENY: any unlisted actor/action pair is forbidden (I-CMD-12)
+    known_actions: frozenset[str] = field(default=frozenset(), init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "known_actions", frozenset(e.action for e in self.entries))
+
+    def validate_actions(self, actions: frozenset[str]) -> None:
+        """Raise ValueError if any action is not present in this catalog's known vocabulary.
+
+        Call once at startup (after load_catalog) to catch action string drift between
+        CommandSpec definitions and the norm catalog (I-NRM-VALIDATE-1).
+        """
+        unknown = actions - self.known_actions
+        if unknown:
+            raise ValueError(
+                f"Action(s) not registered in norm catalog: {sorted(unknown)}"
+            )
 
     def is_allowed(self, actor: str, action: str) -> bool:
         """Return False if any matching entry has result="forbidden".

@@ -1,6 +1,6 @@
 ---
 source: CLAUDE.md §0.10
-last_synced: 2026-04-24
+last_synced: 2026-04-25
 update_trigger: when new sdd CLI commands shipped or existing commands changed
 ---
 
@@ -34,7 +34,8 @@ RULE: `tool-reference.md` is NOT an authoritative contract.
 | `sdd show-plan` | — | `--phase N` | sdd.path.state | — |
 | `sdd complete` | `<T-NNN>` (positional) | — | REGISTRY | — |
 | `sdd validate` | `<T-NNN>` (positional), `--result PASS\|FAIL` | `--check-dod` (DoD mode: omit T-NNN, add `--phase N`) | REGISTRY | — |
-| `sdd activate-phase` | `<N>` (positional) | `--tasks <path>` | REGISTRY | — |
+| `sdd activate-phase` | `<N>` (positional) | `--tasks <path>` [DEPRECATED], `--executed-by <actor>` | REGISTRY | — |
+| `sdd record-session` | `--type T`, `--phase N` | — | REGISTRY | — |
 | `sdd sync-state` | `--phase N` | — | REGISTRY | — |
 | `sdd record-decision` | `--decision-id`, `--title`, `--summary` | `--phase N` | REGISTRY | — |
 | `sdd query-events` | `--phase N` | `--step`, `--event`, `--include-bash`, `--json`, `--save`, `--list-types` | — | — |
@@ -52,6 +53,9 @@ RULE: `tool-reference.md` is NOT an authoritative contract.
 - `show-state`: FORBIDDEN: `--json`, `--format`
 - `query-events`: the ONLY command with `--json` output flag
 - `activate-phase`: HUMAN-ONLY gate — LLM MUST NOT invoke
+- ⚠ `activate-phase --tasks`: [DEPRECATED] — `--tasks` flag is deprecated; prefer explicit TaskSet placement via `sdd path taskset`
+- ⚠ `activate-phase --executed-by`: distinguishes `actor` (who is authorized to run the command, always `human`) from `executed_by` (the concrete identity of the human operator, e.g. `katyrev`); used for audit attribution in SessionDeclared / PhaseInitialized events
+- ⚠ `record-session --type T --phase N`: LLM MUST call this at session start to emit `SessionDeclared`; satisfies I-SESSION-DECLARED-1 (session type declared) and I-SESSION-ACTOR-1 (actor logged)
 
 **Canonical usage with path resolution:**
 ```bash
@@ -78,7 +82,8 @@ sdd show-state --state "$STATE"
 | `sdd complete T-NNN` | Mark task DONE — sole mutation path for TaskSet + State | llm |
 | `sdd validate T-NNN --result PASS\|FAIL` | Validate task invariants + record results | llm |
 | `sdd validate --check-dod --phase N` | Terminal DoD check; emits PhaseCompleted on success | llm |
-| `sdd activate-phase N [--tasks T]` | Activate next phase; emits PhaseStarted + TaskSetDefined | **human** |
+| `sdd activate-phase N [--tasks T] [--executed-by <actor>]` | Activate next phase; emits PhaseStarted + TaskSetDefined | **human** |
+| `sdd record-session --type T --phase N` | Declare session type + actor; emits SessionDeclared | llm |
 | `sdd sync-state --phase N` | Rebuild State_index from EventLog replay (NoOpHandler + project_all) | llm |
 | `sdd record-decision …` | Audit record; emits DecisionRecordedEvent | llm |
 

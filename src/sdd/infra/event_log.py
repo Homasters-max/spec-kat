@@ -13,10 +13,13 @@ from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from sdd.core import classify_event_level
+from sdd.core.execution_context import KernelContextError, current_execution_context
 from sdd.infra.db import open_sdd_connection
+from sdd.infra.paths import event_store_file
 
 _VALID_SOURCES = frozenset({"meta", "runtime"})
 
@@ -68,6 +71,12 @@ def sdd_append(
     caused_by_meta_seq: int | None = None,
 ) -> None:
     _validate_source(event_source)
+    # I-DB-WRITE-3, I-KERNEL-WRITE-1: production DB writes must go through execute_command
+    if db_path is not None and Path(db_path).resolve() == event_store_file().resolve():
+        if current_execution_context() != "execute_command":
+            raise KernelContextError(
+                f"sdd_append called outside execute_command (ctx={current_execution_context()!r})"
+            )
 
     timestamp_ms = int(time.time() * 1000)
     resolved_level = level if level is not None else classify_event_level(event_type)
@@ -75,6 +84,7 @@ def sdd_append(
     resolved_caused_by = _resolve_caused_by(event_source, caused_by_meta_seq)
     payload_str = json.dumps(payload, sort_keys=True)
 
+    assert db_path is not None, "I-DB-2: caller must resolve db_path before sdd_append"
     conn = open_sdd_connection(db_path)
     try:
         conn.execute(
@@ -104,6 +114,7 @@ def sdd_append_batch(
     for ev in events:
         _validate_source(ev.event_source)
 
+    assert db_path is not None, "I-DB-2: caller must resolve db_path before sdd_append_batch"
     batch_id = str(uuid.uuid4())
     conn = open_sdd_connection(db_path)
     try:
@@ -150,7 +161,8 @@ def sdd_replay(
     include_expired: bool = False,
 ) -> list[dict[str, Any]]:
     """Return events ordered by seq ASC (I-PK-3, I-EL-10)."""
-    conn = open_sdd_connection(db_path)
+    assert db_path is not None, "I-DB-2: caller must resolve db_path before sdd_replay"
+    conn = open_sdd_connection(db_path, read_only=True)
     try:
         conditions = ["level = ?", "event_source = ?"]
         params: list[Any] = [level, source]
@@ -192,6 +204,7 @@ def archive_expired_l3(
     db_path: str | None = None,
 ) -> int:
     """Mark L3 events older than cutoff_ms as expired=TRUE. No DELETE ever issued (I-EL-7)."""
+    assert db_path is not None, "I-DB-2: caller must resolve db_path before archive_expired_l3"
     conn = open_sdd_connection(db_path)
     try:
         conn.execute(
@@ -234,7 +247,7 @@ def canonical_json(data: dict[str, Any]) -> str:
 
 def exists_command(db_path: str, command_id: str) -> bool:
     """Return True if any event with payload.command_id == command_id exists (I-CMD-10, I-EL-9)."""
-    conn = open_sdd_connection(db_path)
+    conn = open_sdd_connection(db_path, read_only=True)
     try:
         row = conn.execute(
             "SELECT COUNT(*) > 0 FROM events "
@@ -254,7 +267,7 @@ def exists_semantic(
     payload_hash: str,
 ) -> bool:
     """Return True if an event matching (command_type, task_id, phase_id, payload_hash) exists (I-CMD-2b, I-CMD-10, I-EL-9)."""
-    conn = open_sdd_connection(db_path)
+    conn = open_sdd_connection(db_path, read_only=True)
     try:
         parts = [
             "event_type = ?",
@@ -284,7 +297,7 @@ def exists_semantic(
 
 def get_error_count(db_path: str, command_id: str) -> int:
     """Return count of ErrorEvent records with payload.command_id == command_id (I-CMD-10, I-EL-9)."""
-    conn = open_sdd_connection(db_path)
+    conn = open_sdd_connection(db_path, read_only=True)
     try:
         row = conn.execute(
             "SELECT COUNT(*) FROM events "

@@ -1,11 +1,78 @@
 from __future__ import annotations
 
+import pathlib
+import shutil
 import tempfile
 from collections.abc import Generator
 
 import pytest
 
 from sdd.infra.db import open_sdd_connection
+from sdd.infra.paths import reset_sdd_root
+
+# Read-only subdirs to symlink from project .sdd/ so tests can still find
+# norm_catalog.yaml, project_profile.yaml etc. via SDD_HOME-based path functions.
+_SDD_READONLY_SUBDIRS = ("norms", "config", "specs", "specs_draft", "plans",
+                          "tasks", "templates", "docs", "contracts")
+# Projection files copied (not symlinked) into runtime/ so commands like sdd show-state
+# work but writes stay in the isolated copy and don't touch production files.
+_SDD_RUNTIME_COPY_FILES = ("State_index.yaml", "audit_log.jsonl")
+
+
+@pytest.fixture(autouse=True)
+def _reset_sdd_root() -> Generator[None, None, None]:
+    reset_sdd_root()
+    yield
+    reset_sdd_root()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_sdd_home(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    """Prevent tests from touching the production DB via event_store_file().
+
+    Creates a per-test SDD_HOME in a dedicated tmp dir (not in pytest's tmp_path,
+    so os.listdir(tmp_path) is unaffected). Read-only config dirs (norms, config …)
+    are symlinked from the project .sdd/ so subprocess tests still find config files.
+    state/ and runtime/ are isolated empty dirs — the production DB is never reached.
+    """
+    project_sdd = pathlib.Path(".sdd").resolve()
+    with tempfile.TemporaryDirectory(prefix="sdd_test_home_") as tmpdir:
+        sdd_dir = pathlib.Path(tmpdir) / ".sdd"
+        sdd_dir.mkdir()
+        for subdir in _SDD_READONLY_SUBDIRS:
+            src = project_sdd / subdir
+            if src.exists():
+                (sdd_dir / subdir).symlink_to(src)
+        (sdd_dir / "state").mkdir()
+        runtime_dir = sdd_dir / "runtime"
+        runtime_dir.mkdir()
+        for fname in _SDD_RUNTIME_COPY_FILES:
+            src = project_sdd / "runtime" / fname
+            if src.exists():
+                shutil.copy2(src, runtime_dir / fname)
+        monkeypatch.setenv("SDD_HOME", str(sdd_dir))
+        reset_sdd_root()
+        yield
+    reset_sdd_root()
+
+
+@pytest.fixture(autouse=True)
+def _guard_production_db() -> Generator[None, None, None]:
+    prod_db = pathlib.Path(".sdd/state/sdd_events.duckdb").resolve()
+    mtime_before = prod_db.stat().st_mtime_ns if prod_db.exists() else None
+    yield
+    if prod_db.exists() and mtime_before is not None:
+        mtime_after = prod_db.stat().st_mtime_ns
+        assert mtime_after == mtime_before, f"Test modified production DB: {prod_db}"
+
+
+@pytest.fixture()
+def sdd_home(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> Generator[pathlib.Path, None, None]:
+    sdd_dir = tmp_path / ".sdd"
+    sdd_dir.mkdir(exist_ok=True)
+    monkeypatch.setenv("SDD_HOME", str(sdd_dir))
+    reset_sdd_root()
+    yield sdd_dir
 
 
 @pytest.fixture()
@@ -16,7 +83,5 @@ def in_memory_db() -> Generator[object, None, None]:
 
 
 @pytest.fixture()
-def tmp_db_path(tmp_path: object) -> str:
-    import pathlib
-
-    return str(pathlib.Path(str(tmp_path)) / "test_sdd_events.duckdb")
+def tmp_db_path(tmp_path: pathlib.Path) -> str:
+    return str(tmp_path / "test_sdd_events.duckdb")

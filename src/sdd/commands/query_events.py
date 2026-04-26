@@ -8,7 +8,7 @@ from typing import Protocol
 
 from sdd.core.errors import SDDError
 from sdd.infra.event_query import EventLogQuerier, EventRecord, QueryFilters
-from sdd.infra.paths import event_store_file
+from sdd.infra.paths import event_store_file, reports_dir
 
 
 class QueryHandler(Protocol):
@@ -63,6 +63,14 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--replay", action="store_true", help="Filter to L1 domain events")
     parser.add_argument("--json", action="store_true", dest="as_json")
     parser.add_argument("--db", default=str(event_store_file()))
+    parser.add_argument("--step", default=None, dest="task_id",
+                        help="Filter by task ID (e.g. T-2911)")
+    parser.add_argument("--include-bash", action="store_true",
+                        help="Include L2/bash events (all levels shown by default)")
+    parser.add_argument("--save", action="store_true",
+                        help="Save JSON to .sdd/reports/EL_Phase{N}_events.json")
+    parser.add_argument("--list-types", action="store_true",
+                        help="Print distinct event_type values and exit")
     parsed = parser.parse_args(args)
     try:
         filters = QueryFilters(
@@ -71,14 +79,27 @@ def main(args: list[str] | None = None) -> int:
             event_source=parsed.event_source,
             limit=parsed.limit,
             order=parsed.order,
+            task_id=parsed.task_id,
         )
         result = QueryEventsHandler(parsed.db).execute(QueryEventsCommand(filters=filters))
         events = result.events
         if parsed.replay:
             events = tuple(e for e in events if e.level == "L1")
-        if parsed.as_json:
+        if parsed.list_types:
+            for t in sorted(set(e.event_type for e in events)):
+                print(t)
+            return 0
+        if parsed.as_json or parsed.save:
             import dataclasses
-            print(json.dumps([dataclasses.asdict(e) for e in events], default=str))
+            payload = json.dumps([dataclasses.asdict(e) for e in events], default=str)
+            if parsed.as_json:
+                print(payload)
+            if parsed.save:
+                phase_suffix = parsed.phase if parsed.phase is not None else "all"
+                out_path = reports_dir() / f"EL_Phase{phase_suffix}_events.json"
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                out_path.write_text(payload, encoding="utf-8")
+                print(f"Written: {out_path}", file=sys.stderr)
         else:
             for e in events:
                 print(f"{e.seq}\t{e.event_type}\t{e.level}\t{e.event_source}")

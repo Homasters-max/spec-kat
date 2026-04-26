@@ -1,0 +1,71 @@
+# .sdd/config/glossary.yaml
+# TERM-узлы DDD-слоя для SpatialIndex (BC-18-0).
+# Источники: CLAUDE.md §TOOLS, Spec_v18 §3.
+# I-DDD-0: каждый доменный концепт должен иметь TERM-запись.
+# I-TERM-2: все links MUST разрешаться в известные node_id SpatialIndex.
+terms:
+  - id: "complete_task"
+    label: "Complete Task"
+    definition: "Mark a task T-NNN as DONE after implementation. Emits TaskImplementedEvent and records lead_time metric."
+    aliases: ["task completion", "sdd complete", "complete T-NNN", "mark done"]
+    links: ["COMMAND:complete", "EVENT:TaskImplementedEvent"]
+
+  - id: "validate_task"
+    label: "Validate Task"
+    definition: "Run invariant checks after implementation and record PASS or FAIL result. Required before phase completion."
+    aliases: ["task validation", "sdd validate", "validate T-NNN", "invariant check"]
+    links: ["COMMAND:validate", "EVENT:TaskValidatedEvent"]
+
+  - id: "show_state"
+    label: "Show State"
+    definition: "Read current phase and task state from the SSOT projection (State_index.yaml). Read-only CLI command."
+    aliases: ["sdd show-state", "current state", "phase status", "task status"]
+    links: ["COMMAND:show-state"]
+
+  - id: "query_events"
+    label: "Query Events"
+    definition: "Inspect the event log stored in DuckDB. Returns events in chronological order with filtering support."
+    aliases: ["sdd query-events", "event log", "inspect events", "event history"]
+    links: ["COMMAND:query-events"]
+
+  - id: "report_error"
+    label: "Report Error"
+    definition: "Structured error reporting via SDD CLI. Emits ErrorEvent with error_type, stage, and error_code."
+    aliases: ["sdd report-error", "error reporting", "structured error", "emit error"]
+    links: ["COMMAND:report-error", "EVENT:ErrorEvent"]
+
+  - id: "activate_phase"
+    label: "Activate Phase"
+    definition: "Human-only gate that transitions a PLANNED phase to ACTIVE state. Cannot be executed by LLM (NORM-ACTOR-001)."
+    aliases: ["phase activation", "activate phase", "sdd activate-phase", "human gate"]
+    links: ["COMMAND:activate-phase", "EVENT:PhaseActivated", "INVARIANT:NORM-ACTOR-001"]
+
+  - id: "spatial_index"
+    label: "Spatial Index"
+    definition: "Deterministic, reproducible map of the system: every file, command, event, task, and invariant as a node with a stable node_id. Built by IndexBuilder from all filesystem sources. Acts as the filesystem abstraction layer — downstream consumers (GraphLoader, Navigator) access project structure exclusively via SpatialIndex API (iter_files, iter_terms, iter_invariants, iter_tasks, typed_registry). Persisted as spatial_index.json."
+    aliases: ["SI", "spatial index", "nav index", "system map", "nav-rebuild"]
+    links: ["COMMAND:nav-rebuild", "COMMAND:nav-get", "COMMAND:nav-search", "INVARIANT:I-INDEX-FILE-COVERAGE-1", "INVARIANT:I-GRAPH-FS-ISOLATION-1"]
+
+  - id: "graph_loader"
+    label: "Graph Loader"
+    definition: "Pure edge transformer in the graph build pipeline. Receives a SpatialIndex and produces spatial edges for the Postgres graph backend. Filesystem-free by contract (I-GRAPH-FS-ISOLATION-1): all inputs obtained via SpatialIndex API only. Part of the pipeline: IndexBuilder → SpatialIndex → GraphLoader → Graph."
+    aliases: ["GraphLoader", "graph loader", "edge builder", "edge transformer"]
+    links: ["COMMAND:nav-rebuild", "INVARIANT:I-GRAPH-FS-ISOLATION-1", "INVARIANT:I-INDEX-FILE-COVERAGE-1"]
+
+  - id: "index_builder"
+    label: "Index Builder"
+    definition: "The sole filesystem reader in the graph build pipeline. Scans all project sources (Python files, glossary.yaml, invariants.yaml, TaskSet) and produces a SpatialIndex. Single point of filesystem access — all other modules receive their data via SpatialIndex API."
+    aliases: ["IndexBuilder", "index builder", "nav-rebuild builder"]
+    links: ["COMMAND:nav-rebuild", "INVARIANT:I-INDEX-FILE-COVERAGE-1"]
+
+  - id: "navigation_session"
+    label: "Navigation Session"
+    definition: "In-memory (persisted to nav_session.json) object tracking agent navigation state per reasoning step. Enforces I-NAV-1..6 at runtime."
+    aliases: ["NavigationSession", "nav session", "nav-session", "step tracking"]
+    links: ["COMMAND:nav-session", "INVARIANT:I-NAV-1", "INVARIANT:I-NAV-6"]
+
+  - id: "term_node"
+    label: "Term Node"
+    definition: "A SpatialNode with kind='TERM' representing a DDD domain concept. Has definition, aliases, and links fields. Primary entrypoint for natural language queries via I-NAV-4."
+    aliases: ["TERM", "domain term", "DDD term", "glossary entry", "term node"]
+    links: ["COMMAND:nav-search", "INVARIANT:I-NAV-4", "INVARIANT:I-DDD-0"]

@@ -35,6 +35,10 @@ def _expand_path(raw: str) -> Path | None:
         return None
     if not raw:
         return None
+    # Skip non-path tokens like invariant IDs (I-CONTEXT-1), section refs, etc.
+    # Real file paths always contain '.' (extension) or '/' (separator) or '~'.
+    if "." not in raw and "/" not in raw and not raw.startswith("~"):
+        return None
     return Path(raw).expanduser()
 
 

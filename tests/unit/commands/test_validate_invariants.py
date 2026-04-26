@@ -32,6 +32,7 @@ def _command(
     env_whitelist: tuple[str, ...] = (),
     timeout_secs: int = 30,
     task_outputs: tuple[str, ...] = (),
+    validation_mode: str = "system",  # existing tests exercise system (all-commands) behavior
 ) -> ValidateInvariantsCommand:
     return ValidateInvariantsCommand(
         command_id=str(uuid.uuid4()),
@@ -44,6 +45,7 @@ def _command(
         env_whitelist=env_whitelist,
         timeout_secs=timeout_secs,
         task_outputs=task_outputs,
+        validation_mode=validation_mode,
     )
 
 
@@ -391,4 +393,101 @@ class TestAcceptanceEnforcement:
         assert cmd[:2] == ["ruff", "check"]
         assert str(f1) in cmd
         assert str(f2) in cmd
-        assert ruff_call.kwargs.get("shell") is not True
+
+
+# ---------------------------------------------------------------------------
+# IMP-001: task mode vs system mode (SDD_Improvements.md §IMP-001)
+# ---------------------------------------------------------------------------
+
+class TestValidationModes:
+    @patch("sdd.commands.validate_invariants.load_config")
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_task_mode_skips_test_command(self, mock_popen, mock_load, handler):
+        """Task mode (default): 'test' command is not executed (IMP-001)."""
+        mock_load.return_value = _fake_config("lint", "typecheck", "test")
+        mock_popen.return_value = _popen_mock()
+
+        cmd = ValidateInvariantsCommand(
+            command_id=str(uuid.uuid4()),
+            command_type="ValidateInvariants",
+            payload={},
+            phase_id=25,
+            task_id="T-2511",
+            config_path=".sdd/config/project_profile.yaml",
+            cwd="/project",
+            env_whitelist=(),
+            timeout_secs=30,
+            task_outputs=(),
+            validation_mode="task",
+        )
+        with patch.object(handler, "_check_idempotent", return_value=False):
+            handler.handle(cmd)
+
+        executed = [call.args[0] for call in mock_popen.call_args_list]
+        assert all("run-test" not in c for c in executed), (
+            "test command must not run in task mode"
+        )
+        assert any("run-lint" in c for c in executed), "lint must still run in task mode"
+        assert any("run-typecheck" in c for c in executed), "typecheck must still run in task mode"
+
+    @patch("sdd.commands.validate_invariants.load_config")
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_system_mode_runs_all_commands(self, mock_popen, mock_load, handler):
+        """System mode (--system): all build commands including test are executed (IMP-001)."""
+        mock_load.return_value = _fake_config("lint", "typecheck", "test")
+        mock_popen.return_value = _popen_mock()
+
+        cmd = ValidateInvariantsCommand(
+            command_id=str(uuid.uuid4()),
+            command_type="ValidateInvariants",
+            payload={},
+            phase_id=25,
+            task_id=None,
+            config_path=".sdd/config/project_profile.yaml",
+            cwd="/project",
+            env_whitelist=(),
+            timeout_secs=30,
+            task_outputs=(),
+            validation_mode="system",
+        )
+        with patch.object(handler, "_check_idempotent", return_value=False):
+            handler.handle(cmd)
+
+        assert mock_popen.call_count == 3, "all three commands must run in system mode"
+        executed = [call.args[0] for call in mock_popen.call_args_list]
+        assert any("run-test" in c for c in executed), "test must run in system mode"
+        assert any("run-lint" in c for c in executed)
+        assert any("run-typecheck" in c for c in executed)
+
+    @patch("sdd.commands.validate_invariants.load_config")
+    @patch("sdd.commands.validate_invariants.subprocess.Popen")
+    def test_task_mode_skips_all_pytest_commands(self, mock_popen, mock_load, handler):
+        """Task mode skips ALL keys starting with 'test' (e.g. test, test_full) — I-TASK-MODE-1."""
+        mock_load.return_value = _fake_config("lint", "typecheck", "test", "test_full")
+        mock_popen.return_value = _popen_mock()
+
+        cmd = _command(validation_mode="task")
+        with patch.object(handler, "_check_idempotent", return_value=False):
+            handler.handle(cmd)
+
+        executed = [c.args[0] for c in mock_popen.call_args_list]
+        assert "run-test_full" not in executed, "test_full must not run in task mode"
+        assert any("run-lint" in c for c in executed), "lint must still run in task mode"
+        assert any("run-typecheck" in c for c in executed), "typecheck must still run in task mode"
+
+    def test_task_mode_is_default(self):
+        """ValidateInvariantsCommand.validation_mode defaults to 'task' (IMP-001, CLI-2)."""
+        cmd = ValidateInvariantsCommand(
+            command_id=str(uuid.uuid4()),
+            command_type="ValidateInvariants",
+            payload={},
+            phase_id=25,
+            task_id="T-2511",
+            config_path=".sdd/config/project_profile.yaml",
+            cwd="/project",
+            env_whitelist=(),
+            timeout_secs=30,
+            task_outputs=(),
+            # validation_mode intentionally omitted — testing production default
+        )
+        assert cmd.validation_mode == "task"

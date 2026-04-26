@@ -3,7 +3,8 @@
 Invariants: I-IDEM-SCHEMA-1, I-IDEM-LOG-1, I-OPTLOCK-1, I-OPTLOCK-ATOMIC-1,
             I-ATOMICITY-1, I-RETRY-POLICY-1, I-CMD-PAYLOAD-PHASE-1,
             I-CMD-PHASE-RESOLVE-1, I-SYNC-NO-PHASE-GUARD-1,
-            I-DECISION-AUDIT-1, I-READ-ONLY-EXCEPTION-1
+            I-DECISION-AUDIT-1, I-READ-ONLY-EXCEPTION-1,
+            I-CMD-IDEM-1, I-IDEM-SCHEMA-1
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from functools import partial
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from sdd.commands._base import CommandHandlerBase, NoOpHandler
 from sdd.core.execution_context import kernel_context
@@ -36,6 +37,7 @@ from sdd.core.events import (
     PhaseCompletedEvent,
     PhaseInitializedEvent,
     PhaseStartedEvent,
+    SessionDeclaredEvent,
     TaskImplementedEvent,
     TaskSetDefinedEvent,
     TaskValidatedEvent,
@@ -100,6 +102,17 @@ class CommandSpec:
     requires_active_phase: bool = True                        # A-20: False → PhaseGuard skipped
     apply_task_guard:      bool = True                        # False → skip make_task_guard (e.g. validate needs DONE tasks)
     description:           str = ""
+    idempotent:            bool = True                        # False for navigation cmds (I-CMD-IDEM-1)
+    guard_factory: Callable[[Any], list[Any]] | None = field(default=None, hash=False, compare=False)
+
+    def build_guards(self, cmd: Any) -> list[Any]:
+        """Return guard list for this command (I-CMD-GUARD-FACTORY-2).
+
+        Delegates to guard_factory(cmd) if set; otherwise uses _default_build_guards.
+        """
+        if self.guard_factory is not None:
+            return self.guard_factory(cmd)
+        return _default_build_guards(self, cmd)
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +142,26 @@ def _lazy_activate_phase_handler() -> type[CommandHandlerBase]:
 def _lazy_record_decision_handler() -> type[CommandHandlerBase]:
     from sdd.commands.record_decision import RecordDecisionHandler
     return RecordDecisionHandler
+
+
+def _lazy_switch_phase_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.switch_phase import SwitchPhaseHandler
+    return SwitchPhaseHandler
+
+
+def _lazy_switch_phase_guard_factory(cmd: Any) -> list[Any]:
+    from sdd.commands.switch_phase import _switch_phase_guard_factory
+    return _switch_phase_guard_factory(cmd)
+
+
+def _lazy_invalidate_event_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.invalidate_event import InvalidateEventHandler
+    return InvalidateEventHandler
+
+
+def _lazy_record_session_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.record_session import RecordSessionHandler
+    return RecordSessionHandler
 
 
 REGISTRY: dict[str, CommandSpec] = {
@@ -210,6 +243,53 @@ REGISTRY: dict[str, CommandSpec] = {
         preconditions=("decision_id matches D-<number>", "summary <= 500 chars"),
         postconditions=("DecisionRecordedEvent in EventLog",),
         description="Record a design decision in the EventLog (Amendment A-1)",
+    ),
+    "switch-phase": CommandSpec(
+        name="switch-phase",
+        handler_class=_lazy_switch_phase_handler(),
+        actor="human",
+        action="switch_phase",
+        projection=ProjectionType.STATE_ONLY,
+        uses_task_id=False,
+        requires_active_phase=False,   # switch-phase works regardless of current phase status
+        event_schema=(),               # PhaseContextSwitchedEvent — imported lazily
+        preconditions=("actor == human", "phase_id in phases_known", "phase_id != phase_current"),
+        postconditions=("phase.current == phase_id", "flat fields restored from snapshot"),
+        description="Switch working context to a previously activated phase",
+        idempotent=False,              # NAVIGATION: every call = unique history fact (I-CMD-IDEM-1)
+        guard_factory=_lazy_switch_phase_guard_factory,
+    ),
+    "invalidate-event": CommandSpec(
+        name="invalidate-event",
+        handler_class=_lazy_invalidate_event_handler(),
+        actor="human",
+        action="invalidate_event",
+        projection=ProjectionType.NONE,    # audit-only; no state change
+        uses_task_id=False,
+        requires_active_phase=False,       # works regardless of phase status
+        event_schema=(),                   # EventInvalidatedEvent — imported lazily
+        preconditions=(
+            "target_seq exists in EventLog",
+            "event_type NOT in EventReducer._EVENT_SCHEMA",
+            "event_type != 'EventInvalidated'",
+            "no prior EventInvalidated for target_seq",
+        ),
+        postconditions=("EventInvalidated in EventLog",),
+        description="Neutralize invalid EventLog entry (kernel violation recovery)",
+        idempotent=True,
+    ),
+    "record-session": CommandSpec(
+        name="record-session",
+        handler_class=_lazy_record_session_handler(),
+        actor="llm",
+        action="declare_session",
+        projection=ProjectionType.NONE,    # audit-only; no state change (I-SESSION-DECLARED-1)
+        uses_task_id=False,
+        requires_active_phase=False,       # valid for PLANNED phases (e.g. PLAN Phase N session)
+        event_schema=(SessionDeclaredEvent,),
+        preconditions=("session_type is a valid SDD session type",),
+        postconditions=("SessionDeclaredEvent in EventLog",),
+        description="Declare session type for audit trail (I-SESSION-DECLARED-1, I-SESSION-VISIBLE-1)",
     ),
 }
 
@@ -313,8 +393,26 @@ def _find_task(taskset_path: str, task_id: str) -> Task | None:
 def _build_spec_guards(
     spec: CommandSpec,
     task_id: str | None,
+    cmd: Any = None,
 ) -> list[Any]:
     """Build guard list respecting spec.requires_active_phase (A-20, I-SYNC-NO-PHASE-GUARD-1)."""
+    guards: list[Any] = []
+    if spec.requires_active_phase:
+        guards.append(make_phase_guard(spec.name, task_id))
+    if spec.name == "switch-phase" and cmd is not None:
+        from sdd.commands.switch_phase import make_switch_phase_guard
+        guards.append(make_switch_phase_guard(getattr(cmd, "phase_id", 0)))
+    if task_id is not None and spec.uses_task_id:
+        if spec.apply_task_guard:
+            guards.append(make_task_guard(task_id))
+        guards.append(partial(DependencyGuard.check, task_id=task_id))
+    guards.append(make_norm_guard(spec.actor, spec.action, task_id))
+    return guards
+
+
+def _default_build_guards(spec: CommandSpec, cmd: Any) -> list[Any]:
+    """Standard guard assembly from spec flags. Private to registry.py (I-CMD-GUARD-FACTORY-3)."""
+    task_id = _extract_task_id(cmd)
     guards: list[Any] = []
     if spec.requires_active_phase:
         guards.append(make_phase_guard(spec.name, task_id))
@@ -406,7 +504,7 @@ def execute_command(
         )
 
         # Step 2: guard pipeline — pure; returns (result, audit_events) (A-20)
-        guards = _build_spec_guards(spec, task_id)
+        guards = spec.build_guards(cmd)
         guard_result, audit_events = _run_domain_pipeline(ctx, guards, stop_on_deny=True)
 
         # A-15: DENY without diagnostic fields is a kernel programming error (I-GUARD-REASON-1)
@@ -463,12 +561,15 @@ def execute_command(
         # Step 5: atomic check+write — A-17 eliminates TOCTOU between max_seq() read and INSERT.
         # EventStore.append verifies max_seq == head_seq inside a DuckDB transaction before INSERT
         # (I-OPTLOCK-1, I-OPTLOCK-ATOMIC-1). StaleStateError raised by append if head has advanced.
+        # For idempotent=False (navigation cmds): uuid4() prevents dedup while preserving traceability
+        # (I-CMD-IDEM-1). expected_head kept in both cases — optimistic lock is independent of idempotency.
         if handler_events:
+            effective_command_id = command_id if spec.idempotent else str(uuid.uuid4())
             try:
                 EventStore(_db).append(
                     handler_events,
                     source=spec.handler_class.__module__,
-                    command_id=command_id,
+                    command_id=effective_command_id,
                     expected_head=head_seq,   # A-17: transaction-level check before INSERT
                 )
             except StaleStateError:

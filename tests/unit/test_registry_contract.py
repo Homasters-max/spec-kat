@@ -21,6 +21,9 @@ _EXPECTED_REGISTRY_KEYS: frozenset[str] = frozenset({
     "activate-phase",
     "sync-state",
     "record-decision",
+    "switch-phase",
+    "invalidate-event",
+    "record-session",
 })
 
 _READ_ONLY_COMMANDS: frozenset[str] = frozenset({

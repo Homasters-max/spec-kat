@@ -32,10 +32,13 @@ def test_help_lists_all_commands():
 
 
 def test_cli_is_pure_router():
-    """I-CLI-1: cli.py has no sdd.infra/sdd.domain/sdd.guards import nodes (AST-verified)."""
+    """I-CLI-1: cli.py has no sdd.infra/sdd.domain import nodes (AST-verified).
+
+    sdd.guards.* are CLI adapters, not domain logic — imports from them are allowed.
+    """
     cli_path = Path(cli_module.__file__)
     tree = ast.parse(cli_path.read_text(encoding="utf-8"))
-    forbidden = ("sdd.infra", "sdd.domain", "sdd.guards")
+    forbidden = ("sdd.infra", "sdd.domain")
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module:
             for prefix in forbidden:

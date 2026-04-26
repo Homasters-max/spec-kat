@@ -22,7 +22,7 @@ from sdd.infra.metrics import (
     detect_anomalies,
     load_metrics,
 )
-from sdd.infra.paths import event_store_file, state_file
+from sdd.infra.paths import event_store_file, reports_dir, state_file
 
 _DEFAULT_METRIC_IDS: list[str] = [
     "task.lead_time",
@@ -193,7 +193,7 @@ def main(args: list[str] | None = None) -> int:
 
     if parsed.trend or parsed.anomalies:
         metric_ids = parsed.metrics or _DEFAULT_METRIC_IDS
-        records = load_metrics(metric_ids)  # single I/O call (I-TREND-1)
+        records = load_metrics(metric_ids, db_path=db)  # I-DB-2: explicit db_path
         if parsed.trend:
             trends = compute_trend(records)
             sections.append(_render_trend(trends))
@@ -208,10 +208,9 @@ def main(args: list[str] | None = None) -> int:
         sections.append(_render_markdown(summary))
 
     output = "\n".join(sections)
-    if parsed.output:
-        Path(parsed.output).parent.mkdir(parents=True, exist_ok=True)
-        Path(parsed.output).write_text(output, encoding="utf-8")
-    else:
-        print(output)
+    out_path = Path(parsed.output) if parsed.output else reports_dir() / f"Metrics_Phase{phase_id}.md"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(output, encoding="utf-8")
+    print(f"Written: {out_path}", file=sys.stderr)
 
     return 0

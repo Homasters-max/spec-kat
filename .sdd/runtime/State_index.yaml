@@ -14,27 +14,291 @@
 # (deterministic: all tasks done + invariants PASS + tests PASS).
 
 phase:
-  current: 23
+  current: 33
   status: COMPLETE
 plan:
-  version: 23
+  version: 33
   status: COMPLETE
 tasks:
-  version: 23
-  total: 4
-  completed: 4
+  version: 33
+  total: 6
+  completed: 6
   done_ids:
-  - T-2301
-  - T-2302
-  - T-2303
-  - T-2304
+  - T-3301
+  - T-3302
+  - T-3303
+  - T-3304
+  - T-3305
+  - T-3306
 invariants:
   status: PASS
 tests:
   status: PASS
 meta:
-  last_updated: '2026-04-25T02:46:23Z'
+  last_updated: '2026-04-26T17:50:42Z'
   schema_version: 1
   snapshot_event_id: null
+  reducer_version: 2
+phases_known:
+- 15
+- 17
+- 18
+- 22
+- 23
+- 24
+- 25
+- 26
+- 27
+- 28
+- 29
+- 33
+phases_snapshots:
+- phase_id: 15
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 22
+  tasks_completed: 22
+  tasks_done_ids:
+  - T-1501
+  - T-1502
+  - T-1503
+  - T-1504
+  - T-1505
+  - T-1506
+  - T-1507
+  - T-1510
+  - T-1511
+  - T-1512
+  - T-1513
+  - T-1514
+  - T-1514b
+  - T-1514c
+  - T-1515
+  - T-1516
+  - T-1517
+  - T-1518
+  - T-1519
+  - T-1520
+  - T-1521
+  - T-1522
+  plan_version: 15
+  tasks_version: 15
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 17
+  phase_status: ACTIVE
+  plan_status: ACTIVE
+  tasks_total: 24
+  tasks_completed: 24
+  tasks_done_ids:
+  - T-1701
+  - T-1702
+  - T-1703
+  - T-1704
+  - T-1705
+  - T-1706
+  - T-1707
+  - T-1708
+  - T-1709
+  - T-1710
+  - T-1711
+  - T-1712
+  - T-1713
+  - T-1714
+  - T-1715
+  - T-1716
+  - T-1717
+  - T-1718
+  - T-1719
+  - T-1720
+  - T-1721
+  - T-1723
+  - T-1724
+  - T-1725
+  plan_version: 17
+  tasks_version: 17
+  invariants_status: UNKNOWN
+  tests_status: UNKNOWN
+- phase_id: 18
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 13
+  tasks_completed: 13
+  tasks_done_ids:
+  - T-1801
+  - T-1802
+  - T-1803
+  - T-1804
+  - T-1805
+  - T-1806
+  - T-1807
+  - T-1808
+  - T-1809
+  - T-1810
+  - T-1811
+  - T-1812
+  - T-1813
+  plan_version: 18
+  tasks_version: 18
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 22
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 8
+  tasks_completed: 8
+  tasks_done_ids:
+  - T-2201
+  - T-2202
+  - T-2203
+  - T-2204
+  - T-2205
+  - T-2206
+  - T-2207
+  - T-2208
+  plan_version: 22
+  tasks_version: 22
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 23
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 4
+  tasks_completed: 4
+  tasks_done_ids:
+  - T-2301
+  - T-2302
+  - T-2303
+  - T-2304
+  plan_version: 23
+  tasks_version: 23
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 24
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 11
+  tasks_completed: 11
+  tasks_done_ids:
+  - T-2401
+  - T-2402
+  - T-2403
+  - T-2404
+  - T-2405
+  - T-2406
+  - T-2407
+  - T-2408
+  - T-2409
+  - T-2410
+  - T-2411
+  plan_version: 24
+  tasks_version: 24
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 25
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 12
+  tasks_completed: 12
+  tasks_done_ids:
+  - T-2501
+  - T-2502
+  - T-2503
+  - T-2504
+  - T-2505
+  - T-2506
+  - T-2507
+  - T-2508
+  - T-2509
+  - T-2510
+  - T-2511
+  - T-2512
+  plan_version: 25
+  tasks_version: 25
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 26
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 4
+  tasks_completed: 4
+  tasks_done_ids:
+  - T-2601
+  - T-2602
+  - T-2603
+  - T-2604
+  plan_version: 26
+  tasks_version: 26
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 27
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 4
+  tasks_completed: 4
+  tasks_done_ids:
+  - T-2701
+  - T-2702
+  - T-2703
+  - T-2704
+  plan_version: 27
+  tasks_version: 27
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 28
+  phase_status: ACTIVE
+  plan_status: ACTIVE
+  tasks_total: 8
+  tasks_completed: 8
+  tasks_done_ids:
+  - T-2801
+  - T-2802
+  - T-2803
+  - T-2804
+  - T-2805
+  - T-2806
+  - T-2807
+  - T-2808
+  plan_version: 28
+  tasks_version: 28
+  invariants_status: UNKNOWN
+  tests_status: UNKNOWN
+- phase_id: 29
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 11
+  tasks_completed: 11
+  tasks_done_ids:
+  - T-2901
+  - T-2902
+  - T-2903
+  - T-2904
+  - T-2905
+  - T-2906
+  - T-2907
+  - T-2908
+  - T-2909
+  - T-2910
+  - T-2911
+  plan_version: 29
+  tasks_version: 29
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 33
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 6
+  tasks_completed: 6
+  tasks_done_ids:
+  - T-3301
+  - T-3302
+  - T-3303
+  - T-3304
+  - T-3305
+  - T-3306
+  plan_version: 33
+  tasks_version: 33
+  invariants_status: PASS
+  tests_status: PASS
 
-# state_hash: ff6d2ad8ed2aeaf6fa91cc42c130ed544a64366326c69035b65cd8a99cfd6796
+# state_hash: c77a9c18ffb604b491228e643fd2034a136373ecdfce9bd50f67783472375e0b

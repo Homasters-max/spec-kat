@@ -26,6 +26,7 @@ class QueryFilters:
     order: str = "ASC"
     batch_id: str | None = None
     is_batched: bool | None = None
+    task_id: str | None = None
 
 
 class EventLogQuerier:
@@ -64,6 +65,12 @@ class EventLogQuerier:
                 "CAST(json_extract_string(payload, '$.phase_id') AS INTEGER) = ?"
             )
             params.append(filters.phase_id)
+
+        if filters.task_id is not None:
+            conditions.append(
+                "json_extract_string(payload, '$.task_id') = ?"
+            )
+            params.append(filters.task_id)
 
         if filters.batch_id is not None:
             conditions.append("batch_id = ?")

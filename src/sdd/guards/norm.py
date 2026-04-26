@@ -67,5 +67,17 @@ def main(argv: list[str] | None = None) -> int:
     return 0 if allowed else 1
 
 
+def validate_registry_actions() -> None:
+    """Raise ValueError if any REGISTRY action string is absent from the norm catalog.
+
+    Intended for CLI startup: catches action string drift between CommandSpec
+    definitions and norm_catalog.yaml before the first command runs (I-NRM-VALIDATE-1).
+    """
+    from sdd.commands.registry import REGISTRY
+    from sdd.domain.norms.catalog import load_catalog
+    catalog = load_catalog(str(_paths.norm_catalog_file()))
+    catalog.validate_actions(frozenset(s.action for s in REGISTRY.values()))
+
+
 if __name__ == "__main__":
     sys.exit(main())

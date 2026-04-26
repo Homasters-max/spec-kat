@@ -2,7 +2,7 @@
 
 Relational Properties (Appendix B, Spec_v17):
   RP-1: TaskImplemented → tasks_completed +1, task_id ∈ tasks_done_ids
-  RP-2: PhaseStarted (new phase) → tasks_completed == 0, tasks_done_ids == (), phase_current updated
+  RP-2: PhaseStarted is informational only (I-PHASE-STARTED-1) — no state mutation
   RP-3: DecisionRecorded → no side-effect on tasks_completed or phase_current
 """
 from __future__ import annotations
@@ -126,40 +126,49 @@ class TestRP1TaskImplementedDelta:
 # ---------------------------------------------------------------------------
 
 class TestRP2PhaseStartedResetsCounters:
-    """RP-2: PhaseStarted (new phase) → tasks_completed == 0, tasks_done_ids == (), phase_current updated."""
+    """RP-2: PhaseStarted is informational only (I-PHASE-STARTED-1) — no state mutation.
+
+    Formerly tested that PhaseStarted reset counters and advanced phase_current.
+    Updated after I-PHASE-STARTED-1: PhaseStarted MUST NOT mutate any state field.
+    """
 
     def test_tasks_completed_resets_to_zero(self, state_builder):
+        # PhaseStarted does not reset tasks_completed (I-PHASE-STARTED-1)
         tasks = [_task_implemented(f"T-OLD-{i}") for i in range(4)]
         state = state_builder(tasks + [_phase_started(phase_id=2)])
-        assert state.tasks_completed == 0
+        assert state.tasks_completed == 4
 
     def test_tasks_done_ids_resets_to_empty_tuple(self, state_builder):
+        # PhaseStarted does not reset tasks_done_ids (I-PHASE-STARTED-1)
         tasks = [_task_implemented(f"T-PREV-{i}") for i in range(3)]
         state = state_builder(tasks + [_phase_started(phase_id=2)])
-        assert state.tasks_done_ids == ()
+        assert len(state.tasks_done_ids) == 3
 
     def test_phase_current_advances_to_new_phase(self, state_builder):
+        # PhaseStarted does not advance phase_current (I-PHASE-STARTED-1)
         state = state_builder([_phase_started(phase_id=7)])
-        assert state.phase_current == 7
+        assert state.phase_current == 0
 
     def test_tasks_added_after_phase_start_count_fresh(self, state_builder):
+        # All tasks accumulate regardless of PhaseStarted (I-PHASE-STARTED-1)
         old_tasks = [_task_implemented(f"T-BEFORE-{i}") for i in range(5)]
         new_task = _task_implemented("T-AFTER-PHASE", phase_id=2)
         state = state_builder(old_tasks + [_phase_started(phase_id=2), new_task])
-        assert state.tasks_completed == 1
+        assert state.tasks_completed == 6
         assert "T-AFTER-PHASE" in state.tasks_done_ids
 
     def test_regression_phase_id_skipped(self, state_builder):
-        # PhaseStarted with phase_id <= current is skipped (A-8, I-PHASE-SEQ-1)
+        # PhaseStarted never changes phase_current — ordering is irrelevant (I-PHASE-STARTED-1)
         ph5 = _phase_started(phase_id=5)
-        ph3 = _phase_started(phase_id=3)   # regression: 3 <= 5
+        ph3 = _phase_started(phase_id=3)
         state = state_builder([ph5, ph3])
-        assert state.phase_current == 5
+        assert state.phase_current == 0
 
     def test_sequential_phase_advances_correctly(self, state_builder):
+        # Multiple PhaseStarted events have no cumulative effect (I-PHASE-STARTED-1)
         evs = [_phase_started(phase_id=n) for n in range(1, 6)]
         state = state_builder(evs)
-        assert state.phase_current == 5
+        assert state.phase_current == 0
         assert state.tasks_completed == 0
         assert state.tasks_done_ids == ()
 
