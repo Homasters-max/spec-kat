@@ -139,6 +139,23 @@ If Task Inputs or Outputs field is missing → ERROR (MissingContext) → STOP.
 - APG-2: templates are the ONLY structural source for new artifacts
 - APG-3: previous TaskSet_vM are NOT examples
 
+**PIR-1 Exception — patch/backfill phases (I-AGENT-IMPL-1):**
+
+If `sdd show-state` shows `phase.logical_type == "patch"` or `"backfill"`, LLM MUST load
+anchor-phase context via CLI before implementation:
+
+```bash
+[Auto-action] sdd show-state          ← check phase.logical_type and phase.context
+[Auto-action] sdd show-plan --phase <anchor_phase_id>
+[Auto-action] sdd show-spec --phase <anchor_phase_id>
+```
+
+Purpose: understand what is being fixed (patch) or filled (backfill) without blind implementation.
+Direct reads of `.sdd/plans/` and `.sdd/specs/` remain FORBIDDEN (NORM-SCOPE-004).
+
+**I-AGENT-IMPL-1:** In IMPLEMENT-session for a phase with `logical_type != None`, LLM MUST load
+anchor-phase plan and spec via `sdd show-*` CLI before any implementation begins.
+
 ---
 
 ## Post-Execution
@@ -148,6 +165,19 @@ If Task Inputs or Outputs field is missing → ERROR (MissingContext) → STOP.
 ```
 
 Events emitted: `TaskImplemented`, `StateSynced`, `MetricRecorded(task.lead_time)`
+
+---
+
+## Phase State Interpretation (I-AGENT-STATE-1)
+
+`sdd show-state` exposes two distinct fields after BC-41-C:
+
+| Field | Meaning |
+|-------|---------|
+| `phase.context` | Navigation context — the phase LLM/human switched to |
+| `phase.latest_completed` | Max phase_id with status COMPLETE |
+
+**I-AGENT-STATE-1:** If `phase.context ≠ phase.latest_completed`, LLM MUST explicitly name both values. Never represent `phase.context` alone as "the current active phase". Output: "Контекст = фаза N (навигация), последняя завершённая = фаза M."
 
 ---
 

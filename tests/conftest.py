@@ -85,3 +85,23 @@ def in_memory_db() -> Generator[object, None, None]:
 @pytest.fixture()
 def tmp_db_path(tmp_path: pathlib.Path) -> str:
     return str(tmp_path / "test_sdd_events.duckdb")
+
+
+@pytest.fixture(autouse=True)
+def _test_postgres_schema(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Acceptance (I-DB-TEST-1): PostgreSQL schema in tests MUST match p_test_*.
+
+    Sets SDD_PROJECT=test_default so open_sdd_connection resolves schema=p_test_default.
+    """
+    monkeypatch.setenv("SDD_PROJECT", "test_default")
+
+
+@pytest.fixture(autouse=True)
+def _duckdb_fail_fast(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    """I-DB-TEST-2: In test context (PYTEST_CURRENT_TEST), timeout_secs=0.0 (fail-fast).
+
+    Signals fail-fast intent via SDD_DB_TIMEOUT_SECS=0.0.  The production layer
+    may read this env var to configure DuckDB busy/lock timeout accordingly.
+    """
+    monkeypatch.setenv("SDD_DB_TIMEOUT_SECS", "0.0")
+    yield

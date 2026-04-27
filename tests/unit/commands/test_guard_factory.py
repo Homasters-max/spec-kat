@@ -172,13 +172,14 @@ def test_execute_command_calls_build_guards() -> None:
 
 
 def test_custom_guard_factory_receives_full_guard_list() -> None:
-    """_switch_phase_guard_factory returns exactly [phase_guard, switch_guard, norm_guard].
+    """_switch_phase_guard_factory returns exactly [switch_guard, norm_guard].
 
+    BC-41-A: make_phase_guard removed — PG-3 (phase.status == ACTIVE) blocked navigation
+    from COMPLETE phases, making switch-phase unusable after phase completion.
     I-CMD-GUARD-FACTORY-4.
     """
     from sdd.commands.switch_phase import _switch_phase_guard_factory
 
-    _PHASE_SENTINEL = object()
     _SWITCH_SENTINEL = object()
     _NORM_SENTINEL = object()
 
@@ -186,10 +187,6 @@ def test_custom_guard_factory_receives_full_guard_list() -> None:
     cmd.phase_id = 7
 
     with (
-        patch(
-            "sdd.domain.guards.phase_guard.make_phase_guard",
-            return_value=_PHASE_SENTINEL,
-        ),
         patch(
             "sdd.commands.switch_phase.make_switch_phase_guard",
             return_value=_SWITCH_SENTINEL,
@@ -201,10 +198,9 @@ def test_custom_guard_factory_receives_full_guard_list() -> None:
     ):
         guards = _switch_phase_guard_factory(cmd)
 
-    assert len(guards) == 3, f"Expected 3 guards, got {len(guards)}"
-    assert guards[0] is _PHASE_SENTINEL
-    assert guards[1] is _SWITCH_SENTINEL
-    assert guards[2] is _NORM_SENTINEL
+    assert len(guards) == 2, f"Expected 2 guards, got {len(guards)}"
+    assert guards[0] is _SWITCH_SENTINEL
+    assert guards[1] is _NORM_SENTINEL
 
 
 def test_switch_phase_guard_factory_extracts_phase_id() -> None:

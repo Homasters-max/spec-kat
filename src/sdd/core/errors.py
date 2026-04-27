@@ -83,3 +83,7 @@ class KernelInvariantError(SDDError):
 
 class InvalidPhaseSequence(SDDError):
     """Phase activation would skip one or more phases (I-PHASE-SEQ-FORWARD-1)."""
+
+
+class DependencyNotMet(SDDError):
+    """Raised when a task's declared dependency is not yet DONE (BC-32-6, I-CMD-IDEM-2)."""

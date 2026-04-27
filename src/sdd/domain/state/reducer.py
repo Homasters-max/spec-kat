@@ -42,6 +42,8 @@ class FrozenPhaseSnapshot:
     invariants_status: str    # "UNKNOWN" | "PASS" | "FAIL"
     tests_status:      str    # "UNKNOWN" | "PASS" | "FAIL"
     plan_hash:         str = ""   # BC-31-2: updated by PlanAmended; set by PhaseInitialized
+    logical_type:      str | None = None  # BC-41-E: opaque; interpreted only by PhaseOrder
+    anchor_phase_id:   int | None = None  # BC-41-E: opaque; interpreted only by PhaseOrder
 
 
 # ---------------------------------------------------------------------------
@@ -156,22 +158,8 @@ class EventReducer:
     All public methods are pure functions of their arguments.
     """
 
-    # Known L1 types intentionally without a handler (not unknown — I-ST-10).
-    _KNOWN_NO_HANDLER: frozenset[str] = frozenset({
-        "StateDerivationCompleted",
-        "DecisionRecorded", "SpecApproved", "SDDEventRejected",
-        "ExecutionWrapperAccepted", "ExecutionWrapperRejected",
-        "TestRunCompleted", "TaskRetryScheduled", "TaskFailed",
-        "NormViolated", "TaskStartGuardRejected",
-        # Hook events registered for C-1 compliance (T-611); written as L2/L3 meta events.
-        "ToolUseStarted", "ToolUseCompleted", "HookError",
-        # Phase 15 — ErrorEvent L2 observability; reducer ignores (I-ERROR-L2-1)
-        "ErrorOccurred",
-        # Phase 28 — Write Kernel guard rejection sentinel; no reducer logic (I-EL-6)
-        "EventInvalidated",
-    })
-
     # Minimal event schema registry: required payload fields per handled event type.
+    # Declared first — _HANDLER_EVENTS and _KNOWN_NO_HANDLER are derived from this. (I-EREG-1)
     _EVENT_SCHEMA: ClassVar[dict[str, frozenset[str]]] = {
         "PhaseInitialized":  frozenset({"phase_id", "tasks_total", "plan_version", "actor", "timestamp"}),
         "TaskImplemented":   frozenset({"task_id", "phase_id"}),
@@ -190,12 +178,11 @@ class EventReducer:
         "PlanAmended":            frozenset({"phase_id", "new_plan_hash", "reason", "actor"}),
     }
 
-    # Completeness identity (I-ST-10): every V1_L1_EVENT_TYPE must be classified.
-    # Verified at class definition time so any gap is caught at import.
-    assert _KNOWN_NO_HANDLER | frozenset(_EVENT_SCHEMA.keys()) == V1_L1_EVENT_TYPES, (
-        "I-ST-10 violation: not all V1_L1_EVENT_TYPES are classified in EventReducer. "
-        f"Missing: {V1_L1_EVENT_TYPES - (_KNOWN_NO_HANDLER | frozenset(_EVENT_SCHEMA.keys()))}"
-    )
+    # I-EREG-1 (Spec_v39 BC-39-2): _KNOWN_NO_HANDLER is derived, not a static literal.
+    # Adding a new no-handler event type: update only events.py (V1_L1_EVENT_TYPES).
+    # reducer.py does NOT need to change. Verified by test_event_registry_consistency.py.
+    _HANDLER_EVENTS: ClassVar[frozenset[str]] = frozenset(_EVENT_SCHEMA)
+    _KNOWN_NO_HANDLER: frozenset[str] = V1_L1_EVENT_TYPES - _HANDLER_EVENTS
 
     def _pre_filter(
         self,
@@ -331,6 +318,8 @@ class EventReducer:
                 tests_status = "UNKNOWN"
                 # I-PHASE-SNAPSHOT-3: unconditional overwrite (re-activation resets snapshot)
                 raw_plan_hash = event.get("plan_hash", "")
+                raw_logical_type = event.get("logical_type")
+                raw_anchor_phase_id = event.get("anchor_phase_id")
                 if isinstance(raw_phase_id, int):
                     phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
                         phase_id=raw_phase_id,
@@ -344,6 +333,8 @@ class EventReducer:
                         invariants_status="UNKNOWN",
                         tests_status="UNKNOWN",
                         plan_hash=str(raw_plan_hash) if isinstance(raw_plan_hash, str) else "",
+                        logical_type=str(raw_logical_type) if isinstance(raw_logical_type, str) else None,
+                        anchor_phase_id=int(raw_anchor_phase_id) if isinstance(raw_anchor_phase_id, int) else None,
                     )
             elif event_type == "TaskImplemented":
                 task_id = event.get("task_id")
@@ -368,6 +359,8 @@ class EventReducer:
                             invariants_status=snap.invariants_status,
                             tests_status=snap.tests_status,
                             plan_hash=snap.plan_hash,
+                            logical_type=snap.logical_type,
+                            anchor_phase_id=snap.anchor_phase_id,
                         )
             elif event_type == "TaskValidated":
                 result = event.get("result", "")
@@ -390,6 +383,8 @@ class EventReducer:
                             invariants_status=result,
                             tests_status=result,
                             plan_hash=snap.plan_hash,
+                            logical_type=snap.logical_type,
+                            anchor_phase_id=snap.anchor_phase_id,
                         )
             elif event_type == "PhaseActivated":
                 # I-REDUCER-2: accumulator updated, not base state mutated (Q1)
@@ -416,6 +411,8 @@ class EventReducer:
                         invariants_status=snap.invariants_status,
                         tests_status=snap.tests_status,
                         plan_hash=snap.plan_hash,
+                        logical_type=snap.logical_type,
+                        anchor_phase_id=snap.anchor_phase_id,
                     )
             elif event_type == "PhaseContextSwitched":
                 # BC-PC-1, I-PHASE-LIFECYCLE-1: restore snapshot for to_phase;
@@ -501,6 +498,8 @@ class EventReducer:
                         invariants_status=snap.invariants_status,
                         tests_status=snap.tests_status,
                         plan_hash=str(new_plan_hash) if isinstance(new_plan_hash, str) else "",
+                        logical_type=snap.logical_type,
+                        anchor_phase_id=snap.anchor_phase_id,
                     )
             elif event_type == "TaskSetDefined":
                 # I-PHASE-ORDER-1: A-19 soft ordering guard — flat state only for current phase.
@@ -531,6 +530,8 @@ class EventReducer:
                             invariants_status=snap.invariants_status,
                             tests_status=snap.tests_status,
                             plan_hash=snap.plan_hash,
+                            logical_type=snap.logical_type,
+                            anchor_phase_id=snap.anchor_phase_id,
                         )
 
         state = SDDState(

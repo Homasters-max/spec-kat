@@ -22,6 +22,31 @@ FORBIDDEN: direct reads of `.sdd/specs/`, `.sdd/plans/`, `.sdd/tasks/`.
 
 ---
 
+## Logical Context Evaluation (I-AGENT-PLAN-1)
+
+Before writing `Plan_vN.md`, LLM MUST evaluate the logical type of the new phase:
+
+| Question | `logical_type` | anchor |
+|----------|----------------|--------|
+| This phase fixes a bug/error in existing phase M | `patch` | `anchor_phase: M` |
+| This phase fills a gap missed before phase M | `backfill` | `anchor_phase: M` |
+| Standard new phase | `none` | (omit anchor_phase) |
+
+Write `## Logical Context` in `Plan_vN.md`:
+
+```markdown
+## Logical Context
+type: patch
+anchor_phase: 32
+rationale: "Fixes BC-32-2 error found in phase 34."
+```
+
+If `type: none` — write section with `rationale: "standard phase"` (no `anchor_phase`).
+
+**I-AGENT-PLAN-1:** Every `Plan_vN.md` MUST include `## Logical Context` section (even if type=none). Missing section = protocol violation.
+
+---
+
 ## Output
 
 ```
@@ -111,3 +136,16 @@ LLM suggests: `DECOMPOSE Phase N`
 
 > Phase activation (`sdd activate-phase N --executed-by llm`) is performed automatically by LLM
 > at the end of the DECOMPOSE session (I-SESSION-AUTO-1), not here.
+
+---
+
+## Phase State Interpretation (I-AGENT-STATE-1)
+
+`sdd show-state` exposes two distinct fields after BC-41-C:
+
+| Field | Meaning |
+|-------|---------|
+| `phase.context` | Navigation context — the phase LLM/human switched to |
+| `phase.latest_completed` | Max phase_id with status COMPLETE |
+
+**I-AGENT-STATE-1:** If `phase.context ≠ phase.latest_completed`, LLM MUST explicitly name both values. Never represent `phase.context` alone as "the current active phase". Output: "Контекст = фаза N (навигация), последняя завершённая = фаза M."

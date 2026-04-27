@@ -52,3 +52,20 @@ Depends on:           T-001, T-002
 
 <!-- Granularity: 10–30 tasks per phase (TG-2). Regroup if exceeded (TG-3). -->
 <!-- Every task must be independently implementable and independently testable (TG-1). -->
+
+---
+
+### Event-Addition Rule (I-EREG-SCOPE-1)
+
+Если Task добавляет новый event type:
+
+THEN Outputs MUST include:
+  - src/sdd/core/events.py              (V1_L1_EVENT_TYPES — всегда)
+  - src/sdd/domain/state/reducer.py    (ТОЛЬКО если тип имеет handler:
+                                        _EVENT_SCHEMA + _fold())
+
+DoD MUST include:
+  - test_i_st_10_all_event_types_classified PASS
+  - test_i_ereg_1_known_no_handler_is_derived PASS
+
+NOTE: reducer.py НЕ нужен в Outputs для no-handler событий (Spec_v39).

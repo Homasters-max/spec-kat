@@ -65,8 +65,11 @@ norms:
       - validate_task
       - check_dod
       - sync_state
+      - rebuild_state
       - record_decision
       - declare_session
+      - sync_invariants
+      - refresh_analytics
     conditions:
       task_status_must_be: TODO
       phase_must_be_active: true
@@ -153,6 +156,17 @@ norms:
       - amend_plan
     sdd_invariant_refs:
       - I-PLAN-IMMUTABLE-AFTER-ACTIVATE
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-INIT-PROJECT
+    description: "Human MAY init_project — PostgreSQL project schema initialization is a human-only setup action (BC-32-1, I-DB-SCHEMA-1)"
+    actor: human
+    applies_to_phases: []
+    allowed_actions:
+      - init_project
+    sdd_invariant_refs:
+      - I-DB-SCHEMA-1
+      - I-DB-1
     enforcement: hard
 
   # ─────────────────────────────────────────────────────────────────────

@@ -356,6 +356,27 @@ def amend_plan_cmd(phase: int, reason: str) -> None:
     sys.exit(0)
 
 
+@cli.command("rebuild-state")
+@click.option("--full", is_flag=True, default=False, help="Full rebuild from seq=0 (I-STATE-REBUILD-1)")
+def rebuild_state_cmd(full: bool) -> None:
+    """Rebuild full projection from seq=0 (I-STATE-REBUILD-1, I-1)."""
+    import types
+    import uuid
+
+    from sdd.commands.registry import REGISTRY, execute_and_project
+
+    _root = _sdd_root()
+    _db = str(_root / "state" / "sdd_events.duckdb")
+
+    command = types.SimpleNamespace(
+        command_id=str(uuid.uuid4()),
+        command_type="RebuildState",
+        payload={"full": full},
+    )
+    execute_and_project(REGISTRY["rebuild-state"], command, db_path=_db)
+    sys.exit(0)
+
+
 def _emit_json_error(error_type: str, message: str, exit_code: int) -> None:
     json.dump({"error_type": error_type, "message": message, "exit_code": exit_code}, sys.stderr)
     sys.stderr.write("\n")

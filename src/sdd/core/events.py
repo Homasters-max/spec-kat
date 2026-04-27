@@ -70,6 +70,8 @@ class PhaseInitializedEvent(DomainEvent):
     timestamp: str
     plan_hash: str = ""
     executed_by: str = ""
+    logical_type: str | None = None
+    anchor_phase_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -234,6 +236,26 @@ class HookErrorEvent(DomainEvent):
     timestamp_ms: int
 
 
+@dataclass(frozen=True)
+class TaskDefined(DomainEvent):
+    """Phase 32: emitted when a task is defined in the DB schema (I-HANDLER-PURE-1)."""
+    EVENT_TYPE: ClassVar[str] = "TaskDefined"
+    task_id:   str
+    phase_id:  int
+    title:     str
+    timestamp: str
+
+
+@dataclass(frozen=True)
+class InvariantRegistered(DomainEvent):
+    """Phase 32: emitted when an invariant is registered in shared.invariants (I-HANDLER-PURE-1)."""
+    EVENT_TYPE: ClassVar[str] = "InvariantRegistered"
+    invariant_id: str
+    phase_id:     int
+    statement:    str
+    timestamp:    str
+
+
 class EventLevel:
     L1 = "L1"  # domain truth — replay forever
     L2 = "L2"  # operational — 90 days
@@ -276,6 +298,9 @@ V1_L1_EVENT_TYPES: frozenset[str] = frozenset({
     "SessionDeclared",
     # Phase 31 — governance events (BC-31-1, BC-31-2)
     "PlanAmended",
+    # Phase 32 — DB schema events (PostgresMigration)
+    "TaskDefined",
+    "InvariantRegistered",
 })
 
 V2_L1_EVENT_TYPES: frozenset[str] = V1_L1_EVENT_TYPES  # must be identical (I-EL-6)

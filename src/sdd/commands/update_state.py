@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
-from sdd.core.errors import DoDNotMet, InvalidState, MissingContext, SDDError
+from sdd.core.errors import DependencyNotMet, DoDNotMet, InvalidState, MissingContext, SDDError
 from sdd.core.events import (
     DomainEvent,
     PhaseCompletedEvent,
@@ -426,6 +426,11 @@ def main(args: list[str] | None = None) -> int:
             if _bootstrap_contains(parsed.task_id):
                 print(json.dumps({"status": "noop", "task_id": parsed.task_id, "reason": "bootstrap_pre_resolved"}))
                 return 0
+            # Guard-lite: check dependencies before Write Kernel (BC-32-6, I-CMD-IDEM-2)
+            from sdd.commands.complete import _check_deps
+            from sdd.domain.guards.context import load_dag as _load_dag
+            _done_ids = frozenset(t.task_id for t in _all_tasks if t.status == "DONE")
+            _check_deps(parsed.task_id, _done_ids, _load_dag(taskset))
             # Route through Write Kernel (I-SPEC-EXEC-1, I-KERNEL-WRITE-1, I-KERNEL-PROJECT-1)
             from sdd.commands.registry import REGISTRY, execute_and_project
             events = execute_and_project(
@@ -483,6 +488,8 @@ def main(args: list[str] | None = None) -> int:
                 taskset_path=taskset,
             )
         return 0
+    except DependencyNotMet:
+        raise  # propagate to cli.py for JSON stderr output (BC-32-6)
     except SDDError:
         return 1
     except Exception:

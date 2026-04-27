@@ -34,6 +34,7 @@ from sdd.core.events import (
     DecisionRecordedEvent,
     DomainEvent,
     EventLevel,
+    InvariantRegistered,
     PhaseCompletedEvent,
     PhaseInitializedEvent,
     PhaseStartedEvent,
@@ -181,6 +182,31 @@ def _lazy_amend_plan_handler() -> type[CommandHandlerBase]:
 def _lazy_amend_plan_guard_factory(cmd: Any) -> list[Any]:
     from sdd.commands.amend_plan import _amend_plan_guard_factory
     return _amend_plan_guard_factory(cmd)
+
+
+def _lazy_init_project_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.init_project import InitProjectHandler
+    return InitProjectHandler
+
+
+def _lazy_rebuild_state_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.rebuild_state import RebuildStateHandler
+    return RebuildStateHandler
+
+
+def _lazy_next_tasks_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.next_tasks import NextTasksHandler
+    return NextTasksHandler
+
+
+def _lazy_sync_invariants_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.sync_invariants import SyncInvariantsHandler
+    return SyncInvariantsHandler
+
+
+def _lazy_analytics_refresh_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.analytics_refresh import AnalyticsRefreshHandler
+    return AnalyticsRefreshHandler
 
 
 REGISTRY: dict[str, CommandSpec] = {
@@ -344,6 +370,73 @@ REGISTRY: dict[str, CommandSpec] = {
         ),
         postconditions=("PlanAmended in EventLog",),
         description="Record plan amendment after post-activation edit (BC-31-2)",
+    ),
+    "init-project": CommandSpec(
+        name="init-project",
+        handler_class=_lazy_init_project_handler(),
+        actor="human",
+        action="init_project",
+        projection=ProjectionType.NONE,    # PostgreSQL DDL; no SDD state change
+        uses_task_id=False,
+        requires_active_phase=False,       # bootstrap command; runs before any phase
+        event_schema=(),                   # ProjectInitializedEvent — imported lazily
+        preconditions=(
+            "payload.name matches [a-z][a-z0-9_]* (I-DB-SCHEMA-1)",
+            "SDD_DATABASE_URL or payload.db_url set (I-DB-1)",
+        ),
+        postconditions=(
+            "shared schema exists",
+            "p_{name} schema exists",
+            "shared.projects has record for name",
+        ),
+        description="Create PostgreSQL project schema and register it (BC-32-0, BC-32-1, I-DB-SCHEMA-1)",
+    ),
+    "rebuild-state": CommandSpec(
+        name="rebuild-state",
+        handler_class=_lazy_rebuild_state_handler(),
+        actor="llm",
+        action="rebuild_state",
+        projection=ProjectionType.FULL,    # full replay from seq=0 (I-STATE-REBUILD-1, I-1)
+        uses_task_id=False,
+        requires_active_phase=False,       # maintenance/recovery command
+        event_schema=(),
+        preconditions=(),
+        postconditions=("State_index.yaml rebuilt from seq=0 (I-STATE-REBUILD-1)",),
+        description="Rebuild full projection from seq=0 via IncrementalReducer (I-STATE-REBUILD-1, I-1)",
+    ),
+    "sync-invariants": CommandSpec(
+        name="sync-invariants",
+        handler_class=_lazy_sync_invariants_handler(),
+        actor="llm",
+        action="sync_invariants",
+        projection=ProjectionType.NONE,    # InvariantRegistered is in _KNOWN_NO_HANDLER; no SDDState change
+        uses_task_id=False,
+        requires_active_phase=False,       # catalog sync; independent of phase lifecycle
+        event_schema=(InvariantRegistered,),
+        preconditions=("norm_catalog.yaml readable",),
+        postconditions=("InvariantRegistered in EventLog for each norm in catalog",),
+        description="Sync norm catalog invariants to EventLog (I-SYNC-INVARIANTS-1)",
+    ),
+    "analytics-refresh": CommandSpec(
+        name="analytics-refresh",
+        handler_class=_lazy_analytics_refresh_handler(),
+        actor="llm",
+        action="refresh_analytics",
+        projection=ProjectionType.NONE,    # PostgreSQL DDL; no SDD state change
+        uses_task_id=False,
+        requires_active_phase=False,       # observability command; independent of phase lifecycle
+        event_schema=(),                   # AnalyticsRefreshedEvent — imported lazily
+        preconditions=(
+            "payload.name matches [a-z][a-z0-9_]* (I-DB-SCHEMA-1)",
+            "SDD_DATABASE_URL or payload.db_url set (I-DB-1)",
+        ),
+        postconditions=(
+            "analytics.all_events FROM references p_{name}",
+            "analytics.all_tasks FROM references p_{name}",
+            "analytics.all_phases FROM references p_{name}",
+            "analytics.all_invariants FROM references p_{name}",
+        ),
+        description="Refresh analytics views for a project schema (BC-32-4, I-DB-SCHEMA-1)",
     ),
 }
 

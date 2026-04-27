@@ -5,6 +5,7 @@ Invariants: I-PHASE-CONTEXT-1, I-PHASE-CONTEXT-2, I-PHASE-CONTEXT-3, I-PHASE-CON
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 import uuid
@@ -64,11 +65,11 @@ def make_switch_phase_guard(phase_id: int) -> Guard:
 # ---------------------------------------------------------------------------
 
 def _switch_phase_guard_factory(cmd: Any) -> list[Guard]:
-    """Guard list for switch-phase: full guard set (I-CMD-GUARD-FACTORY-1, I-CMD-GUARD-FACTORY-4)."""
-    from sdd.domain.guards.phase_guard import make_phase_guard
+    """Guard list for switch-phase: navigation guards only (I-GUARD-NAV-1).
+    make_phase_guard removed: PG-3 (phase.status == ACTIVE) blocks navigation from COMPLETE phases.
+    """
     phase_id = getattr(cmd, "phase_id", 0)
     return [
-        make_phase_guard("switch-phase", None),
         make_switch_phase_guard(phase_id),
         make_norm_guard("human", "switch_phase", None),
     ]
@@ -153,7 +154,8 @@ def main(args: list[str] | None = None) -> int:
         )
         execute_and_project(REGISTRY["switch-phase"], cmd, db_path=db)
         return 0
-    except SDDError:
+    except SDDError as e:
+        print(json.dumps({"error_type": type(e).__name__, "message": str(e)}), file=sys.stderr)
         return 1
     except Exception:
         return 2

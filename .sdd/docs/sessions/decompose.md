@@ -11,8 +11,8 @@
 ## Read Order (strict)
 
 ```
-0. sdd show-state                    ← always first
-1. sdd show-plan --phase N           ← plan content (I-CLI-SSOT-1)
+0. sdd show-state                    ← always first; note phase.context vs phase.latest_completed (I-AGENT-STATE-1)
+1. sdd show-plan --phase N           ← plan content (I-CLI-SSOT-1); extract logical_context section (I-AGENT-DECOMPOSE-1)
    .sdd/templates/TaskSet_template.md ← structural template
 ```
 
@@ -95,9 +95,19 @@ After `TaskSet_vN.md` is written, LLM MUST execute in order:
 # 1. Record session event
 sdd record-session --type DECOMPOSE --phase N
 
-# 2. Activate phase with LLM executor flag
+# 2. Read logical_context from Plan_vN.md (already loaded via sdd show-plan in Read Order)
+#    Extract: logical_context.type and logical_context.anchor_phase
+
+# 3. Activate phase — pass logical metadata if present (I-AGENT-DECOMPOSE-1)
+# If Plan_vN.md logical_context.type != "none" AND logical_context is present:
+sdd activate-phase N --executed-by llm --logical-type <type> --anchor <anchor_phase>
+# If logical_context absent OR type == "none":
 sdd activate-phase N --executed-by llm
 ```
+
+**I-AGENT-DECOMPOSE-1:** `sdd activate-phase` in DECOMPOSE MUST pass `--logical-type` and `--anchor`
+if and only if `Plan_vN.md` contains `logical_context.type` that is not `"none"`. Both flags are
+required together (I-LOGICAL-ANCHOR-2); passing one without the other is a protocol violation.
 
 Then confirm:
 ```bash
@@ -114,4 +124,17 @@ If `activate-phase N --executed-by llm` fails:
 |---|---|---|
 | `StaleStateError` | 6 | RD-2: retry CLI once; if still fails → `sdd report-error --type StaleStateError` |
 | other | any | Load `sessions/recovery.md` → classify → apply matching RP-* |
+
+---
+
+## Phase State Interpretation (I-AGENT-STATE-1)
+
+`sdd show-state` exposes two distinct fields after BC-41-C:
+
+| Field | Meaning |
+|-------|---------|
+| `phase.context` | Navigation context — the phase LLM/human switched to |
+| `phase.latest_completed` | Max phase_id with status COMPLETE |
+
+**I-AGENT-STATE-1:** If `phase.context ≠ phase.latest_completed`, LLM MUST explicitly name both values. Never represent `phase.context` alone as "the current active phase". Output: "Контекст = фаза N (навигация), последняя завершённая = фаза M."
 

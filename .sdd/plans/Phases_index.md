@@ -33,3 +33,6 @@
 | 36 | Graph Navigation (upgrade) | .sdd/specs_draft/Spec_v36_GraphNavigation.md | — | PLANNED |
 | 37 | Temporal Navigation | .sdd/specs_draft/Spec_v37_TemporalNavigation.md | — | PLANNED |
 | 38 | Mutation Governance | .sdd/specs_draft/Spec_v38_MutationGovernance.md | — | PLANNED |
+| 40 | Docker CI Infrastructure for PostgreSQL (archived) | .sdd/specs/Spec_v40_DockerCIInfrastructure.md | .sdd/plans/Plan_v40.md | ARCHIVED — superseded by Phase 42 |
+| 41 | Phase Navigation Guards | .sdd/specs/Spec_v41_PhaseNavigationGuards.md | .sdd/plans/Plan_v41.md | COMPLETE |
+| 42 | Docker CI Infrastructure for PostgreSQL | .sdd/specs/Spec_v40_DockerCIInfrastructure.md | .sdd/plans/Plan_v42.md | PLANNED |
