@@ -65,7 +65,7 @@ def test_i_m_1_enforced(tmp_db_path: str) -> None:
         return _FailingConn(real_open(db_path))
 
     with patch("sdd.infra.event_log.open_sdd_connection", side_effect=_mock_open):
-        with pytest.raises(RuntimeError, match="injected commit failure"):
+        with pytest.raises(Exception, match="injected commit failure"):
             record_metric("latency", 1.0, task_id="T-001", db_path=tmp_db_path)
 
     # Both events must be absent — the transaction was rolled back

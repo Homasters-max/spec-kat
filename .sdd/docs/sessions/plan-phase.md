@@ -106,8 +106,8 @@ Execute in order before ending the session:
 
 ## After Plan is Written
 
-Human reviews Plan_vN.md → activates phase:
-```
-sdd activate-phase N [--tasks T]   ← human-only action
-```
-LLM waits. On activation: `sdd show-state` to confirm new state.
+Human reviews Plan_vN.md. On approval, session ends.
+LLM suggests: `DECOMPOSE Phase N`
+
+> Phase activation (`sdd activate-phase N --executed-by llm`) is performed automatically by LLM
+> at the end of the DECOMPOSE session (I-SESSION-AUTO-1), not here.

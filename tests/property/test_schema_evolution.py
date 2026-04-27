@@ -7,7 +7,7 @@ import tempfile
 import pytest
 from hypothesis import given, settings
 
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 from sdd.infra.projections import get_current_state
 from tests.harness.fixtures import make_minimal_event
 from tests.harness.generators import adversarial_sequence, valid_command_sequence
@@ -16,7 +16,7 @@ from tests.property import execute_sequence, wrap
 
 def _seed_unknown_events(db_path: str, n: int = 5) -> None:
     """Insert n events with unknown types into db_path."""
-    store = EventStore(db_path)
+    store = EventLog(db_path)
     events = [make_minimal_event(f"_unknown_future_v2_{i}") for i in range(n)]
     store.append(events, source="test_evolution", command_id="unk_seed_0000")
 
@@ -68,7 +68,7 @@ def test_future_event_type_safe():
     """Synthetic future V2 event injected mid-log: replay must not crash (I-EVOLUTION-FORWARD-1)."""
     with tempfile.TemporaryDirectory() as d:
         db = os.path.join(d, "db.duckdb")
-        store = EventStore(db)
+        store = EventLog(db)
 
         # Seed some known events
         store.append(

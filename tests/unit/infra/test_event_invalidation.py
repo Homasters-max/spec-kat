@@ -1,4 +1,4 @@
-"""Tests for EventStore replay pre-filter and cache invalidation.
+"""Tests for EventLog replay pre-filter and cache invalidation.
 
 Invariants: I-INVALID-2, I-INVALID-CACHE-1
 Spec: Spec_v28_WriteKernelGuard.md §2 BC-WG-2, §5
@@ -11,7 +11,7 @@ import pytest
 
 from sdd.infra.db import open_sdd_connection
 from sdd.infra.event_log import EventInput, sdd_append_batch
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 
 
 def _insert_event(db_path: str, event_type: str, payload: dict) -> int:
@@ -29,7 +29,7 @@ def _insert_event(db_path: str, event_type: str, payload: dict) -> int:
 
 
 def test_replay_skips_invalidated_seq(tmp_db_path: str) -> None:
-    """I-INVALID-2: EventStore.replay() must exclude events whose seq is invalidated."""
+    """I-INVALID-2: EventLog.replay() must exclude events whose seq is invalidated."""
     # Insert a normal event and capture its seq
     target_seq = _insert_event(tmp_db_path, "TaskImplemented", {"task_id": "T-0001"})
 
@@ -43,7 +43,7 @@ def test_replay_skips_invalidated_seq(tmp_db_path: str) -> None:
         {"target_seq": target_seq, "reason": "test invalidation", "invalidated_by_phase": 28},
     )
 
-    store = EventStore(tmp_db_path)
+    store = EventLog(tmp_db_path)
     result = store.replay()
 
     seqs = {e["seq"] for e in result}
@@ -66,8 +66,8 @@ def test_replay_no_warning_for_invalidated(
         {"target_seq": target_seq, "reason": "test", "invalidated_by_phase": 28},
     )
 
-    store = EventStore(tmp_db_path)
-    with caplog.at_level(logging.DEBUG, logger="sdd.infra.event_store"):
+    store = EventLog(tmp_db_path)
+    with caplog.at_level(logging.DEBUG, logger="sdd.infra.event_log"):
         result = store.replay()
 
     warning_records = [
@@ -96,7 +96,7 @@ def test_cache_invalidated_after_append(tmp_db_path: str) -> None:
         {"target_seq": 999, "reason": "test", "invalidated_by_phase": 28},
     )
 
-    store = EventStore(tmp_db_path)
+    store = EventLog(tmp_db_path)
 
     # Populate the cache
     seqs = store._get_invalidated_seqs()

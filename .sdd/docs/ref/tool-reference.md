@@ -52,9 +52,11 @@ RULE: `tool-reference.md` is NOT an authoritative contract.
 - ⚠ `validate --check-dod`: DoD mode — no `task_id`, requires `--phase N`; `sdd check-dod` as standalone does NOT exist
 - `show-state`: FORBIDDEN: `--json`, `--format`
 - `query-events`: the ONLY command with `--json` output flag
-- `activate-phase`: HUMAN-ONLY gate — LLM MUST NOT invoke
+- `activate-phase`: HUMAN-ONLY gate — LLM MUST NOT invoke EXCEPT in DECOMPOSE
+  auto-action with `--executed-by llm` (I-SESSION-AUTO-1). In all other contexts,
+  LLM invocation is forbidden (NORM-ACTOR-001).
 - ⚠ `activate-phase --tasks`: [DEPRECATED] — `--tasks` flag is deprecated; prefer explicit TaskSet placement via `sdd path taskset`
-- ⚠ `activate-phase --executed-by`: distinguishes `actor` (who is authorized to run the command, always `human`) from `executed_by` (the concrete identity of the human operator, e.g. `katyrev`); used for audit attribution in SessionDeclared / PhaseInitialized events
+- ⚠ `activate-phase --executed-by`: distinguishes `actor` (who is authorized to run the command, always `human`) from `executed_by` (the concrete identity of the executor: human username (e.g. `katyrev`) or `llm` in DECOMPOSE auto-action); used for audit attribution in SessionDeclared / PhaseInitialized events
 - ⚠ `record-session --type T --phase N`: LLM MUST call this at session start to emit `SessionDeclared`; satisfies I-SESSION-DECLARED-1 (session type declared) and I-SESSION-ACTOR-1 (actor logged)
 
 **Canonical usage with path resolution:**

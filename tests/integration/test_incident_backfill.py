@@ -18,7 +18,7 @@ from sdd.commands.invalidate_event import (
 )
 from sdd.domain.state.reducer import reduce
 from sdd.infra.db import open_sdd_connection
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 
 
 def _sql_insert(db_path: str, event_type: str, payload: dict, level: str = "L1") -> int:
@@ -62,7 +62,7 @@ def test_incident_backfill_no_warnings(
 
     # 2. Pre-condition: without invalidation the reducer warns for each unknown type
     with caplog.at_level(logging.WARNING, logger="root"):
-        reduce(EventStore(tmp_db_path).replay())
+        reduce(EventLog(tmp_db_path).replay())
     pre_warnings = [
         r for r in caplog.records
         if r.levelno >= logging.WARNING and "unknown event_type" in r.getMessage()
@@ -103,7 +103,7 @@ def test_incident_backfill_no_warnings(
 
     # 5. I-INVALID-2: after backfill, replay + reduce must produce no WARNING
     with caplog.at_level(logging.WARNING, logger="root"):
-        replayed_after = EventStore(tmp_db_path).replay()
+        replayed_after = EventLog(tmp_db_path).replay()
         reduce(replayed_after)
 
     post_warnings = [

@@ -134,6 +134,27 @@ norms:
       - I-INVALID-4
     enforcement: hard
 
+  - norm_id: NORM-ACTOR-APPROVE-SPEC
+    description: "Human MAY approve_spec (ApproveSpecCommand) — spec approval is a human-only supervision gate (NORM-GATE-001)"
+    actor: human
+    applies_to_phases: []
+    allowed_actions:
+      - approve_spec
+    sdd_invariant_refs:
+      - I-SDD-9
+      - I-SDD-G1
+    enforcement: hard
+
+  - norm_id: NORM-ACTOR-AMEND-PLAN
+    description: "Human MAY amend_plan — plan amendment is a human-only action after phase activation (BC-31-2, I-PLAN-IMMUTABLE-AFTER-ACTIVATE)"
+    actor: human
+    applies_to_phases: []
+    allowed_actions:
+      - amend_plan
+    sdd_invariant_refs:
+      - I-PLAN-IMMUTABLE-AFTER-ACTIVATE
+    enforcement: hard
+
   # ─────────────────────────────────────────────────────────────────────
   # SCOPE CONTROL NORMS  (map to Runtime v3 §14-15, I-SDD-19..20)
   # ─────────────────────────────────────────────────────────────────────

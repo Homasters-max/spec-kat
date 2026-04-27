@@ -89,7 +89,7 @@ class TestAcceptanceReuse:
 
         with (
             patch("sdd.commands.validate_invariants.ValidateInvariantsHandler") as mock_h,
-            patch("sdd.infra.event_store.EventStore"),
+            patch("sdd.infra.event_log.EventLog"),
             patch("sdd.commands.validate_invariants._run_acceptance_check", side_effect=_fake_accept),
             patch("sdd.commands.validate_invariants.load_config") as mock_cfg,
         ):

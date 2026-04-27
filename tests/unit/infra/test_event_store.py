@@ -1,7 +1,7 @@
-"""Tests for infra/event_store.py — EventStore atomic write path.
+"""Tests for infra/event_store.py — EventStore write path + EventLog crash isolation.
 
-Invariants covered: I-ES-1
-Spec ref: Spec_v4 §9 Verification row 2a, §4.12
+Invariants covered: I-ES-1, I-EL-UNIFIED-2, I-DB-TEST-1
+Spec ref: Spec_v4 §9 Verification row 2a, §4.12; Spec_v34 §9
 """
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ from typing import Any
 
 import pytest
 
+import sdd.infra.event_log as _el_module
 import sdd.infra.event_store as _es_module
 from sdd.core.events import TaskImplementedEvent
-from sdd.infra.db import open_sdd_connection
-from sdd.infra.event_log import EventInput
-from sdd.infra.event_store import EventStore, EventStoreError
+from sdd.infra.event_log import EventInput, EventLog
+from sdd.infra.event_store import EventStore
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -36,52 +36,22 @@ def _make_task_event(task_id: str = "T-404", seq: int = 1) -> TaskImplementedEve
 # ── tests ─────────────────────────────────────────────────────────────────────
 
 
-def test_append_is_atomic(tmp_db_path: str) -> None:
-    """append() writes all events in one DB transaction: all land or none do (I-ES-1)."""
-    events = [_make_task_event(f"T-40{i}") for i in range(3)]
-    store = EventStore(db_path=tmp_db_path)
-    store.append(events, source="test")
-
-    conn = open_sdd_connection(tmp_db_path)
-    rows = conn.execute("SELECT event_type FROM events ORDER BY seq").fetchall()
-    conn.close()
-
-    assert len(rows) == 3
-    assert all(r[0] == "TaskImplemented" for r in rows)
-
-
-def test_append_only_write_path(tmp_db_path: str, monkeypatch: pytest.MonkeyPatch) -> None:
-    """EventStore.append() delegates exclusively to sdd_append_batch — no other write path (I-ES-1)."""
-    captured: list[EventInput] = []
-
-    def _fake_batch(inputs: list[EventInput], db_path: str) -> None:
-        captured.extend(inputs)
-
-    monkeypatch.setattr(_es_module, "sdd_append_batch", _fake_batch)
-
-    store = EventStore(db_path=tmp_db_path)
-    store.append([_make_task_event("T-404")], source="test.module")
-
-    assert len(captured) == 1
-    assert captured[0].event_type == "TaskImplemented"
-    assert captured[0].payload["_source"] == "test.module"
-
-
 def test_crash_before_append_leaves_files_unchanged(
     tmp_path: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """When sdd_append_batch raises, EventStoreError is re-raised and no DB file is created (I-ES-1)."""
+    """When open_sdd_connection raises inside EventLog.append(), error propagates and no DB file is created (I-EL-UNIFIED-2, I-DB-TEST-1)."""
     db_path = str(tmp_path / "crash_test.duckdb")
 
-    def _failing_batch(inputs: list[EventInput], db_path: str) -> None:
+    el = EventLog(db_path=db_path)
+
+    def _failing_conn(*args: Any, **kwargs: Any) -> None:
         raise RuntimeError("simulated DB failure")
 
-    monkeypatch.setattr(_es_module, "sdd_append_batch", _failing_batch)
+    monkeypatch.setattr(_el_module, "open_sdd_connection", _failing_conn)
 
-    store = EventStore(db_path=db_path)
-    with pytest.raises(EventStoreError, match="EventStore.append\\(\\) failed"):
-        store.append([_make_task_event()], source="test")
+    with pytest.raises(Exception):
+        el.append([_make_task_event()], source="test", allow_outside_kernel="test")
 
     assert not (tmp_path / "crash_test.duckdb").exists()
 

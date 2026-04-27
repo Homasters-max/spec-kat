@@ -152,7 +152,7 @@ Do NOT retry activate-phase without following RD-2.
 
 ### BC-30-5: dev-cycle-map.md — закрыть открытые вопросы
 
-**Файл:** `.sdd/docs/dev-cycle-map.md`
+**Файл:** `.sdd/specs_draft/dev-cycle-map.md`
 
 Закрыть следующие открытые вопросы из §5 и §6:
 
@@ -301,7 +301,7 @@ recovery.md → RD-2". Строка `RP-STALE` отсутствует.
 - `.sdd/docs/ref/tool-reference.md` существует
 - `.sdd/docs/sessions/decompose.md` существует
 - `.sdd/docs/sessions/plan-phase.md` существует
-- `.sdd/docs/dev-cycle-map.md` существует
+- `.sdd/specs_draft/dev-cycle-map.md` существует
 
 **Post:**
 - Все 6 файлов обновлены согласно BC-30-1..6
@@ -361,9 +361,9 @@ recovery.md → RD-2". Строка `RP-STALE` отсутствует.
 | 5 | `grep "On activation.*show-state" plan-phase.md` → пусто | BC-30-3 |
 | 6 | `grep "StaleStateError" decompose.md` → содержит "RD-2" | BC-30-4 |
 | 7 | `grep "RP-STALE" decompose.md` → пусто | BC-30-4 |
-| 8 | `grep "open choice" dev-cycle-map.md` → пусто | BC-30-5 |
-| 9 | `grep "I-PLAN-IMMUTABLE-AFTER-ACTIVATE" dev-cycle-map.md` → непусто | BC-30-5 |
-| 10 | `grep "I-SESSION-PHASE-NULL-1" dev-cycle-map.md` → непусто | BC-30-5 |
+| 8 | `grep "open choice" .sdd/specs_draft/dev-cycle-map.md` → пусто | BC-30-5 |
+| 9 | `grep "I-PLAN-IMMUTABLE-AFTER-ACTIVATE" .sdd/specs_draft/dev-cycle-map.md` → непусто | BC-30-5 |
+| 10 | `grep "I-SESSION-PHASE-NULL-1" .sdd/specs_draft/dev-cycle-map.md` → непусто | BC-30-5 |
 | 11 | `grep "Declared (not enforced)" CLAUDE.md` → непусто | BC-30-6 |
 | 12 | `grep "I-PLAN-IMMUTABLE-AFTER-ACTIVATE" CLAUDE.md` → непусто | BC-30-6 |
 | 13 | `grep "I-SESSION-PHASE-NULL-1" CLAUDE.md` → непусто | BC-30-6 |

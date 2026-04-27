@@ -41,6 +41,7 @@ class FrozenPhaseSnapshot:
     tasks_version:     int
     invariants_status: str    # "UNKNOWN" | "PASS" | "FAIL"
     tests_status:      str    # "UNKNOWN" | "PASS" | "FAIL"
+    plan_hash:         str = ""   # BC-31-2: updated by PlanAmended; set by PhaseInitialized
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +186,8 @@ class EventReducer:
         "PhaseContextSwitched":   frozenset({"from_phase", "to_phase", "actor", "timestamp"}),
         # Phase 29 — SessionDeclared: audit-only; logging.debug only, no state mutation (I-SESSION-DECLARED-1)
         "SessionDeclared":        frozenset({"session_type", "task_id", "phase_id", "plan_hash", "timestamp"}),
+        # Phase 31 — PlanAmended: updates plan_hash in phases_snapshots[phase_id] (BC-31-2, T-3108)
+        "PlanAmended":            frozenset({"phase_id", "new_plan_hash", "reason", "actor"}),
     }
 
     # Completeness identity (I-ST-10): every V1_L1_EVENT_TYPE must be classified.
@@ -327,6 +330,7 @@ class EventReducer:
                 invariants_status = "UNKNOWN"
                 tests_status = "UNKNOWN"
                 # I-PHASE-SNAPSHOT-3: unconditional overwrite (re-activation resets snapshot)
+                raw_plan_hash = event.get("plan_hash", "")
                 if isinstance(raw_phase_id, int):
                     phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
                         phase_id=raw_phase_id,
@@ -339,6 +343,7 @@ class EventReducer:
                         tasks_version=tasks_version,
                         invariants_status="UNKNOWN",
                         tests_status="UNKNOWN",
+                        plan_hash=str(raw_plan_hash) if isinstance(raw_plan_hash, str) else "",
                     )
             elif event_type == "TaskImplemented":
                 task_id = event.get("task_id")
@@ -362,6 +367,7 @@ class EventReducer:
                             tasks_version=snap.tasks_version,
                             invariants_status=snap.invariants_status,
                             tests_status=snap.tests_status,
+                            plan_hash=snap.plan_hash,
                         )
             elif event_type == "TaskValidated":
                 result = event.get("result", "")
@@ -383,6 +389,7 @@ class EventReducer:
                             tasks_version=snap.tasks_version,
                             invariants_status=result,
                             tests_status=result,
+                            plan_hash=snap.plan_hash,
                         )
             elif event_type == "PhaseActivated":
                 # I-REDUCER-2: accumulator updated, not base state mutated (Q1)
@@ -408,6 +415,7 @@ class EventReducer:
                         tasks_version=snap.tasks_version,
                         invariants_status=snap.invariants_status,
                         tests_status=snap.tests_status,
+                        plan_hash=snap.plan_hash,
                     )
             elif event_type == "PhaseContextSwitched":
                 # BC-PC-1, I-PHASE-LIFECYCLE-1: restore snapshot for to_phase;
@@ -468,6 +476,32 @@ class EventReducer:
                     event.get("phase_id"),
                 )
                 # NO state mutations in any branch.
+            elif event_type == "PlanAmended":
+                # BC-31-2: update plan_hash in snapshot for event's phase_id.
+                # I-PHASE-SNAPSHOT-4: absent snapshot → Inconsistency (corrupted log).
+                raw_phase_id = event.get("phase_id")
+                new_plan_hash = event.get("new_plan_hash", "")
+                if isinstance(raw_phase_id, int):
+                    if raw_phase_id not in phases_snapshots_map:
+                        raise Inconsistency(
+                            f"I-PHASE-SNAPSHOT-4: PlanAmended for phase_id={raw_phase_id}"
+                            f" has no snapshot; phases_known={sorted(phases_known_set)}."
+                            f" EventLog may be corrupted or event predates PhaseInitialized."
+                        )
+                    snap = phases_snapshots_map[raw_phase_id]
+                    phases_snapshots_map[raw_phase_id] = FrozenPhaseSnapshot(
+                        phase_id=snap.phase_id,
+                        phase_status=snap.phase_status,
+                        plan_status=snap.plan_status,
+                        tasks_total=snap.tasks_total,
+                        tasks_completed=snap.tasks_completed,
+                        tasks_done_ids=snap.tasks_done_ids,
+                        plan_version=snap.plan_version,
+                        tasks_version=snap.tasks_version,
+                        invariants_status=snap.invariants_status,
+                        tests_status=snap.tests_status,
+                        plan_hash=str(new_plan_hash) if isinstance(new_plan_hash, str) else "",
+                    )
             elif event_type == "TaskSetDefined":
                 # I-PHASE-ORDER-1: A-19 soft ordering guard — flat state only for current phase.
                 # Snapshot is always updated for the target phase_id (fixes tasks_total drift).
@@ -496,6 +530,7 @@ class EventReducer:
                             tasks_version=snap.tasks_version,
                             invariants_status=snap.invariants_status,
                             tests_status=snap.tests_status,
+                            plan_hash=snap.plan_hash,
                         )
 
         state = SDDState(

@@ -12,7 +12,7 @@ import pytest
 
 from sdd.core.events import DomainEvent, EventLevel
 from sdd.domain.state.reducer import SDDState
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 from sdd.infra.projections import get_current_state
 
 
@@ -71,7 +71,7 @@ def state_builder(db_factory):
     def _build(events: list[DomainEvent]) -> SDDState:
         db_path = db_factory()
         if events:
-            EventStore(db_path).append(events, source="test_seed", allow_outside_kernel="test")
+            EventLog(db_path).append(events, source="test_seed", allow_outside_kernel="test")
         return get_current_state(db_path)
 
     return _build

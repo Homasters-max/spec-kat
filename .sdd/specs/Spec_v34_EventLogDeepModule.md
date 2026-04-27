@@ -101,7 +101,8 @@ class EventLog:
         source: str,
         command_id: str | None = None,
         expected_head: int | None = None,
-        allow_outside_kernel: Literal["bootstrap", "test"] | None = None,
+        allow_outside_kernel: Literal["bootstrap", "test", "metrics"] | None = None,
+        batch_id: str | None = None,
     ) -> None:
         """Atomically append events.
 
@@ -109,9 +110,19 @@ class EventLog:
         идёт через одну транзакцию (проверка MAX(seq) + дедупликация по
         command_id/event_index + INSERT). Без них — простой batch INSERT.
 
+        batch_id: если передан явно — используется как есть. Если None и
+        len(events) > 1 — генерируется автоматически (uuid4). Single-event
+        вызов без явного batch_id пишет batch_id=NULL (совместимо с sdd_append).
+
+        allow_outside_kernel values:
+          "bootstrap" — инициализация БД до запуска kernel
+          "test"      — тестовая инфраструктура (tmp DB)
+          "metrics"   — легитимный внекернельный writer (metrics.py, hooks)
+
         Raises EventLogError on DB failure.
         Raises StaleStateError when expected_head != MAX(seq).
-        Raises KernelContextError outside execute_command for production DB.
+        Raises KernelContextError outside execute_command for production DB
+            when allow_outside_kernel is None.
         Raises ValueError for unrecognized allow_outside_kernel value.
         """
 
@@ -149,7 +160,8 @@ class EventLog:
 # legacy: raw event write — используется hooks/log_tool.py, metrics.py, тестами
 def sdd_append(event_type, payload, db_path, level, event_source, caused_by_meta_seq) -> None: ...
 
-# внутренний batch-путь, публичен для тест-инфраструктуры
+# non-kernel write path: для metrics.py, hooks и тестового засева состояния.
+# MUST NOT be called inside execute_command (I-EL-NON-KERNEL-1).
 def sdd_append_batch(events: list[EventInput], db_path: str) -> None: ...
 
 @contextmanager
@@ -178,7 +190,9 @@ def canonical_json(data: dict[str, Any]) -> str:
 | I-EL-LEGACY-1 | `sdd_append()` MUST remain as a module-level function in `event_log.py`, marked with `# legacy: raw event write` comment. Its signature MUST NOT change. | 34 |
 | I-EL-DEEP-1 | `exists_command`, `exists_semantic`, `get_error_count` MUST be instance methods of `EventLog`. Module-level versions of these functions MUST NOT exist after Phase 34. | 34 |
 | I-EL-CANON-1 | `canonical_json()` MUST reside in `core/json_utils.py`. It MUST NOT exist in `infra/event_log.py` after Phase 34. | 34 |
-| I-KERNEL-WRITE-1 (updated) | `EventLog.append` exclusively inside `execute_command` in `registry.py`. (Replaces prior form referencing `EventStore.append`.) | 34 |
+| I-KERNEL-WRITE-1 (updated) | `EventLog.append` exclusively inside `execute_command` in `registry.py`, unless `allow_outside_kernel ∈ {"bootstrap", "test", "metrics"}`. (Replaces prior form referencing `EventStore.append`.) | 34 |
+| I-EL-BATCH-ID-1 | `EventLog.append(events)` where `len(events) > 1` and `batch_id=None` MUST auto-generate a UUID4 `batch_id` and stamp it on all events in the call. Single-event calls with `batch_id=None` MUST write `batch_id=NULL` (preserves `sdd_append` parity). | 34 |
+| I-EL-NON-KERNEL-1 | `sdd_append_batch()` MUST NOT be called inside `execute_command`. It is the designated non-kernel write path (metrics, hooks, bootstrap). Calling it within kernel context MUST raise `KernelContextError`. | 34 |
 
 ### Preserved Invariants (referenced)
 
@@ -313,13 +327,29 @@ def canonical_json(data: dict[str, Any]) -> str:
 - `property/test_performance.py`
 - `unit/commands/test_command_idempotency.py`
 - `unit/commands/test_validate_acceptance.py`
-- `unit/infra/test_event_store.py` (переименовать в `test_event_log_class.py`)
+- `unit/infra/test_event_store.py` — см. таблицу миграции ниже
 - `unit/infra/test_write_kernel_guard.py`
 - `unit/infra/test_event_invalidation.py`
 - `fuzz/test_adversarial.py`
 
+**`test_event_store.py` — миграция по тестам:**
+
+| Тест | Действие | Целевой инвариант |
+|------|----------|-------------------|
+| `test_append_is_atomic` | Мигрировать в `test_event_log_class.py` через `EventLog.append()` | I-EL-UNIFIED-2 |
+| `test_append_only_write_path` | **Удалить** — делегирование EventStore→sdd_append_batch исчезает вместе с EventStore | _(н/п)_ |
+| `test_crash_before_append_leaves_files_unchanged` | Переписать: monkeypatch → инжекция сбоя через невалидный `db_path` или mock connection | I-EL-UNIFIED-2 |
+
+**Non-kernel callers — `metrics.py`:**
+
+`infra/metrics.py` является легитимным внекернельным writer'ом. После Phase 34 использует
+`EventLog.append(..., allow_outside_kernel="metrics")`. Атомарная запись
+`TaskCompleted + MetricRecorded` сохраняется; `batch_id` передаётся явно (или
+генерируется автоматически, I-EL-BATCH-ID-1).
+
 **Специальный случай:**
 - `tests/regression/test_kernel_contract.py:35` — хардкодит путь `"src/sdd/infra/event_store.py"`; обновить на проверку отсутствия файла (I-EL-UNIFIED-1).
+- `tests/regression/test_kernel_contract.py:78` — перечисляет `sdd_append_batch` в frozen surface; сохранить (функция остаётся публичной).
 
 ### `canonical_json` — callers
 
@@ -343,6 +373,10 @@ def canonical_json(data: dict[str, Any]) -> str:
 | 10 | `test_sdd_append_legacy_preserved` | I-EL-LEGACY-1 |
 | 11 | `test_kernel_write_guard_via_event_log` | I-KERNEL-WRITE-1 (updated) |
 | 12 | `test_write_kernel_full_chain_event_log` | I-2, I-3, I-HANDLER-PURE-1 |
+| 13 | `test_event_log_append_batch_id_multi` | I-EL-BATCH-ID-1: multi-event append без явного batch_id → все строки получают одинаковый UUID |
+| 14 | `test_event_log_append_batch_id_single_null` | I-EL-BATCH-ID-1: single-event append без batch_id → batch_id=NULL в DB |
+| 15 | `test_sdd_append_batch_raises_inside_kernel` | I-EL-NON-KERNEL-1: вызов sdd_append_batch внутри execute_command → KernelContextError |
+| 16 | `test_metrics_non_kernel_write` | I-KERNEL-WRITE-1 (updated): record_metric с allow_outside_kernel="metrics" записывает события без KernelContextError |
 
 ---
 

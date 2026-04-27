@@ -14,28 +14,36 @@
 # (deterministic: all tasks done + invariants PASS + tests PASS).
 
 phase:
-  current: 33
-  status: COMPLETE
+  current: 31
+  status: ACTIVE
 plan:
-  version: 33
-  status: COMPLETE
+  version: 31
+  status: ACTIVE
 tasks:
-  version: 33
-  total: 6
-  completed: 6
+  version: 31
+  total: 14
+  completed: 14
   done_ids:
-  - T-3301
-  - T-3302
-  - T-3303
-  - T-3304
-  - T-3305
-  - T-3306
+  - T-3101
+  - T-3102
+  - T-3103
+  - T-3104
+  - T-3105
+  - T-3106
+  - T-3107
+  - T-3108
+  - T-3109
+  - T-3110
+  - T-3111
+  - T-3112
+  - T-3113
+  - T-3114
 invariants:
-  status: PASS
+  status: UNKNOWN
 tests:
-  status: PASS
+  status: UNKNOWN
 meta:
-  last_updated: '2026-04-26T17:50:42Z'
+  last_updated: '2026-04-27T16:22:14Z'
   schema_version: 1
   snapshot_event_id: null
   reducer_version: 2
@@ -51,7 +59,10 @@ phases_known:
 - 27
 - 28
 - 29
+- 30
+- 31
 - 33
+- 34
 phases_snapshots:
 - phase_id: 15
   phase_status: COMPLETE
@@ -284,6 +295,49 @@ phases_snapshots:
   tasks_version: 29
   invariants_status: PASS
   tests_status: PASS
+- phase_id: 30
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 9
+  tasks_completed: 9
+  tasks_done_ids:
+  - T-3001
+  - T-3002
+  - T-3003
+  - T-3004
+  - T-3005
+  - T-3006
+  - T-3007
+  - T-3008
+  - T-3009
+  plan_version: 30
+  tasks_version: 30
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 31
+  phase_status: ACTIVE
+  plan_status: ACTIVE
+  tasks_total: 14
+  tasks_completed: 14
+  tasks_done_ids:
+  - T-3101
+  - T-3102
+  - T-3103
+  - T-3104
+  - T-3105
+  - T-3106
+  - T-3107
+  - T-3108
+  - T-3109
+  - T-3110
+  - T-3111
+  - T-3112
+  - T-3113
+  - T-3114
+  plan_version: 31
+  tasks_version: 31
+  invariants_status: UNKNOWN
+  tests_status: UNKNOWN
 - phase_id: 33
   phase_status: COMPLETE
   plan_status: COMPLETE
@@ -300,5 +354,30 @@ phases_snapshots:
   tasks_version: 33
   invariants_status: PASS
   tests_status: PASS
+- phase_id: 34
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 15
+  tasks_completed: 15
+  tasks_done_ids:
+  - T-3401
+  - T-3402
+  - T-3403
+  - T-3404
+  - T-3405
+  - T-3406
+  - T-3407
+  - T-3408
+  - T-3409
+  - T-3410
+  - T-3411
+  - T-3412
+  - T-3413
+  - T-3414
+  - T-3415
+  plan_version: 34
+  tasks_version: 34
+  invariants_status: PASS
+  tests_status: PASS
 
-# state_hash: c77a9c18ffb604b491228e643fd2034a136373ecdfce9bd50f67783472375e0b
+# state_hash: 1fe56510799b1766359d19e8bed6b8410b867ed18a843fa8b977f05bdd2f4c95

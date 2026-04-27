@@ -7,7 +7,7 @@ G4 scenarios: concurrent writes, stale head, duplicates, schema corrupt.
 
 Note: execute_command uses a NormGuard that validates actor='any' against the live norm
 catalog (strict=True, no catalog entry for actor='any'). Therefore adversarial write
-scenarios are exercised directly through EventStore; replay/rollback are used for
+scenarios are exercised directly through EventLog; replay/rollback are used for
 state-consistency assertions (I-VR-HARNESS-1 is validated in test_harness.py).
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import threading
 from hypothesis import given, settings
 
 from sdd.commands.registry import CommandSpec
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 from sdd.infra.projections import get_current_state
 from tests.harness.api import replay, rollback
 from tests.harness.fixtures import db_factory  # noqa: F401 — pytest fixture
@@ -33,7 +33,7 @@ def _events(n: int = 3, event_type: str = "_vr_test") -> list:
 def _seed(db: str, n: int = 3) -> list:
     """Seed *db* with n minimal events; return the event list."""
     evs = _events(n)
-    EventStore(db).append(evs, source="runtime")
+    EventLog(db).append(evs, source="runtime")
     return evs
 
 
@@ -51,7 +51,7 @@ def test_concurrent_writes_stable(db_factory):  # noqa: F811
 
     def _write() -> None:
         try:
-            EventStore(db).append(_events(2), source="runtime")
+            EventLog(db).append(_events(2), source="runtime")
         except Exception:
             pass  # transient write conflict is acceptable; state integrity is the invariant
 
@@ -71,7 +71,7 @@ def test_concurrent_writes_state_reconstructable(db_factory):  # noqa: F811
 
     def _write() -> None:
         try:
-            EventStore(db).append(_events(1), source="runtime")
+            EventLog(db).append(_events(1), source="runtime")
         except Exception:
             pass  # write-write conflict on schema init is acceptable
 
@@ -156,8 +156,8 @@ def test_duplicate_event_ids_idempotent(db_factory):  # noqa: F811
     db = db_factory()
     events = _events(3)
 
-    EventStore(db).append(events, source="runtime")
-    EventStore(db).append(events, source="runtime")  # same event_ids → silently skipped
+    EventLog(db).append(events, source="runtime")
+    EventLog(db).append(events, source="runtime")  # same event_ids → silently skipped
 
     state = get_current_state(db)
     assert state is not None
@@ -169,10 +169,10 @@ def test_duplicate_append_preserves_state(db_factory):  # noqa: F811
     db_twice = db_factory()
     events = _events(3)
 
-    EventStore(db_once).append(events, source="runtime")
+    EventLog(db_once).append(events, source="runtime")
 
-    EventStore(db_twice).append(events, source="runtime")
-    EventStore(db_twice).append(events, source="runtime")
+    EventLog(db_twice).append(events, source="runtime")
+    EventLog(db_twice).append(events, source="runtime")
 
     state_once = get_current_state(db_once)
     state_twice = get_current_state(db_twice)
@@ -183,7 +183,7 @@ def test_oversized_append_stable(db_factory):  # noqa: F811
     """Appending a large batch of events completes without error (I-VR-STABLE-7)."""
     db = db_factory()
     large_batch = _events(50)
-    EventStore(db).append(large_batch, source="runtime")
+    EventLog(db).append(large_batch, source="runtime")
 
     state = get_current_state(db)
     assert state is not None
@@ -192,7 +192,7 @@ def test_oversized_append_stable(db_factory):  # noqa: F811
 def test_empty_append_stable(db_factory):  # noqa: F811
     """Appending an empty list is a no-op; state remains valid (I-VR-STABLE-7)."""
     db = db_factory()
-    EventStore(db).append([], source="runtime")
+    EventLog(db).append([], source="runtime")
 
     state = get_current_state(db)
     assert state is not None
@@ -209,7 +209,7 @@ def test_schema_corrupt_unknown_events_stable(db_factory):  # noqa: F811
     corrupt_events = [
         make_minimal_event("_corrupt_unknown_type", event_source="runtime") for _ in range(5)
     ]
-    EventStore(db).append(corrupt_events, source="runtime")
+    EventLog(db).append(corrupt_events, source="runtime")
 
     state = get_current_state(db)
     assert state is not None
@@ -223,7 +223,7 @@ def test_schema_corrupt_mixed_with_valid_events_stable(db_factory):  # noqa: F81
     corrupt_events = [
         make_minimal_event("_schema_corrupt_type", event_source="runtime") for _ in range(4)
     ]
-    EventStore(db).append(corrupt_events, source="runtime")
+    EventLog(db).append(corrupt_events, source="runtime")
 
     state = get_current_state(db)
     assert state is not None
@@ -238,7 +238,7 @@ def test_schema_corrupt_replay_invariant(db_factory):  # noqa: F811
     corrupt_events = [
         make_minimal_event(f"_corrupt_{i}", event_source="runtime") for i in range(10)
     ]
-    EventStore(db).append(corrupt_events, source="runtime")
+    EventLog(db).append(corrupt_events, source="runtime")
 
     state = replay(corrupt_events, db)
     assert state is not None

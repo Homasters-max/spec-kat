@@ -5,6 +5,7 @@ Invariants: I-CMD-1, I-CMD-6, I-CMD-13, I-ES-2, I-M-1-CHECK, I-CHAIN-1, I-ACCEPT
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -113,7 +114,7 @@ class ValidateInvariantsHandler(CommandHandlerBase):
     """Run build.commands from project_profile.yaml as subprocesses.
 
     Emits TestRunCompletedEvent (L1) + MetricRecorded(quality.*) (L2) per command.
-    Pure emitter — does NOT call EventStore; caller dispatches (I-ES-2).
+    Pure emitter — does NOT call EventLog; caller dispatches (I-ES-2).
     Individual subprocess failures do not abort the loop (I-CMD-6).
     Timeout raises subprocess.TimeoutExpired — propagates via error_event_boundary.
     """
@@ -227,6 +228,42 @@ def check_im1_invariant(db_path: str, phase_id: int) -> InvariantCheckResult:
     if summary.im1_violations:
         return InvariantCheckResult(status="FAIL", failing_task_ids=summary.im1_violations)
     return InvariantCheckResult(status="PASS", failing_task_ids=())
+
+
+# ---------------------------------------------------------------------------
+# I-SDD-HASH: spec content hash invariant check (T-3110)
+# ---------------------------------------------------------------------------
+
+def _check_i_sdd_hash(db_path: str, phase_id: int, cwd: str) -> str:
+    """Return PASS | FAIL | SKIP for I-SDD-HASH invariant.
+
+    SKIP  — no SpecApproved event found for phase_id (spec never approved).
+    PASS  — sha256(spec_path)[:16] matches spec_hash stored in SpecApproved.
+    FAIL  — hashes diverge (spec file modified after approval) or file missing.
+    Deterministic: same db_path + phase_id + cwd → same result (I-PROJ-CONST-1).
+    """
+    querier = EventLogQuerier(db_path)
+    records = querier.query(QueryFilters(phase_id=phase_id, event_type="SpecApproved"))
+    if not records:
+        return "SKIP"
+
+    # Most recent SpecApproved wins (records ordered ASC by seq)
+    payload = json.loads(records[-1].payload)
+    spec_hash_stored: str = payload.get("spec_hash", "")
+    spec_path_rel: str = payload.get("spec_path", "")
+
+    if not spec_path_rel or not spec_hash_stored:
+        return "SKIP"
+
+    full_path = os.path.join(cwd, spec_path_rel)
+    try:
+        with open(full_path, "rb") as fh:
+            content = fh.read()
+    except OSError:
+        return "FAIL"
+
+    computed = hashlib.sha256(content).hexdigest()[:16]
+    return "PASS" if computed == spec_hash_stored else "FAIL"
 
 
 # ---------------------------------------------------------------------------
@@ -422,6 +459,14 @@ def main(args: list[str] | None = None) -> int:
         config = load_config(config_path)
         return _run_full_src_check(parsed.check, config, parsed.cwd)
 
+    # --check I-SDD-HASH: spec content hash verification (T-3110)
+    if parsed.check == "I-SDD-HASH":
+        if parsed.phase is None:
+            parser.error("--phase is required for --check I-SDD-HASH")
+        result = _check_i_sdd_hash(db_path, parsed.phase, parsed.cwd)
+        print(json.dumps({"check": "I-SDD-HASH", "phase_id": parsed.phase, "result": result}))
+        return 0 if result != "FAIL" else 1
+
     # Default mode: --phase is required
     if parsed.phase is None:
         parser.error("--phase is required")
@@ -434,7 +479,7 @@ def main(args: list[str] | None = None) -> int:
             task_outputs = _read_task_outputs(taskset_full, parsed.task)
 
     try:
-        from sdd.infra.event_store import EventStore
+        from sdd.infra.event_log import EventLog
         cmd = ValidateInvariantsCommand(
             command_id=str(uuid.uuid4()),
             command_type="ValidateInvariants",
@@ -451,7 +496,7 @@ def main(args: list[str] | None = None) -> int:
         with kernel_context("execute_command"):
             events = ValidateInvariantsHandler(db_path).handle(cmd)
             if events:
-                EventStore(db_path).append(events, source=__name__)
+                EventLog(db_path).append(events, source=__name__)
 
         # Acceptance check (I-ACCEPT-1): only when --task given and acceptance field present
         if parsed.task:

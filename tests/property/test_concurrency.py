@@ -9,7 +9,7 @@ from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
 from sdd.core.errors import StaleStateError
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 from tests.harness.fixtures import make_minimal_event
 from tests.harness.generators import valid_command_sequence
 from tests.property import execute_sequence, wrap
@@ -17,7 +17,7 @@ from tests.property import execute_sequence, wrap
 
 def _seed_and_get_head(db_path: str) -> int:
     """Append one event and return the resulting head seq."""
-    store = EventStore(db_path)
+    store = EventLog(db_path)
     store.append([make_minimal_event("_seed")], source="test_seed")
     head = store.max_seq()
     assert head is not None
@@ -29,7 +29,7 @@ def test_stale_head_raises_once(n_seed):
     """Second writer using stale head_seq gets StaleStateError (I-VR-STABLE-4)."""
     with tempfile.TemporaryDirectory() as d:
         db = os.path.join(d, "db.duckdb")
-        store = EventStore(db)
+        store = EventLog(db)
 
         # Seed n_seed events to establish a non-None head
         for i in range(n_seed):
@@ -50,7 +50,7 @@ def test_only_one_stale_error_total():
     """P-8 acceptance: exactly one StaleStateError in the two-writer scenario."""
     with tempfile.TemporaryDirectory() as d:
         db = os.path.join(d, "db.duckdb")
-        store = EventStore(db)
+        store = EventLog(db)
         store.append([make_minimal_event("_seed")], source="test", command_id="seed_0000")
 
         head = store.max_seq()
@@ -81,7 +81,7 @@ def test_stale_head_property(cmds):
         db = os.path.join(d, "db.duckdb")
         execute_sequence(wrapped, db)
 
-        store = EventStore(db)
+        store = EventLog(db)
         head_after = store.max_seq()
         if head_after is None:
             return  # empty DB — optimistic lock not active for None head

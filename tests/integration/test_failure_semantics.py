@@ -12,7 +12,7 @@ from sdd.core.errors import GuardViolationError, SDDError, StaleStateError
 from sdd.core.types import Command
 from sdd.domain.state.reducer import reduce
 from sdd.infra.event_log import sdd_append, sdd_replay
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 
 # Import harness fixtures so pytest auto-discovers them (I-VR-HARNESS-4).
 from tests.harness.api import execute_sequence
@@ -63,7 +63,7 @@ def test_stale_state_error_deterministic(db_factory, event_factory) -> None:  # 
     """test 2: StaleStateError raised twice encodes identical expected + current seq (I-FAIL-DETERMINISTIC-1).
 
     Seeds one event via sdd_append to establish a known head seq, then calls
-    EventStore.append twice with a deliberately wrong expected_head.  Both calls
+    EventLog.append twice with a deliberately wrong expected_head.  Both calls
     must raise StaleStateError with an identical message that includes both the
     expected and the actual current seq values.
 
@@ -74,11 +74,11 @@ def test_stale_state_error_deterministic(db_factory, event_factory) -> None:  # 
 
     # Establish a known head by seeding one event via sdd_append (valid event_source).
     sdd_append("_seed_T1716", {}, db_path=db, level="L2", event_source="runtime")
-    head = EventStore(db).max_seq()
+    head = EventLog(db).max_seq()
     assert head is not None, "head seq must be set after seeding"
 
     wrong_head = 999
-    store = EventStore(db)
+    store = EventLog(db)
     errors: list[tuple[str, str]] = []
     for i in range(2):
         try:

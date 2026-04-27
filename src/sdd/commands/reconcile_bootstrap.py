@@ -4,7 +4,7 @@ Reads bootstrap_manifest.json, emits TaskImplemented + TaskValidated(PASS) event
 for each unreconciled entry, marks them reconciled, then rebuilds State projection.
 
 I-BOOTSTRAP-1: EventLog consistency restored here, not in bootstrap-complete.
-               Direct EventStore.append is authorized (maintenance path exception).
+               Direct EventLog.append is authorized (maintenance path exception).
 I-RECONCILE-1: reconcile-bootstrap MUST be idempotent.
 I-RECONCILE-2: reconcile-bootstrap MUST only run when PhaseContextSwitch is stable.
 
@@ -37,7 +37,7 @@ def main(args: list[str] | None = None) -> int:
         args = sys.argv[1:]
 
     from sdd.infra.bootstrap_manifest import list_unreconciled, mark_reconciled
-    from sdd.infra.event_store import EventStore
+    from sdd.infra.event_log import EventLog
     from sdd.infra.paths import event_store_file, state_file, taskset_file
     from sdd.commands.registry import ProjectionType, project_all
 
@@ -48,7 +48,7 @@ def main(args: list[str] | None = None) -> int:
         return 0
 
     db_path = str(event_store_file())
-    store = EventStore(db_path)
+    store = EventLog(db_path)
 
     reconciled_ids: list[str] = []
     last_task_id: str | None = None
@@ -85,7 +85,7 @@ def main(args: list[str] | None = None) -> int:
                 phase_id=phase,
             ),
         ]
-        # I-BOOTSTRAP-1: authorized direct EventStore write (maintenance path)
+        # I-BOOTSTRAP-1: authorized direct EventLog write (maintenance path)
         store.append(events, source="runtime", allow_outside_kernel="bootstrap")
         mark_reconciled(task_id)
         reconciled_ids.append(task_id)

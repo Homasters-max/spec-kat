@@ -308,6 +308,54 @@ def record_session(session_type: str, phase: int | None, task_id: str | None, pl
     sys.exit(0)
 
 
+@cli.command("approve-spec")
+@click.option("--phase", type=int, required=True, help="Phase number")
+def approve_spec_cmd(phase: int) -> None:
+    """Approve a spec draft — records SpecApproved event (BC-31-1)."""
+    import types
+    import uuid
+
+    from sdd.commands.registry import REGISTRY, execute_and_project
+
+    _root = _sdd_root()
+    _db = str(_root / "state" / "sdd_events.duckdb")
+
+    command = types.SimpleNamespace(
+        command_id=str(uuid.uuid4()),
+        command_type="ApproveSpec",
+        payload={"phase_id": phase},
+        phase_id=phase,
+        actor="human",
+    )
+    execute_and_project(REGISTRY["approve-spec"], command, db_path=_db)
+    sys.exit(0)
+
+
+@cli.command("amend-plan")
+@click.option("--phase", type=int, required=True, help="Phase number")
+@click.option("--reason", required=True, help="Reason for plan amendment")
+def amend_plan_cmd(phase: int, reason: str) -> None:
+    """Record plan amendment after post-activation edit (BC-31-2)."""
+    import types
+    import uuid
+
+    from sdd.commands.registry import REGISTRY, execute_and_project
+
+    _root = _sdd_root()
+    _db = str(_root / "state" / "sdd_events.duckdb")
+
+    command = types.SimpleNamespace(
+        command_id=str(uuid.uuid4()),
+        command_type="AmendPlan",
+        payload={"phase_id": phase},
+        phase_id=phase,
+        reason=reason,
+        actor="human",
+    )
+    execute_and_project(REGISTRY["amend-plan"], command, db_path=_db)
+    sys.exit(0)
+
+
 def _emit_json_error(error_type: str, message: str, exit_code: int) -> None:
     json.dump({"error_type": error_type, "message": message, "exit_code": exit_code}, sys.stderr)
     sys.stderr.write("\n")

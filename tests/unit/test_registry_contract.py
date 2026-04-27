@@ -24,6 +24,7 @@ _EXPECTED_REGISTRY_KEYS: frozenset[str] = frozenset({
     "switch-phase",
     "invalidate-event",
     "record-session",
+    "approve-spec",
 })
 
 _READ_ONLY_COMMANDS: frozenset[str] = frozenset({
@@ -383,4 +384,44 @@ def test_replay_path_no_direct_reduce_bypass() -> None:
     assert violations == [], (
         "I-REPLAY-PATH-1: direct reduce(sdd_replay(...)) bypass in production paths:\n"
         + "\n".join(violations)
+    )
+
+
+# ---------------------------------------------------------------------------
+# I-CMD-ACTION-1: every REGISTRY action declared in norm catalog
+# ---------------------------------------------------------------------------
+
+def test_registry_action_strings_are_unique() -> None:
+    """All CommandSpec.action values in REGISTRY are unique (I-CMD-ACTION-1).
+
+    Duplicate action strings would make norm catalog authorization ambiguous —
+    two commands sharing one action string are indistinguishable to NormGuard.
+    """
+    from sdd.commands.registry import REGISTRY
+
+    actions = [spec.action for spec in REGISTRY.values()]
+    duplicates = {a for a in actions if actions.count(a) > 1}
+    assert not duplicates, (
+        f"I-CMD-ACTION-1: duplicate action strings in REGISTRY: {sorted(duplicates)}"
+    )
+
+
+def test_registry_actions_covered_by_norm_catalog() -> None:
+    """Every CommandSpec.action in REGISTRY must appear in norm_catalog.yaml (I-CMD-ACTION-1).
+
+    Catches the failure mode where a new command is added to REGISTRY but the
+    corresponding action is not declared in norm_catalog.yaml — which causes
+    validate_registry_actions() to panic at CLI startup.
+    """
+    from sdd.commands.registry import REGISTRY
+    from sdd.domain.norms.catalog import load_catalog
+    from sdd.infra.paths import norm_catalog_file
+
+    registry_actions = frozenset(s.action for s in REGISTRY.values())
+    catalog = load_catalog(str(norm_catalog_file()))
+    missing = registry_actions - catalog.known_actions
+    assert not missing, (
+        f"I-CMD-ACTION-1: REGISTRY action(s) not declared in norm_catalog.yaml: "
+        f"{sorted(missing)}\n"
+        f"Add an allowed_actions or forbidden_actions entry for each missing action."
     )

@@ -26,7 +26,6 @@ from sdd.core.events import (
 from sdd.core.payloads import _unpack_payload, build_command
 from sdd.domain.state.yaml_state import read_state
 from sdd.domain.tasks.parser import parse_taskset
-from sdd.infra.event_store import EventStore
 from sdd.infra.paths import event_store_file, state_file, taskset_file
 from sdd.infra.projections import sync_projections
 
@@ -143,7 +142,7 @@ class CompleteTaskHandler(CommandHandlerBase):
     """Mark a task DONE: pure handler — returns [TaskImplemented, MetricRecorded] with no I/O.
 
     Caller (execute_and_project via REGISTRY["complete"]) is responsible for
-    EventStore.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
+    EventLog.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
     Idempotent on task.status == "DONE" (I-CMD-2b, §R.11).
     """
 
@@ -211,7 +210,7 @@ class ValidateTaskHandler(CommandHandlerBase):
     """Pure handler: return [TaskValidated, MetricRecorded] with no I/O.
 
     Caller (execute_and_project via REGISTRY["validate"]) is responsible for
-    EventStore.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
+    EventLog.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
     Idempotent on command_id and semantic key (I-CMD-1, I-CMD-2b).
     """
 
@@ -274,7 +273,7 @@ class SyncStateHandler(CommandHandlerBase):
     """Pure handler: returns [StateSynced] with no I/O (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
 
     Superseded by NoOpHandler in REGISTRY["sync-state"]; retained for backward compat.
-    Caller (execute_and_project) is responsible for EventStore.append and projection rebuild.
+    Caller (execute_and_project) is responsible for EventLog.append and projection rebuild.
     """
 
     def handle(self, command: Any) -> list[DomainEvent]:
@@ -316,7 +315,7 @@ class CheckDoDHandler(CommandHandlerBase):
 
     Pure handler: returns [PhaseCompleted, MetricRecorded] with no I/O.
     Caller (execute_and_project via REGISTRY["check-dod"]) is responsible for
-    EventStore.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
+    EventLog.append and projection rebuild (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
     Raises DoDNotMet if any condition fails (I-CMD-5).
     Idempotent on command_id (I-CMD-1).
     """

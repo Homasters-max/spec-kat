@@ -60,7 +60,7 @@ from sdd.domain.guards.task_guard import make_task_guard
 from sdd.domain.norms.catalog import load_catalog
 from sdd.domain.state.reducer import SDDState
 from sdd.domain.tasks.parser import Task, parse_taskset
-from sdd.infra.event_store import EventStore, EventStoreError
+from sdd.infra.event_log import EventLog, EventLogError
 from sdd.infra.paths import (
     audit_log_file,
     event_store_file,
@@ -104,6 +104,10 @@ class CommandSpec:
     description:           str = ""
     idempotent:            bool = True                        # False for navigation cmds (I-CMD-IDEM-1)
     guard_factory: Callable[[Any], list[Any]] | None = field(default=None, hash=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if not self.action or not self.action.strip():
+            raise ValueError(f"CommandSpec {self.name!r}: action must be a non-empty string (I-CMD-ACTION-1)")
 
     def build_guards(self, cmd: Any) -> list[Any]:
         """Return guard list for this command (I-CMD-GUARD-FACTORY-2).
@@ -162,6 +166,21 @@ def _lazy_invalidate_event_handler() -> type[CommandHandlerBase]:
 def _lazy_record_session_handler() -> type[CommandHandlerBase]:
     from sdd.commands.record_session import RecordSessionHandler
     return RecordSessionHandler
+
+
+def _lazy_approve_spec_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.approve_spec import ApproveSpecHandler
+    return ApproveSpecHandler
+
+
+def _lazy_amend_plan_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.amend_plan import AmendPlanHandler
+    return AmendPlanHandler
+
+
+def _lazy_amend_plan_guard_factory(cmd: Any) -> list[Any]:
+    from sdd.commands.amend_plan import _amend_plan_guard_factory
+    return _amend_plan_guard_factory(cmd)
 
 
 REGISTRY: dict[str, CommandSpec] = {
@@ -290,6 +309,41 @@ REGISTRY: dict[str, CommandSpec] = {
         preconditions=("session_type is a valid SDD session type",),
         postconditions=("SessionDeclaredEvent in EventLog",),
         description="Declare session type for audit trail (I-SESSION-DECLARED-1, I-SESSION-VISIBLE-1)",
+    ),
+    "approve-spec": CommandSpec(
+        name="approve-spec",
+        handler_class=_lazy_approve_spec_handler(),
+        actor="human",
+        action="approve_spec",
+        projection=ProjectionType.NONE,    # audit-only; no state change
+        uses_task_id=False,
+        requires_active_phase=False,       # spec approval may occur before phase activation
+        event_schema=(),                   # SpecApproved — imported lazily in approve_spec.py
+        preconditions=(
+            "actor == human",
+            "Spec_vN.md exists in specs_draft/",
+            "Spec_vN.md NOT yet in specs/ (not already approved)",
+        ),
+        postconditions=("SpecApproved in EventLog",),
+        description="Approve a spec draft — records SpecApproved event (BC-31-1)",
+        idempotent=False,                  # each approval is a unique audit fact (I-CMD-IDEM-1, BC-31-1)
+    ),
+    "amend-plan": CommandSpec(
+        name="amend-plan",
+        handler_class=_lazy_amend_plan_handler(),
+        actor="human",
+        action="amend_plan",
+        projection=ProjectionType.NONE,    # audit-only; no state change
+        uses_task_id=False,
+        requires_active_phase=False,       # custom guard enforces ACTIVE/COMPLETE; not PLANNED
+        guard_factory=_lazy_amend_plan_guard_factory,
+        event_schema=(),                   # PlanAmended — imported lazily in amend_plan.py
+        preconditions=(
+            "Plan_vN.md exists in plans/",
+            "phase_status != PLANNED (phase must be activated)",
+        ),
+        postconditions=("PlanAmended in EventLog",),
+        description="Record plan amendment after post-activation edit (BC-31-2)",
     ),
 }
 
@@ -436,7 +490,7 @@ def execute_command(
     taskset_path: str | None = None,
     norm_path: str | None = None,
 ) -> list[DomainEvent]:
-    """Write Kernel: build GuardContext → guard pipeline → handler (pure) → EventStore.append.
+    """Write Kernel: build GuardContext → guard pipeline → handler (pure) → EventLog.append.
 
     Implements Spec_v15 §2 BC-15-REGISTRY steps 0–5 (A-7..A-22).
     """
@@ -450,7 +504,7 @@ def execute_command(
         command_id = compute_command_id(cmd)          # A-7: payload-only, stable across all retries
         context_hash: str = "FAIL:UNKNOWN"            # A-10: overwritten on success or exc type known
         try:
-            head_seq: int | None = EventStore(_db).max_seq()
+            head_seq: int | None = EventLog(_db).max_seq()
         except Exception:
             head_seq = None                            # A-9: trace_id fallback path
         trace_id = compute_trace_id(cmd, head_seq)    # A-9: None-safe; diagnostic per-execution ID
@@ -517,7 +571,7 @@ def execute_command(
                 trace_id=trace_id, context_hash=context_hash, error_code=7,
             )
             try:
-                EventStore(_db).append([error_event], source="kernel_invariant_check")
+                EventLog(_db).append([error_event], source="kernel_invariant_check")
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise KernelInvariantError("I-GUARD-REASON-1: DENY result must populate reason")
@@ -533,7 +587,7 @@ def execute_command(
                 trace_id=trace_id, context_hash=context_hash, error_code=1,
             )
             try:
-                EventStore(_db).append(audit_events + [error_event], source="guards")
+                EventLog(_db).append(audit_events + [error_event], source="guards")
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise GuardViolationError(guard_result.message)
@@ -553,20 +607,20 @@ def execute_command(
                 trace_id=trace_id, context_hash=context_hash, error_code=error_code,
             )
             try:
-                EventStore(_db).append(error_events + [error_event], source="error_boundary")
+                EventLog(_db).append(error_events + [error_event], source="error_boundary")
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise
 
         # Step 5: atomic check+write — A-17 eliminates TOCTOU between max_seq() read and INSERT.
-        # EventStore.append verifies max_seq == head_seq inside a DuckDB transaction before INSERT
+        # EventLog.append verifies max_seq == head_seq inside a DuckDB transaction before INSERT
         # (I-OPTLOCK-1, I-OPTLOCK-ATOMIC-1). StaleStateError raised by append if head has advanced.
         # For idempotent=False (navigation cmds): uuid4() prevents dedup while preserving traceability
         # (I-CMD-IDEM-1). expected_head kept in both cases — optimistic lock is independent of idempotency.
         if handler_events:
             effective_command_id = command_id if spec.idempotent else str(uuid.uuid4())
             try:
-                EventStore(_db).append(
+                EventLog(_db).append(
                     handler_events,
                     source=spec.handler_class.__module__,
                     command_id=effective_command_id,
@@ -581,7 +635,7 @@ def execute_command(
                     trace_id=trace_id, context_hash=context_hash, error_code=6,
                 )
                 try:
-                    EventStore(_db).append([error_event], source="optimistic_lock")
+                    EventLog(_db).append([error_event], source="optimistic_lock")
                 except Exception:
                     _write_error_to_audit_log(error_event)
                 raise
@@ -590,7 +644,7 @@ def execute_command(
                     stage="COMMIT", spec=spec,
                     error_type="CommitError",
                     reason=f"EVENT_COMMIT_FAILED.{type(commit_exc).__name__}",
-                    human_reason="EventStore write failed — database may be locked or corrupted",
+                    human_reason="EventLog write failed — database may be locked or corrupted",
                     violated_invariant=None,
                     trace_id=trace_id, context_hash=context_hash, error_code=4,
                 )
@@ -649,7 +703,7 @@ def execute_and_project(
     except Exception as proj_exc:
         # Events committed successfully; only projection failed.
         try:
-            post_head: int | None = EventStore(_db).max_seq()
+            post_head: int | None = EventLog(_db).max_seq()
         except Exception:
             post_head = None
         trace_id = compute_trace_id(cmd, post_head)

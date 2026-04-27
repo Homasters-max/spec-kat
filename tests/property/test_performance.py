@@ -6,7 +6,7 @@ import statistics
 import tempfile
 import time
 
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 from sdd.infra.projections import get_current_state
 from tests.harness.fixtures import make_minimal_event
 
@@ -15,8 +15,8 @@ _REPS = 5
 
 
 def _seed_events(db_path: str, n: int, batch_size: int = 200) -> None:
-    """Insert n events into db_path using EventStore directly."""
-    store = EventStore(db_path)
+    """Insert n events into db_path using EventLog directly."""
+    store = EventLog(db_path)
     count = 0
     batch_num = 0
     while count < n:

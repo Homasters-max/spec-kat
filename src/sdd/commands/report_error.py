@@ -16,7 +16,7 @@ from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.errors import SDDError
 from sdd.core.events import DomainEvent, ErrorEvent, classify_event_level
 from sdd.core.payloads import _unpack_payload, build_command
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 from sdd.infra.paths import event_store_file
 
 # ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ class ReportErrorHandler(CommandHandlerBase):
             command_id=command.command_id,
         )
 
-        EventStore(self._db_path).append([event], source=__name__)
+        EventLog(self._db_path).append([event], source=__name__)
         return [event]
 
 

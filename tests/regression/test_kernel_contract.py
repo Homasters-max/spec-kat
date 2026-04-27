@@ -22,7 +22,6 @@ FROZEN_MODULES = [
     "sdd.core.types",
     "sdd.core.events",
     "sdd.infra.event_log",
-    "sdd.infra.event_store",
     "sdd.domain.state.reducer",
     "sdd.domain.guards.context",
 ]
@@ -32,7 +31,6 @@ FROZEN_MODULE_FILES = [
     "src/sdd/core/types.py",
     "src/sdd/core/events.py",
     "src/sdd/infra/event_log.py",
-    "src/sdd/infra/event_store.py",
     "src/sdd/domain/state/reducer.py",
     "src/sdd/domain/guards/context.py",
 ]
@@ -79,20 +77,13 @@ FROZEN_SIGNATURES: dict[str, list[tuple[str, str]]] = {
         ("events", "list[EventInput]"),
         ("db_path", "str | None"),
     ],
+    # EventStore.append removed — I-EL-UNIFIED-1: unified into event_log
     "sdd_replay": [
         ("after_seq", "int | None"),
         ("db_path", "str | None"),
         ("level", "str"),
         ("source", "str"),
         ("include_expired", "bool"),
-    ],
-    "EventStore.append": [
-        ("self", ""),
-        ("events", "list[DomainEvent]"),
-        ("source", "str"),
-        ("command_id", "str | None"),
-        ("expected_head", "int | None"),
-        ("allow_outside_kernel", "Literal['bootstrap', 'test'] | None"),
     ],
     "reduce": [
         ("events", "list[dict[str, object]]"),
@@ -153,6 +144,14 @@ def _mypy_available() -> bool:
 # Tests
 # ---------------------------------------------------------------------------
 
+def test_event_store_module_deleted() -> None:
+    """I-EL-UNIFIED-1: event_store.py must not exist — unified into event_log."""
+    path = _PROJECT_ROOT / "src" / "sdd" / "infra" / "event_store.py"
+    assert not path.exists(), (
+        f"I-EL-UNIFIED-1: {path} still exists; delete it to complete unification"
+    )
+
+
 def test_frozen_modules_mypy_strict() -> None:
     """I-REG-ENV-1: run mypy --strict on each frozen module; skip if mypy absent."""
     if not _mypy_available():
@@ -185,7 +184,6 @@ def test_frozen_modules_signatures() -> None:
     from sdd.core.types import Command, CommandHandler
     from sdd.core.events import DomainEvent, classify_event_level
     from sdd.infra.event_log import sdd_append, sdd_append_batch, sdd_replay
-    from sdd.infra.event_store import EventStore
     from sdd.domain.state.reducer import reduce
     from sdd.domain.guards.context import GuardContext, GuardResult
 
@@ -197,7 +195,6 @@ def test_frozen_modules_signatures() -> None:
         "sdd_append": sdd_append,
         "sdd_append_batch": sdd_append_batch,
         "sdd_replay": sdd_replay,
-        "EventStore.append": EventStore.append,
         "reduce": reduce,
         "GuardContext.__init__": GuardContext,
         "GuardResult.__init__": GuardResult,

@@ -18,7 +18,7 @@ from sdd.core.execution_context import (
     current_execution_context,
     kernel_context,
 )
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ def test_assert_in_kernel_pass_inside_execute_command_context() -> None:
     """
     with kernel_context("execute_command"):
         assert current_execution_context() == "execute_command"
-        assert_in_kernel("EventStore.append")
+        assert_in_kernel("EventLog.append")
         assert_in_kernel("rebuild_state")
         assert_in_kernel("get_current_state")
 
@@ -44,14 +44,14 @@ def test_assert_in_kernel_fails_outside_any_context() -> None:
     """assert_in_kernel raises KernelContextError when no kernel_context is active."""
     assert current_execution_context() is None
     with pytest.raises(KernelContextError, match="outside execute_command"):
-        assert_in_kernel("EventStore.append")
+        assert_in_kernel("EventLog.append")
 
 
 def test_assert_in_kernel_fails_in_wrong_context() -> None:
     """assert_in_kernel raises when ctx != "execute_command" (wrong context name)."""
     with kernel_context("project_all"):
         with pytest.raises(KernelContextError, match="outside execute_command"):
-            assert_in_kernel("EventStore.append")
+            assert_in_kernel("EventLog.append")
 
 
 def test_kernel_context_resets_after_exit() -> None:
@@ -62,36 +62,36 @@ def test_kernel_context_resets_after_exit() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 2: EventStore.append outside context → KernelContextError (I-KERNEL-WRITE-1)
+# Test 2: EventLog.append outside context → KernelContextError (I-KERNEL-WRITE-1)
 # ---------------------------------------------------------------------------
 
 
 def test_event_store_append_trap_fires_outside_context(
     tmp_db_path: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """test 2: EventStore.append enforcement trap raises KernelContextError outside context.
+    """test 2: EventLog.append enforcement trap raises KernelContextError outside context.
 
-    Installs the I-KERNEL-WRITE-1 enforcement guard: EventStore.append MUST only
+    Installs the I-KERNEL-WRITE-1 enforcement guard: EventLog.append MUST only
     be called from within execute_command (I-VR-STABLE-5).
 
-    The trap fires before the empty-list short-circuit inside EventStore.append,
+    The trap fires before the empty-list short-circuit inside EventLog.append,
     so no real DB write occurs — only the enforcement check is exercised.
     """
-    _original_append = EventStore.append
+    _original_append = EventLog.append
 
     def _enforced_append(
-        self: EventStore,
+        self: EventLog,
         events: list,
         source: str,
         **kwargs: object,
     ) -> None:
-        assert_in_kernel("EventStore.append")
+        assert_in_kernel("EventLog.append")
         return _original_append(self, events, source, **kwargs)
 
-    monkeypatch.setattr(EventStore, "append", _enforced_append)
+    monkeypatch.setattr(EventLog, "append", _enforced_append)
 
-    store = EventStore(tmp_db_path)
-    with pytest.raises(KernelContextError, match="EventStore.append"):
+    store = EventLog(tmp_db_path)
+    with pytest.raises(KernelContextError, match="EventLog.append"):
         store.append([], "test_source")
 
 
@@ -99,20 +99,20 @@ def test_event_store_append_trap_passes_inside_context(
     tmp_db_path: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """I-KERNEL-WRITE-1 positive path: enforcement guard allows append inside kernel_context."""
-    _original_append = EventStore.append
+    _original_append = EventLog.append
 
     def _enforced_append(
-        self: EventStore,
+        self: EventLog,
         events: list,
         source: str,
         **kwargs: object,
     ) -> None:
-        assert_in_kernel("EventStore.append")
+        assert_in_kernel("EventLog.append")
         return _original_append(self, events, source, **kwargs)
 
-    monkeypatch.setattr(EventStore, "append", _enforced_append)
+    monkeypatch.setattr(EventLog, "append", _enforced_append)
 
-    store = EventStore(tmp_db_path)
+    store = EventLog(tmp_db_path)
     with kernel_context("execute_command"):
         store.append([], "test_source")  # empty list → no-op; assert_in_kernel passes
 
@@ -120,29 +120,29 @@ def test_event_store_append_trap_passes_inside_context(
 def test_handler_pure_violation_caught_by_append_trap(
     tmp_db_path: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """I-HANDLER-PURE-1: handler side-effects (EventStore calls) are caught by the trap.
+    """I-HANDLER-PURE-1: handler side-effects (EventLog calls) are caught by the trap.
 
-    If a handler's handle() method were to call EventStore.append directly, the
+    If a handler's handle() method were to call EventLog.append directly, the
     kernel_context trap would raise KernelContextError because handle() is called
     INSIDE the kernel_context, but any attempt to bypass the kernel and call
-    EventStore.append from outside execute_command is caught.
+    EventLog.append from outside execute_command is caught.
     """
-    _original_append = EventStore.append
+    _original_append = EventLog.append
 
     def _enforced_append(
-        self: EventStore,
+        self: EventLog,
         events: list,
         source: str,
         **kwargs: object,
     ) -> None:
-        assert_in_kernel("EventStore.append")
+        assert_in_kernel("EventLog.append")
         return _original_append(self, events, source, **kwargs)
 
-    monkeypatch.setattr(EventStore, "append", _enforced_append)
+    monkeypatch.setattr(EventLog, "append", _enforced_append)
 
-    store = EventStore(tmp_db_path)
-    # Simulates a handler calling EventStore.append outside kernel_context — forbidden
-    with pytest.raises(KernelContextError, match="EventStore.append"):
+    store = EventLog(tmp_db_path)
+    # Simulates a handler calling EventLog.append outside kernel_context — forbidden
+    with pytest.raises(KernelContextError, match="EventLog.append"):
         store.append([], "handler_side_effect_violation")
 
 

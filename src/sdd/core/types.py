@@ -22,3 +22,16 @@ class Command:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "payload", MappingProxyType(dict(self.payload)))
+
+
+@dataclass(frozen=True)
+class ApproveSpecCommand:
+    phase_id: int
+    actor: str = "human"
+
+
+@dataclass(frozen=True)
+class AmendPlanCommand:
+    phase_id: int
+    reason: str
+    actor: str = "human"

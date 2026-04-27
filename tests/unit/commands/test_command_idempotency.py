@@ -15,12 +15,12 @@ from sdd.commands.registry import REGISTRY
 from sdd.core.errors import StaleStateError
 from sdd.core.events import DomainEvent, EventLevel
 from sdd.infra.db import open_sdd_connection
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 
 
 @dataclasses.dataclass(frozen=True)
 class _TestEvent(DomainEvent):
-    """Minimal concrete DomainEvent for EventStore-level tests."""
+    """Minimal concrete DomainEvent for EventLog-level tests."""
 
 
 def _make_event() -> _TestEvent:
@@ -50,7 +50,7 @@ def test_switch_phase_non_idempotent(tmp_path: pathlib.Path) -> None:
     """Two switch-phase calls (A→B) produce two distinct events in EventLog.
 
     switch-phase has idempotent=False → execute_command passes uuid4() as
-    command_id → EventStore dedup never fires → two PhaseContextSwitched stored.
+    command_id → EventLog dedup never fires → two PhaseContextSwitched stored.
     I-CMD-IDEM-1, I-IDEM-SCHEMA-1.
     """
     assert not REGISTRY["switch-phase"].idempotent, (
@@ -58,7 +58,7 @@ def test_switch_phase_non_idempotent(tmp_path: pathlib.Path) -> None:
     )
 
     db = str(tmp_path / "test_sdd_events.duckdb")
-    store = EventStore(db)
+    store = EventLog(db)
 
     # Simulate two switch-phase calls: each gets a fresh uuid4() command_id
     store.append([_make_event()], source="test", command_id=str(uuid.uuid4()))
@@ -73,7 +73,7 @@ def test_complete_still_idempotent(tmp_path: pathlib.Path) -> None:
     """Two complete calls with identical payload store only one event.
 
     complete has idempotent=True → execute_command passes payload hash as
-    command_id → EventStore dedup fires on second call → one TaskImplemented stored.
+    command_id → EventLog dedup fires on second call → one TaskImplemented stored.
     I-IDEM-SCHEMA-1.
     """
     assert REGISTRY["complete"].idempotent, (
@@ -81,7 +81,7 @@ def test_complete_still_idempotent(tmp_path: pathlib.Path) -> None:
     )
 
     db = str(tmp_path / "test_sdd_events.duckdb")
-    store = EventStore(db)
+    store = EventLog(db)
 
     # Simulate two complete calls with the same payload hash command_id
     stable_command_id = "sha256-payload-hash-complete-T-2703"
@@ -96,11 +96,11 @@ def test_complete_still_idempotent(tmp_path: pathlib.Path) -> None:
 def test_switch_phase_optlock_preserved(tmp_path: pathlib.Path) -> None:
     """Optimistic lock (expected_head) is active even when idempotent=False.
 
-    I-OPTLOCK-1: execute_command always passes expected_head to EventStore.append,
+    I-OPTLOCK-1: execute_command always passes expected_head to EventLog.append,
     regardless of spec.idempotent. StaleStateError raised when head has advanced.
     """
     db = str(tmp_path / "test_sdd_events.duckdb")
-    store = EventStore(db)
+    store = EventLog(db)
 
     # Append first event and capture head
     store.append([_make_event()], source="test", command_id=str(uuid.uuid4()))

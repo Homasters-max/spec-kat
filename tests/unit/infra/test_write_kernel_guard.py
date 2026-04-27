@@ -1,4 +1,4 @@
-"""Write Kernel Guard — EventStore.append() and sdd_append() enforcement tests.
+"""Write Kernel Guard — EventLog.append() and sdd_append() enforcement tests.
 
 Invariants: I-DB-WRITE-2, I-DB-WRITE-3, I-KERNEL-WRITE-1, I-SPEC-EXEC-1
 Spec ref: Spec_v28 §2 BC-WG-3, BC-WG-4, §5 Invariants
@@ -11,25 +11,25 @@ import pytest
 
 from sdd.core.execution_context import KernelContextError, kernel_context
 from sdd.infra.event_log import sdd_append
-from sdd.infra.event_store import EventStore
+from sdd.infra.event_log import EventLog
 from sdd.infra.paths import event_store_file
 from tests.harness.fixtures import make_minimal_event
 
 
-def _prod_store() -> EventStore:
-    """Return an EventStore pointing at the test-isolated 'production' DB path."""
-    return EventStore(str(event_store_file()))
+def _prod_store() -> EventLog:
+    """Return an EventLog pointing at the test-isolated 'production' DB path."""
+    return EventLog(str(event_store_file()))
 
 
 def test_write_kernel_guard_raise_outside_context() -> None:
-    """EventStore.append on production DB outside execute_command raises KernelContextError."""
+    """EventLog.append on production DB outside execute_command raises KernelContextError."""
     store = _prod_store()
-    with pytest.raises(KernelContextError, match="EventStore.append"):
+    with pytest.raises(KernelContextError, match="EventLog.append"):
         store.append([make_minimal_event()], source="test")
 
 
 def test_write_kernel_guard_allow_inside_context() -> None:
-    """EventStore.append on production DB inside kernel_context('execute_command') succeeds.
+    """EventLog.append on production DB inside kernel_context('execute_command') succeeds.
 
     Empty event list is intentional: guard is checked before the empty-list short-circuit,
     so the guard logic is exercised without triggering a real DB write (I-DB-TEST-1).

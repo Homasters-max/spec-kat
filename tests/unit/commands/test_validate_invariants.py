@@ -14,6 +14,7 @@ from sdd.commands.validate_invariants import (
     InvariantCheckResult,
     ValidateInvariantsCommand,
     ValidateInvariantsHandler,
+    _check_i_sdd_hash,
     _run_acceptance_check,
     check_im1_invariant,
 )
@@ -491,3 +492,105 @@ class TestValidationModes:
             # validation_mode intentionally omitted — testing production default
         )
         assert cmd.validation_mode == "task"
+
+
+# ---------------------------------------------------------------------------
+# I-SDD-HASH: _check_i_sdd_hash (T-3110)
+# ---------------------------------------------------------------------------
+
+class TestCheckISddHash:
+    def _make_record(self, payload: dict) -> MagicMock:
+        import json as _json
+        rec = MagicMock()
+        rec.payload = _json.dumps(payload)
+        return rec
+
+    @patch("sdd.commands.validate_invariants.EventLogQuerier")
+    def test_skip_when_no_spec_approved(self, mock_querier_cls):
+        """Returns SKIP when no SpecApproved event exists for phase_id (T-3110)."""
+        mock_querier_cls.return_value.query.return_value = ()
+
+        result = _check_i_sdd_hash(db_path=":memory:", phase_id=31, cwd="/project")
+
+        assert result == "SKIP"
+
+    @patch("sdd.commands.validate_invariants.EventLogQuerier")
+    def test_pass_when_hash_matches(self, mock_querier_cls, tmp_path):
+        """Returns PASS when sha256(spec_path)[:16] matches spec_hash in SpecApproved (T-3110)."""
+        import hashlib as _hashlib
+        spec_file = tmp_path / "Spec_v31.md"
+        spec_file.write_bytes(b"# Spec content")
+        expected_hash = _hashlib.sha256(b"# Spec content").hexdigest()[:16]
+
+        mock_querier_cls.return_value.query.return_value = (
+            self._make_record({
+                "phase_id": 31,
+                "spec_hash": expected_hash,
+                "spec_path": str(spec_file),
+            }),
+        )
+
+        result = _check_i_sdd_hash(db_path=":memory:", phase_id=31, cwd=str(tmp_path))
+
+        assert result == "PASS"
+
+    @patch("sdd.commands.validate_invariants.EventLogQuerier")
+    def test_fail_when_hash_diverges(self, mock_querier_cls, tmp_path):
+        """Returns FAIL when spec file has been modified after approval (T-3110)."""
+        spec_file = tmp_path / "Spec_v31.md"
+        spec_file.write_bytes(b"# Modified content")
+
+        mock_querier_cls.return_value.query.return_value = (
+            self._make_record({
+                "phase_id": 31,
+                "spec_hash": "0000000000000000",  # stale hash
+                "spec_path": str(spec_file),
+            }),
+        )
+
+        result = _check_i_sdd_hash(db_path=":memory:", phase_id=31, cwd=str(tmp_path))
+
+        assert result == "FAIL"
+
+    @patch("sdd.commands.validate_invariants.EventLogQuerier")
+    def test_fail_when_spec_file_missing(self, mock_querier_cls, tmp_path):
+        """Returns FAIL when spec_path in SpecApproved event points to a nonexistent file (T-3110)."""
+        mock_querier_cls.return_value.query.return_value = (
+            self._make_record({
+                "phase_id": 31,
+                "spec_hash": "abcd1234abcd1234",
+                "spec_path": str(tmp_path / "missing_spec.md"),
+            }),
+        )
+
+        result = _check_i_sdd_hash(db_path=":memory:", phase_id=31, cwd=str(tmp_path))
+
+        assert result == "FAIL"
+
+    @patch("sdd.commands.validate_invariants.EventLogQuerier")
+    def test_skip_when_spec_path_empty(self, mock_querier_cls):
+        """Returns SKIP when SpecApproved payload has empty spec_path (T-3110)."""
+        mock_querier_cls.return_value.query.return_value = (
+            self._make_record({"phase_id": 31, "spec_hash": "abc", "spec_path": ""}),
+        )
+
+        result = _check_i_sdd_hash(db_path=":memory:", phase_id=31, cwd="/project")
+
+        assert result == "SKIP"
+
+    @patch("sdd.commands.validate_invariants.EventLogQuerier")
+    def test_uses_most_recent_spec_approved(self, mock_querier_cls, tmp_path):
+        """Uses the last SpecApproved event when multiple exist (most recent wins, T-3110)."""
+        import hashlib as _hashlib
+        spec_file = tmp_path / "Spec_v31.md"
+        spec_file.write_bytes(b"# Latest spec")
+        current_hash = _hashlib.sha256(b"# Latest spec").hexdigest()[:16]
+
+        mock_querier_cls.return_value.query.return_value = (
+            self._make_record({"phase_id": 31, "spec_hash": "stale00000000000", "spec_path": str(spec_file)}),
+            self._make_record({"phase_id": 31, "spec_hash": current_hash, "spec_path": str(spec_file)}),
+        )
+
+        result = _check_i_sdd_hash(db_path=":memory:", phase_id=31, cwd=str(tmp_path))
+
+        assert result == "PASS"

@@ -164,11 +164,47 @@ class PhaseContextSwitchedEvent(DomainEvent):
 @dataclass(frozen=True)
 class SessionDeclaredEvent(DomainEvent):
     EVENT_TYPE: ClassVar[str] = "SessionDeclared"
-    session_type: str   # e.g. "IMPLEMENT", "VALIDATE", "PLAN", etc.
-    task_id: str | None
-    phase_id: int
-    plan_hash: str      # I-SESSION-PLAN-HASH-1
-    timestamp: str
+    event_type: str = "SessionDeclared"
+    event_id: str = ""
+    appended_at: int = 0
+    level: str = "L1"
+    event_source: str = "runtime"
+    caused_by_meta_seq: int | None = None
+    session_type: str = ""  # e.g. "IMPLEMENT", "VALIDATE", "PLAN", etc.
+    task_id: str | None = None
+    phase_id: int | None = None  # I-SESSION-PHASE-NULL-1: None for DRAFT_SPEC (pre-phase sentinel)
+    plan_hash: str = ""     # I-SESSION-PLAN-HASH-1
+    timestamp: str = ""
+
+
+@dataclass(frozen=True)
+class SpecApproved(DomainEvent):
+    """BC-31-1: emitted by sdd approve-spec. Write Kernel moves spec_draft → specs post-append."""
+    event_type: str = "SpecApproved"
+    event_id: str = ""
+    appended_at: int = 0
+    level: str = "L1"
+    event_source: str = "runtime"
+    caused_by_meta_seq: int | None = None
+    phase_id: int = 0
+    spec_hash: str = ""   # sha256(Spec_vN.md)[:16]
+    actor: str = "human"
+    spec_path: str = ""   # relative path in .sdd/specs/
+
+
+@dataclass(frozen=True)
+class PlanAmended(DomainEvent):
+    """BC-31-2: emitted by sdd amend-plan. Records post-activation plan edits."""
+    event_type: str = "PlanAmended"
+    event_id: str = ""
+    appended_at: int = 0
+    level: str = "L1"
+    event_source: str = "runtime"
+    caused_by_meta_seq: int | None = None
+    phase_id: int = 0
+    new_plan_hash: str = ""  # sha256(Plan_vN.md)[:16] after amendment
+    reason: str = ""
+    actor: str = "human"
 
 
 @dataclass(frozen=True)
@@ -238,6 +274,8 @@ V1_L1_EVENT_TYPES: frozenset[str] = frozenset({
     "EventInvalidated",
     # Phase 29 — SessionDeclared: session declaration audit event (I-SESSION-DECLARED-1)
     "SessionDeclared",
+    # Phase 31 — governance events (BC-31-1, BC-31-2)
+    "PlanAmended",
 })
 
 V2_L1_EVENT_TYPES: frozenset[str] = V1_L1_EVENT_TYPES  # must be identical (I-EL-6)

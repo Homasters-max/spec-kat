@@ -1,25 +1,34 @@
 """BC-INFRA event log — sdd_append, sdd_append_batch, sdd_replay, meta_context.
 
-Invariants: I-PK-2, I-PK-3, I-EL-1, I-EL-2, I-EL-7, I-EL-8a, I-EL-9, I-EL-10, I-EL-11, I-EL-12
+Invariants: I-PK-2, I-PK-3, I-EL-1, I-EL-2, I-EL-7, I-EL-8a, I-EL-9, I-EL-10, I-EL-11, I-EL-12,
+            I-EL-NON-KERNEL-1
 """
 from __future__ import annotations
 
-import datetime
 import hashlib
 import json
+import logging
 import time
 import uuid
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from sdd.core import classify_event_level
-from sdd.core.execution_context import KernelContextError, current_execution_context
+from sdd.core.errors import SDDError, StaleStateError
+from sdd.core.events import DomainEvent
+from sdd.core.execution_context import KernelContextError, assert_in_kernel, current_execution_context
 from sdd.infra.db import open_sdd_connection
 from sdd.infra.paths import event_store_file
+
+_log = logging.getLogger(__name__)
+
+class EventLogError(SDDError):
+    """Raised when EventLog.append() cannot write to the EventLog."""
+
 
 _VALID_SOURCES = frozenset({"meta", "runtime"})
 
@@ -62,7 +71,7 @@ def _resolve_caused_by(
     return None
 
 
-def sdd_append(
+def sdd_append(  # legacy: raw event write
     event_type: str,
     payload: dict[str, Any],
     db_path: str | None = None,
@@ -110,7 +119,17 @@ def sdd_append_batch(
     events: list[EventInput],
     db_path: str | None = None,
 ) -> None:
-    """Write all events atomically in a single transaction (I-EL-11)."""
+    """Write all events atomically in a single transaction (I-EL-11).
+
+    I-EL-NON-KERNEL-1: MUST NOT be called inside execute_command.
+    """
+    # I-EL-NON-KERNEL-1: sdd_append_batch is the non-kernel write path (metrics, hooks,
+    # bootstrap). Kernel code must use EventLog.append() instead.
+    if current_execution_context() == "execute_command":
+        raise KernelContextError(
+            "sdd_append_batch MUST NOT be called inside execute_command (I-EL-NON-KERNEL-1)"
+        )
+
     for ev in events:
         _validate_source(ev.event_source)
 
@@ -232,80 +251,280 @@ def meta_context(meta_seq: int) -> Generator[None, None, None]:
         _meta_seq_var.reset(token)
 
 
-def canonical_json(data: dict[str, Any]) -> str:
-    """Stable JSON for payload_hash (I-CMD-2b): sorted keys, no whitespace, ISO8601 UTC, no sci notation."""
+# DomainEvent base fields stored as dedicated DB columns — excluded from payload dict.
+_BASE_FIELDS: frozenset[str] = frozenset({
+    "event_type",
+    "event_id",
+    "appended_at",
+    "level",
+    "event_source",
+    "caused_by_meta_seq",
+})
 
-    def _default(obj: Any) -> Any:
-        if isinstance(obj, datetime.datetime):
-            if obj.tzinfo is None:
-                return obj.strftime("%Y-%m-%dT%H:%M:%SZ")
-            return obj.astimezone(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        raise TypeError(f"Not serializable: {type(obj)!r}")
-
-    return json.dumps(data, sort_keys=True, separators=(",", ":"), default=_default)
-
-
-def exists_command(db_path: str, command_id: str) -> bool:
-    """Return True if any event with payload.command_id == command_id exists (I-CMD-10, I-EL-9)."""
-    conn = open_sdd_connection(db_path, read_only=True)
-    try:
-        row = conn.execute(
-            "SELECT COUNT(*) > 0 FROM events "
-            "WHERE json_extract_string(payload, '$.command_id') = ? AND expired = FALSE",
-            [command_id],
-        ).fetchone()
-        return bool(row[0]) if row else False
-    finally:
-        conn.close()
+_VALID_OUTSIDE_KERNEL: frozenset[str] = frozenset({"bootstrap", "test", "metrics"})
 
 
-def exists_semantic(
-    db_path: str,
-    command_type: str,
-    task_id: str | None,
-    phase_id: int | None,
-    payload_hash: str,
-) -> bool:
-    """Return True if an event matching (command_type, task_id, phase_id, payload_hash) exists (I-CMD-2b, I-CMD-10, I-EL-9)."""
-    conn = open_sdd_connection(db_path, read_only=True)
-    try:
-        parts = [
-            "event_type = ?",
-            "json_extract_string(payload, '$.payload_hash') = ?",
-            "expired = FALSE",
-        ]
-        params: list[Any] = [command_type, payload_hash]
+class EventLog:
+    """Single write path for all domain events (I-EL-UNIFIED-2, I-ES-1).
 
-        if task_id is None:
-            parts.append("json_extract_string(payload, '$.task_id') IS NULL")
+    append() is atomic: all events land in one DuckDB transaction.
+    Locked and unlocked paths share the same transaction-capable implementation
+    (I-EL-UNIFIED-2) — no separate _append_locked() method exists.
+    """
+
+    def __init__(self, db_path: str) -> None:
+        if not db_path:
+            raise ValueError("I-DB-1: db_path must be explicit non-empty str")
+        self._db_path = db_path
+        self._invalidated_cache: frozenset[int] | None = None
+
+    def _get_invalidated_seqs(self) -> frozenset[int]:
+        """Pre-scan EventInvalidated events with per-instance cache (I-INVALID-CACHE-1)."""
+        if self._invalidated_cache is not None:
+            return self._invalidated_cache
+        conn = open_sdd_connection(self._db_path, read_only=True)
+        try:
+            rows = conn.execute(
+                "SELECT payload->>'target_seq' FROM events "
+                "WHERE event_type = 'EventInvalidated'"
+            ).fetchall()
+        finally:
+            conn.close()
+        result = frozenset(int(r[0]) for r in rows if r[0] is not None)
+        self._invalidated_cache = result
+        return result
+
+    def append(
+        self,
+        events: list[DomainEvent],
+        source: str,
+        command_id: str | None = None,
+        expected_head: int | None = None,
+        allow_outside_kernel: Literal["bootstrap", "test", "metrics"] | None = None,
+        batch_id: str | None = None,
+    ) -> None:
+        """Atomically append *events* to the EventLog.
+
+        Locked and unlocked paths share this single transaction-capable implementation
+        (I-EL-UNIFIED-2). When command_id or expected_head are provided, the optimistic
+        lock check and idempotency deduplication run inside the same transaction.
+
+        batch_id: if None and len(events) > 1 → auto-generate UUID4 (I-EL-BATCH-ID-1).
+                  if None and single event → write NULL.
+
+        allow_outside_kernel: "bootstrap", "test", or "metrics" bypass the kernel guard.
+            None (default) enforces I-KERNEL-WRITE-1 for production DB.
+
+        Raises EventLogError on DB failure.
+        Raises StaleStateError when expected_head != MAX(seq).
+        Raises KernelContextError outside execute_command for production DB.
+        Raises ValueError for unrecognized allow_outside_kernel value.
+        """
+        # I-INVALID-CACHE-1: reset per-instance cache on every append
+        self._invalidated_cache = None
+
+        if allow_outside_kernel is not None and allow_outside_kernel not in _VALID_OUTSIDE_KERNEL:
+            raise ValueError(
+                f"Invalid allow_outside_kernel={allow_outside_kernel!r}; "
+                "allowed: 'bootstrap', 'test', 'metrics', None"
+            )
+        # I-KERNEL-WRITE-1: guard production DB writes
+        if allow_outside_kernel is None:
+            if Path(self._db_path).resolve() == event_store_file().resolve():
+                assert_in_kernel("EventLog.append")
+
+        if not events:
+            return
+
+        # I-EL-BATCH-ID-1: auto-generate batch_id for multi-event calls; single → NULL
+        if batch_id is not None:
+            effective_batch_id: str | None = batch_id
+        elif len(events) > 1:
+            effective_batch_id = str(uuid.uuid4())
         else:
-            parts.append("json_extract_string(payload, '$.task_id') = ?")
-            params.append(task_id)
+            effective_batch_id = None
 
-        if phase_id is None:
-            parts.append("json_extract(payload, '$.phase_id') IS NULL")
-        else:
-            parts.append("CAST(json_extract(payload, '$.phase_id') AS INTEGER) = ?")
-            params.append(phase_id)
+        conn = open_sdd_connection(self._db_path)
+        try:
+            conn.begin()
+            timestamp_ms = int(time.time() * 1000)
+            rows_inserted = 0
 
-        sql = "SELECT COUNT(*) > 0 FROM events WHERE " + " AND ".join(parts)
-        row = conn.execute(sql, params).fetchone()
-        return bool(row[0]) if row else False
-    finally:
-        conn.close()
+            # I-OPTLOCK-1, I-OPTLOCK-ATOMIC-1: verify head inside transaction
+            if expected_head is not None:
+                row = conn.execute("SELECT MAX(seq) FROM events").fetchone()
+                current_max: int | None = (
+                    int(row[0]) if (row and row[0] is not None) else None
+                )
+                if current_max != expected_head:
+                    conn.rollback()
+                    raise StaleStateError(
+                        f"I-OPTLOCK-1: EventLog head advanced: "
+                        f"expected={expected_head}, current={current_max}"
+                    )
 
+            for event_index, event in enumerate(events):
+                all_fields = asdict(event)
+                payload: dict[str, Any] = {
+                    k: v for k, v in all_fields.items() if k not in _BASE_FIELDS
+                }
+                payload["_source"] = source
+                if command_id is not None:
+                    payload["command_id"] = command_id
+                    payload["event_index"] = event_index
 
-def get_error_count(db_path: str, command_id: str) -> int:
-    """Return count of ErrorEvent records with payload.command_id == command_id (I-CMD-10, I-EL-9)."""
-    conn = open_sdd_connection(db_path, read_only=True)
-    try:
-        row = conn.execute(
-            "SELECT COUNT(*) FROM events "
-            "WHERE event_type = 'ErrorEvent' "
-            "AND json_extract_string(payload, '$.command_id') = ? "
-            "AND expired = FALSE",
-            [command_id],
-        ).fetchone()
-        return int(row[0]) if row else 0
-    finally:
-        conn.close()
+                # I-IDEM-SCHEMA-1: skip duplicate (command_id, event_index) pairs
+                if command_id is not None:
+                    dup_row = conn.execute(
+                        "SELECT count(*) FROM events "
+                        "WHERE json_extract_string(payload, '$.command_id') = ? "
+                        "AND json_extract_string(payload, '$.event_index') = ?",
+                        [command_id, str(event_index)],
+                    ).fetchone()
+                    if dup_row and dup_row[0] > 0:
+                        continue
+
+                resolved_level = event.level or classify_event_level(event.event_type)
+                payload_str = json.dumps(payload, sort_keys=True)
+                event_id = hashlib.sha256(
+                    (event.event_type + payload_str + str(timestamp_ms)).encode()
+                ).hexdigest()
+                resolved_caused_by = _resolve_caused_by(event.event_source, event.caused_by_meta_seq)
+
+                conn.execute(
+                    """
+                    INSERT INTO events
+                        (seq, event_id, event_type, payload, schema_version,
+                         appended_at, level, event_source, caused_by_meta_seq,
+                         expired, batch_id)
+                    VALUES
+                        (nextval('sdd_event_seq'), ?, ?, ?, 1,
+                         ?, ?, ?, ?, FALSE, ?)
+                    ON CONFLICT (event_id) DO NOTHING
+                    """,
+                    [
+                        event_id, event.event_type, payload_str, timestamp_ms,
+                        resolved_level, event.event_source, resolved_caused_by,
+                        effective_batch_id,
+                    ],
+                )
+                rows_inserted += 1
+
+            conn.commit()
+
+            # I-IDEM-LOG-1: log INFO when all events were duplicates
+            if rows_inserted == 0 and command_id is not None:
+                _log.info(
+                    "EventLog.append: all events already present for command_id=%s "
+                    "(idempotent no-op, I-IDEM-LOG-1)",
+                    command_id,
+                )
+
+        except StaleStateError:
+            raise
+        except Exception as exc:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            raise EventLogError(f"EventLog.append() failed: {exc}") from exc
+        finally:
+            conn.close()
+
+    def replay(
+        self,
+        after_seq: int | None = None,
+        level: str = "L1",
+        source: str = "runtime",
+        include_expired: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Return events ordered by seq ASC, excluding invalidated seqs (I-INVALID-2)."""
+        invalidated = self._get_invalidated_seqs()
+        raw_events = sdd_replay(
+            after_seq=after_seq,
+            db_path=self._db_path,
+            level=level,
+            source=source,
+            include_expired=include_expired,
+        )
+        filtered = []
+        for e in raw_events:
+            if e["seq"] in invalidated:
+                _log.debug("EventLog.replay: skipping invalidated seq=%d", e["seq"])
+                continue
+            filtered.append(e)
+        return filtered
+
+    def max_seq(self) -> int | None:
+        """Return MAX(seq) from the EventLog, or None if empty."""
+        conn = open_sdd_connection(self._db_path, read_only=True)
+        try:
+            row = conn.execute("SELECT MAX(seq) FROM events").fetchone()
+            if row and row[0] is not None:
+                return int(row[0])
+            return None
+        finally:
+            conn.close()
+
+    def exists_command(self, command_id: str) -> bool:
+        """Return True if any non-expired event with payload.command_id exists (I-EL-DEEP-1)."""
+        conn = open_sdd_connection(self._db_path, read_only=True)
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*) > 0 FROM events "
+                "WHERE json_extract_string(payload, '$.command_id') = ? AND expired = FALSE",
+                [command_id],
+            ).fetchone()
+            return bool(row[0]) if row else False
+        finally:
+            conn.close()
+
+    def exists_semantic(
+        self,
+        command_type: str,
+        task_id: str | None,
+        phase_id: int | None,
+        payload_hash: str,
+    ) -> bool:
+        """Return True if matching (command_type, task_id, phase_id, payload_hash) exists (I-EL-DEEP-1)."""
+        conn = open_sdd_connection(self._db_path, read_only=True)
+        try:
+            parts = [
+                "event_type = ?",
+                "json_extract_string(payload, '$.payload_hash') = ?",
+                "expired = FALSE",
+            ]
+            params: list[Any] = [command_type, payload_hash]
+
+            if task_id is None:
+                parts.append("json_extract_string(payload, '$.task_id') IS NULL")
+            else:
+                parts.append("json_extract_string(payload, '$.task_id') = ?")
+                params.append(task_id)
+
+            if phase_id is None:
+                parts.append("json_extract(payload, '$.phase_id') IS NULL")
+            else:
+                parts.append("CAST(json_extract(payload, '$.phase_id') AS INTEGER) = ?")
+                params.append(phase_id)
+
+            sql = "SELECT COUNT(*) > 0 FROM events WHERE " + " AND ".join(parts)
+            row = conn.execute(sql, params).fetchone()
+            return bool(row[0]) if row else False
+        finally:
+            conn.close()
+
+    def get_error_count(self, command_id: str) -> int:
+        """Return count of ErrorEvent records for command_id (I-EL-DEEP-1)."""
+        conn = open_sdd_connection(self._db_path, read_only=True)
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM events "
+                "WHERE event_type = 'ErrorEvent' "
+                "AND json_extract_string(payload, '$.command_id') = ? "
+                "AND expired = FALSE",
+                [command_id],
+            ).fetchone()
+            return int(row[0]) if row else 0
+        finally:
+            conn.close()

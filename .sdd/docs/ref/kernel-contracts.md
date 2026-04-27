@@ -1,6 +1,6 @@
 ---
 source: CLAUDE.md §0.15 + §0.16a + §0.16b
-last_synced: 2026-04-24
+last_synced: 2026-04-26
 update_trigger: when frozen interfaces change or new invariants added to §0.15/§0.16
 ---
 
@@ -17,8 +17,7 @@ Removing/renaming positional args or required params = breaking → requires new
 | `core/types.py` | `Command` dataclass fields; `CommandHandler` Protocol |
 | `core/events.py` | `DomainEvent` base fields; `EventLevel`; `classify_event_level()` |
 | `core/errors.py` | `SDDError` subclass hierarchy: `Inconsistency`, `MissingState`, `InvalidState`, `MissingContext`, `ScopeViolation`, `NormViolation`, `StaleStateError`, `KernelInvariantError`, `ProjectionError` |
-| `infra/event_log.py` | `sdd_append()`, `sdd_append_batch()`, `sdd_replay()` signatures |
-| `infra/event_store.py` | `EventStore.append()` interface |
+| `infra/event_log.py` | `EventLog.append()`, `sdd_append()`, `sdd_append_batch()`, `sdd_replay()` signatures |
 | `domain/state/reducer.py` | `reduce()` signature; I-REDUCER-1 filter contract |
 | `domain/guards/context.py` | `GuardContext`, `GuardResult`, `GuardOutcome` |
 | `domain/guards/pipeline.py` | `run_guard_pipeline(ctx, guards, stop_on_deny)` |
@@ -37,10 +36,10 @@ Removing/renaming positional args or required params = breaking → requires new
 
 | Stage | Operation |
 |-------|-----------|
-| `BUILD_CONTEXT` | `head_seq = EventStore.max_seq()` + `get_current_state()` → SDDState + GuardContext |
+| `BUILD_CONTEXT` | `head_seq = EventLog.max_seq()` + `get_current_state()` → SDDState + GuardContext |
 | `GUARD` | `run_guard_pipeline()` → GuardResult |
 | `EXECUTE` | `handler.handle()` → events (pure, zero I/O) |
-| `COMMIT` | `EventStore.append(expected_head=head_seq)` |
+| `COMMIT` | `EventLog.append(expected_head=head_seq)` |
 | `PROJECT` | `project_all()` → YAML/TaskSet rebuilt (STRICT mode) |
 
 **Key invariants:**
@@ -49,16 +48,16 @@ Removing/renaming positional args or required params = breaking → requires new
 |-----------|-----------|
 | I-2 | All write commands via REGISTRY[name] → execute_and_project |
 | I-3 | All side-effects in Write Kernel only |
-| I-HANDLER-PURE-1 | `handle()` returns events only — no EventStore, no rebuild_state |
-| I-KERNEL-WRITE-1 | `EventStore.append` exclusively inside `execute_command` in `registry.py` |
+| I-HANDLER-PURE-1 | `handle()` returns events only — no EventLog, no rebuild_state |
+| I-KERNEL-WRITE-1 | `EventLog.append` exclusively inside `execute_command` in `registry.py`, unless `allow_outside_kernel ∈ {"bootstrap", "test", "metrics"}` |
 | I-KERNEL-PROJECT-1 | `rebuild_state` exclusively inside `project_all` in `registry.py` |
 | I-GUARD-STATELESS-1 | Guard callables are pure functions — zero I/O, zero state writes |
-| I-OPTLOCK-1 | `execute_command` verifies `EventStore.max_seq() == head_seq` before append |
+| I-OPTLOCK-1 | `execute_command` verifies `EventLog.max_seq() == head_seq` before append |
 | I-IDEM-1 | Idempotent via `command_id = sha256(asdict(payload))[:32]` |
 | I-ERROR-1 | Write Kernel MUST emit ErrorEvent before raising at every failure stage |
 | I-REBUILD-STRICT-1 | Default `RebuildMode = STRICT`; YAML not read during normal rebuild |
 | I-REBUILD-EMERGENCY-2 | `rebuild_state(EMERGENCY)` requires `SDD_EMERGENCY=1` env var |
-| I-READ-ONLY-EXCEPTION-1 | Read-only commands MAY bypass REGISTRY but MUST NOT call EventStore.append, rebuild_state, handler.handle(), or mutate State_index.yaml |
+| I-READ-ONLY-EXCEPTION-1 | Read-only commands MAY bypass REGISTRY but MUST NOT call EventLog.append, rebuild_state, handler.handle(), or mutate State_index.yaml |
 | I-REGISTRY-COMPLETE-1 | Every write command has REGISTRY entry: complete, validate, check-dod, activate-phase, sync-state, record-decision |
 | I-SDDRUN-DEAD-1 | `CommandRunner` MUST NOT exist in `src/sdd/` |
 | I-PIPELINE-HOME-1 | `run_guard_pipeline` in `guards/pipeline.py` only |

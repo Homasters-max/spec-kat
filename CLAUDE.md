@@ -196,6 +196,8 @@ Each ref file carries `update_trigger` header. Update when source section change
 | I-SESSION-ACTOR-1 | `activate-phase` MUST always pass `actor="human"`. `executed_by="llm"` goes into payload field only, not actor field. VALID_ACTORS remains `{"human"}`. |
 | I-SESSION-PI-6 | LLM MUST update Phases_index.md at end of PLAN session. Must validate I-PHASES-INDEX-1 after update. |
 | I-PHASES-INDEX-1 | `phases_known ⊆ Phases_index.ids`. Violation → LLM MUST update Phases_index before proceeding. Phases_index is a derived view, never a truth source (I-1). |
+| I-PLAN-IMMUTABLE-AFTER-ACTIVATE | `Plan_vN.md` MUST NOT be modified after `activate-phase N` has been executed. Any change to the plan file after phase activation constitutes a protocol violation. If a plan update is required, a new phase (N+1) with a revised spec must be initiated. Declared (not enforced) |
+| I-SESSION-PHASE-NULL-1 | `SessionDeclared` events with `session_type = "DRAFT_SPEC"` MUST use `phase_id = 0` as a sentinel value. `phase_id = 0` is reserved exclusively for pre-phase sessions and MUST NOT correspond to any real phase in `phases_known`. Reducer MUST treat `phase_id = 0` in `SessionDeclared` as a no-op (no state mutation). All other session types MUST use a real `phase_id ∈ phases_known`. Declared (not enforced) |
 
 Violation of any invariant → ERROR → STOP → `sdd report-error`.
 

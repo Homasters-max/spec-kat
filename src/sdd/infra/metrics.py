@@ -6,9 +6,27 @@ import statistics
 from dataclasses import dataclass
 from typing import Any
 
-from sdd.infra.event_log import EventInput, sdd_append, sdd_append_batch
+from sdd.core.events import DomainEvent
+from sdd.infra.event_log import EventLog
 
 _TREND_EPSILON: float = 1e-9
+_DUMMY_EVENT_ID: str = ""
+_DUMMY_APPENDED_AT: int = 0
+
+
+@dataclass(frozen=True)
+class _TaskCompletedEv(DomainEvent):
+    task_id: str
+    phase_id: int | None = None
+
+
+@dataclass(frozen=True)
+class _MetricRecordedEv(DomainEvent):
+    metric_id: str
+    value: float | int
+    task_id: str | None = None
+    phase_id: int | None = None
+    context: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -66,39 +84,37 @@ def record_metric(
     Mode (b) — task_id absent:   writes only MetricRecorded.
     MetricRecorded is always level=L2 in both modes.
     """
-    metric_payload: dict[str, Any] = {
-        "metric_id": metric_id,
-        "value": value,
-    }
-    if task_id is not None:
-        metric_payload["task_id"] = task_id
-    if phase_id is not None:
-        metric_payload["phase_id"] = phase_id
-    if context:
-        metric_payload["context"] = context
+    assert db_path is not None, "I-DB-2: caller must resolve db_path before record_metric"
+    el = EventLog(db_path)
+
+    metric_ev = _MetricRecordedEv(
+        event_type="MetricRecorded",
+        event_id=_DUMMY_EVENT_ID,
+        appended_at=_DUMMY_APPENDED_AT,
+        level="L2",
+        event_source="runtime",
+        caused_by_meta_seq=None,
+        metric_id=metric_id,
+        value=value,
+        task_id=task_id,
+        phase_id=phase_id,
+        context=context if context else None,
+    )
 
     if task_id is not None:
-        task_payload: dict[str, Any] = {"task_id": task_id}
-        if phase_id is not None:
-            task_payload["phase_id"] = phase_id
-        sdd_append_batch(
-            [
-                EventInput(event_type="TaskCompleted", payload=task_payload, level="L2"),
-                EventInput(
-                    event_type="MetricRecorded",
-                    payload=metric_payload,
-                    level="L2",
-                ),
-            ],
-            db_path=db_path,
-        )
-    else:
-        sdd_append(
-            "MetricRecorded",
-            metric_payload,
-            db_path=db_path,
+        task_ev = _TaskCompletedEv(
+            event_type="TaskCompleted",
+            event_id=_DUMMY_EVENT_ID,
+            appended_at=_DUMMY_APPENDED_AT,
             level="L2",
+            event_source="runtime",
+            caused_by_meta_seq=None,
+            task_id=task_id,
+            phase_id=phase_id,
         )
+        el.append([task_ev, metric_ev], source="metrics", allow_outside_kernel="metrics")
+    else:
+        el.append([metric_ev], source="metrics", allow_outside_kernel="metrics")
 
 
 # ─── Trend + Anomaly Analysis (BC-METRICS-EXT, §2.2, §4.0b–§4.4) ─────────────

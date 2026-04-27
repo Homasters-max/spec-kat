@@ -104,12 +104,14 @@ Then confirm:
 sdd show-state   ← task count must match TaskSet
 ```
 
----
+### On Failure (SEM-12)
 
-## After TaskSet is Written
+MUST NOT invoke recovery blindly. Read JSON stderr first: check `error_type` and `error_code`.
 
-Human reviews TaskSet_vN.md → activates:
-```
-sdd activate-phase N --tasks T   ← human-only (if not already activated)
-```
-LLM: `sdd show-state` to confirm task count matches.
+If `activate-phase N --executed-by llm` fails:
+
+| `error_type` | `error_code` | Action |
+|---|---|---|
+| `StaleStateError` | 6 | RD-2: retry CLI once; if still fails → `sdd report-error --type StaleStateError` |
+| other | any | Load `sessions/recovery.md` → classify → apply matching RP-* |
+

@@ -7,7 +7,7 @@ from dataclasses import asdict
 
 import pytest
 
-from sdd.core.errors import SDDError
+from sdd.core.errors import Inconsistency, SDDError
 from sdd.core.events import V1_L1_EVENT_TYPES
 from sdd.domain.state.reducer import (
     EMPTY_STATE,
@@ -316,3 +316,76 @@ def test_handler_does_not_mutate_input() -> None:
     assert "T-501" in result.tasks_done_ids
     # Full replay produces same result (I-ST-9)
     assert result == reducer.reduce(events_a + events_b)
+
+
+# ---------------------------------------------------------------------------
+# T-3108: PlanAmended reducer handler (BC-31-2)
+# ---------------------------------------------------------------------------
+
+def _plan_amended(phase_id: int, new_plan_hash: str, **kw: object) -> dict[str, object]:
+    defaults: dict[str, object] = {
+        "phase_id": phase_id,
+        "new_plan_hash": new_plan_hash,
+        "reason": "test amendment",
+        "actor": "human",
+    }
+    defaults.update(kw)
+    return _runtime_l1("PlanAmended", **defaults)
+
+
+def test_plan_amended_updates_snapshot_plan_hash() -> None:
+    """Acceptance criteria T-3108: reducer replay with PlanAmended sets plan_hash in snapshot."""
+    events = [
+        _phase_initialized(phase_id=7, plan_version=7),
+        _plan_amended(phase_id=7, new_plan_hash="abc123def456"),
+    ]
+    state = reduce(events)
+    snap_map = {s.phase_id: s for s in state.phases_snapshots}
+    assert 7 in snap_map
+    assert snap_map[7].plan_hash == "abc123def456"
+
+
+def test_plan_amended_multiple_updates_last_wins() -> None:
+    """Second PlanAmended for same phase overwrites the previous plan_hash."""
+    events = [
+        _phase_initialized(phase_id=7, plan_version=7),
+        _plan_amended(phase_id=7, new_plan_hash="first_hash_000"),
+        _plan_amended(phase_id=7, new_plan_hash="second_hash_111"),
+    ]
+    state = reduce(events)
+    snap_map = {s.phase_id: s for s in state.phases_snapshots}
+    assert snap_map[7].plan_hash == "second_hash_111"
+
+
+def test_plan_amended_absent_snapshot_raises_inconsistency() -> None:
+    """I-PHASE-SNAPSHOT-4: PlanAmended for unknown phase_id → Inconsistency."""
+    events = [
+        _plan_amended(phase_id=99, new_plan_hash="deadbeef"),
+    ]
+    with pytest.raises(Inconsistency):
+        reduce(events)
+
+
+def test_plan_amended_preserves_other_snapshot_fields() -> None:
+    """PlanAmended MUST NOT alter tasks_completed, tasks_done_ids, or phase_status."""
+    events = [
+        _phase_initialized(phase_id=7, plan_version=7, tasks_total=5),
+        _task_implemented("T-701", phase_id=7),
+        _plan_amended(phase_id=7, new_plan_hash="newhash"),
+    ]
+    state = reduce(events)
+    snap_map = {s.phase_id: s for s in state.phases_snapshots}
+    snap = snap_map[7]
+    assert snap.plan_hash == "newhash"
+    assert snap.tasks_completed == 1
+    assert "T-701" in snap.tasks_done_ids
+    assert snap.phase_status == "ACTIVE"
+
+
+def test_plan_amended_replay_is_deterministic() -> None:
+    """Replaying the same PlanAmended sequence twice yields identical state (I-REDUCER-2)."""
+    events = [
+        _phase_initialized(phase_id=7, plan_version=7),
+        _plan_amended(phase_id=7, new_plan_hash="det_hash"),
+    ]
+    assert reduce(events) == reduce(events)

@@ -5,6 +5,43 @@ _Дата: 2026-04-25_
 
 ---
 
+## 0. Порядок запуска фаз (приоритет)
+
+_Обновлено 2026-04-27 (реструктуризация: Phase 19 архивирован, 20/21 → 37/38)_
+
+### Линейный roadmap (I-PHASE-SEQ-1: phase_current=30)
+
+| Шаг | Phase | Spec | Зависимости | Статус |
+|-----|-------|------|-------------|--------|
+| **→1** | **31** — GovernanceCommands | Spec_v31_GovernanceCommands.md | Phase 30 COMPLETE | Draft — **NEXT** |
+| 2 | **32** — PostgresMigration | Spec_v32_PostgresMigration.md | Phase 31 | Draft |
+| 3 | **35** — TestHarnessElevation | Spec_v35_TestHarnessElevation.md | Phase 33+34 (уже DONE) | Draft |
+| 4 | **36** — GraphNavigation | Spec_v36_GraphNavigation.md | Phase 18 + Phase 32 | Draft |
+| 5 | **37** — TemporalNavigation | Spec_v37_TemporalNavigation.md | Phase 36 | Draft |
+| 6 | **38** — MutationGovernance | Spec_v38_MutationGovernance.md | Phase 37 | Draft |
+
+**Порядок активации (строгий):**
+```
+current=30 → activate 31 → activate 32
+                                ↓
+             [33 DONE, 34 DONE — в phases_known]
+                                ↓
+                         activate 35 → activate 36 → activate 37 → activate 38
+```
+
+> **Phase 19 архивирован** (`del/Spec_v19_v1_GraphNavigation.md`).
+> Phase 36 supersedes Phase 19: реализует тот же GraphNavigation layer,
+> но сразу на unified `$SDD_DATABASE_URL` (не временный DuckDB-hybrid).
+
+### Архив
+
+| Файл | Статус |
+|------|--------|
+| `del/Spec_v19_GraphNavigation.md` | Архив — заменён Spec_v19_v1 |
+| `del/Spec_v19_v1_GraphNavigation.md` | Архив — superseded by Phase 36 |
+
+---
+
 ## 1. Полная жизненная цепочка одной фазы
 
 ### DRAFT_SPEC vN
@@ -184,7 +221,7 @@ seq=X+2 PhaseInitialized(phase_id=27,                              ← activate-
 
 ## 5. Слабые места системы
 
-### 5.1 Противоречие в `tool-reference.md` строка 55
+### 5.1 Противоречие в `tool-reference.md` строка 55 <!-- ЗАКРЫТО: BC-30-1 -->
 
 Написано: `activate-phase: HUMAN-ONLY gate — LLM MUST NOT invoke`
 
@@ -224,7 +261,7 @@ LLM waits.
 
 ---
 
-### 5.4 Отсутствие explicit recovery path в DECOMPOSE
+### 5.4 Отсутствие explicit recovery path в DECOMPOSE <!-- ЗАКРЫТО: BC-30-4 -->
 
 Когда `sdd activate-phase` завершается с `StaleStateError` (race condition, §7 Spec_v29) — нет прямой ссылки из `decompose.md` auto-actions на конкретный RP в `recovery.md`.
 
@@ -239,7 +276,22 @@ On exit 1 with StaleStateError → load sessions/recovery.md → apply RP-STALE
 
 `I-SESSION-PLAN-HASH-1` фиксирует хеш плана в момент активации. Нет нормы, запрещающей изменять `Plan_vN.md` после активации фазы. Если план правится после DECOMPOSE, хеш в `PhaseInitialized.plan_hash` и текущий файл расходятся. EventLog честный, план — нет.
 
-**Вариант решения:** добавить инвариант I-PLAN-IMMUTABLE-AFTER-ACTIVATE или явно документировать, что plan_hash — это "snapshot at activation time", изменения допустимы, но создают drift.
+**Предлагаемый инвариант:**
+
+> **I-PLAN-IMMUTABLE-AFTER-ACTIVATE:** `Plan_vN.md` MUST NOT be modified after `activate-phase N` has been executed. Any change to the plan file after phase activation constitutes a protocol violation. If a plan update is required, a new phase (N+1) with a revised spec must be initiated.
+
+**Альтернативный механизм — `phase_plan_versions`:**
+
+Если строгая иммутабельность неприемлема (план может уточняться в процессе), ввести поле `phase_plan_versions` в SDDState:
+
+```
+phase_plan_versions: dict[int, list[str]]
+  # phase_id → [plan_hash_at_activation, plan_hash_at_t1, ...]
+```
+
+- При каждом изменении `Plan_vN.md` после активации LLM должен вызвать `sdd record-plan-revision --phase N`, который эмитит `PlanRevised(phase_id=N, old_hash=..., new_hash=...)` и добавляет новый хеш в `phase_plan_versions[N]`.
+- `check-dod` проверяет: если `len(phase_plan_versions[N]) > 1` — добавляет warning в DoD-отчёт ("plan was modified after activation").
+- Это честный аудит-трейл без запрета: EventLog отражает реальную историю, drift виден явно.
 
 ---
 
@@ -247,7 +299,11 @@ On exit 1 with StaleStateError → load sessions/recovery.md → apply RP-STALE
 
 `SessionDeclared` требует `phase_id: int`. Но в сессии DRAFT_SPEC Phase N ещё не существует в EventLog. Событие ссылается на несуществующую фазу. Редьюсер это игнорирует (no state mutation), но формальная целостность EventLog нарушается.
 
-**Вариант решения:** для DRAFT_SPEC использовать `phase_id=0` или `phase_id=None`; добавить в спек явное правило.
+**Принятое решение — инвариант I-SESSION-PHASE-NULL-1:**
+
+> **I-SESSION-PHASE-NULL-1:** `SessionDeclared` события с `session_type = "DRAFT_SPEC"` MUST use `phase_id = 0` as a sentinel value. `phase_id = 0` is reserved exclusively for pre-phase sessions and MUST NOT correspond to any real phase in `phases_known`. Reducer MUST treat `phase_id = 0` in `SessionDeclared` as a no-op (no state mutation). All other session types MUST use a real `phase_id ∈ phases_known`.
+
+Выбор `phase_id=0` (не `None`) обусловлен тем, что поле типизировано как `int` в EventLog schema — `None` потребует изменения схемы (EV-1..2). `0` — минимальный sentinel, не конфликтующий с реальными фазами (нумерация начинается с 1).
 
 ---
 
@@ -260,7 +316,7 @@ On exit 1 with StaleStateError → load sessions/recovery.md → apply RP-STALE
 | `tool-reference.md` строка 55 vs I-SESSION-AUTO-1 | Прямое противоречие | Исправить строку 55 |
 | `decompose.md` "After TaskSet is Written" | Человек получает инструкцию активировать уже активированное | Удалить или заменить на "optional review" |
 | `plan-phase.md` "After Plan is Written" | Человек получает инструкцию активировать — вместо "объяви DECOMPOSE" | Исправить на "объявить DECOMPOSE Phase N" |
-| `SessionDeclared.phase_id` в DRAFT_SPEC | Phase ещё не существует в EventLog | Добавить правило для phase_id=0 или явную оговорку |
+| `SessionDeclared.phase_id` в DRAFT_SPEC | Phase ещё не существует в EventLog | **Закрыто:** I-SESSION-PHASE-NULL-1 — использовать `phase_id=0` как sentinel |
 
 ---
 

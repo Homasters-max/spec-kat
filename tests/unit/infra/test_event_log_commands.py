@@ -10,8 +10,8 @@ import subprocess
 from pathlib import Path
 
 from sdd.infra.db import open_sdd_connection
+from sdd.core.json_utils import canonical_json
 from sdd.infra.event_log import (
-    canonical_json,
     exists_command,
     exists_semantic,
     get_error_count,
