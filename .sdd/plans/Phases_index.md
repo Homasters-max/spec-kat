@@ -26,6 +26,7 @@
 | 29 | Streamlined Session Flow | .sdd/specs/Spec_v29_StreamlinedWorkflow.md | — | PLANNED |
 | 30 | Documentation Fixes | .sdd/specs/Spec_v30_DocFixes.md | .sdd/plans/Plan_v30.md | COMPLETE |
 | 31 | Governance Commands | .sdd/specs/Spec_v31_GovernanceCommands.md | .sdd/plans/Plan_v31.md | PLANNED |
+| 32 | PostgreSQL Migration & Normalized Schema | .sdd/specs/Spec_v32_PostgresMigration.md | .sdd/plans/Plan_v32.md | PLANNED |
 | 33 | CommandSpec Guard Factory | .sdd/specs/Spec_v33_CommandSpecGuardFactory.md | .sdd/plans/Plan_v33.md | PLANNED |
 | 34 | EventLog Deep Module | .sdd/specs/Spec_v34_EventLogDeepModule.md | .sdd/plans/Plan_v34.md | ACTIVE |
 | 35 | Test Harness Elevation | .sdd/specs/Spec_v35_TestHarnessElevation.md | .sdd/plans/Plan_v35.md | PLANNED |

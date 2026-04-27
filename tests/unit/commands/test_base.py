@@ -129,7 +129,7 @@ def test_error_boundary_reraises_always(tmp_db_path: str) -> None:
 
 def test_retry_count_is_best_effort_note(tmp_db_path: str) -> None:
     """If get_error_count raises, retry_count defaults to 0 — I-CMD-3 best-effort (T-502)."""
-    with patch("sdd.commands._base.get_error_count", side_effect=OSError("DB gone")):
+    with patch("sdd.infra.event_log.EventLog.get_error_count", side_effect=OSError("DB gone")):
         with pytest.raises(RuntimeError) as exc_info:
             _NoIdempotencyErrorHandler(tmp_db_path).handle(_cmd("cmd-best-effort"))
     error_events = exc_info.value._sdd_error_events

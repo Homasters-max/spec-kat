@@ -67,21 +67,22 @@ def _seed_active_phase(db_path: str, phase_id: int, tasks_total: int) -> None:
 
 class TestHandlerPurity:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_handler_does_not_call_eventstore(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, mock_sync, handler
     ):
-        """Pure handler: EventStore.append never called from handle() (I-HANDLER-PURE-1)."""
+        """Pure handler: handle() returns events without any store writes (I-HANDLER-PURE-1).
+
+        EventStore is removed; kernel (execute_and_project) owns all writes via EventLog.
+        """
         mock_parse.return_value = [_task("T-401")]
-        handler.handle(_command("T-401"))
-        mock_event_store_cls.return_value.append.assert_not_called()
+        events = handler.handle(_command("T-401"))
+        assert len(events) == 2
 
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_handler_does_not_call_sync_projections(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, mock_sync, handler
     ):
         """Pure handler: sync_projections never called from handle() (I-HANDLER-PURE-1)."""
         mock_parse.return_value = [_task("T-401")]
@@ -114,10 +115,9 @@ class TestBatchEmission:
 
 class TestIdempotency:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_complete_task_idempotent(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, mock_sync, handler
     ):
         """Task already DONE returns [] without emitting or syncing (I-CMD-1)."""
         mock_parse.return_value = [_task("T-401", status="DONE")]
@@ -125,14 +125,12 @@ class TestIdempotency:
         result = handler.handle(_command("T-401"))
 
         assert result == []
-        mock_event_store_cls.return_value.append.assert_not_called()
         mock_sync.assert_not_called()
 
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_complete_task_semantic_idempotent(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, mock_sync, handler
     ):
         """Semantic duplicate (task already DONE) returns [] (I-CMD-2b)."""
         mock_parse.return_value = [_task("T-401", status="DONE")]
@@ -140,7 +138,6 @@ class TestIdempotency:
         result = handler.handle(_command("T-401"))
 
         assert result == []
-        mock_event_store_cls.return_value.append.assert_not_called()
         mock_sync.assert_not_called()
 
 
@@ -160,10 +157,9 @@ class TestErrorCases:
             handler.handle(_command("T-401"))
 
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_complete_task_already_done_is_noop(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, mock_sync, handler
     ):
         """Already-DONE task: returns [], no events, no sync (§R.11, I-CMD-2b, I-HANDLER-PURE-1)."""
         mock_parse.return_value = [_task("T-401", status="DONE")]
@@ -172,7 +168,6 @@ class TestErrorCases:
         result = handler.handle(cmd)
 
         assert result == []
-        mock_event_store_cls.return_value.append.assert_not_called()
         mock_sync.assert_not_called()
 
 
@@ -182,20 +177,16 @@ class TestErrorCases:
 
 class TestAtomicity:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_batch_is_atomic_on_failure(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, mock_sync, handler
     ):
-        """Pure handler returns events without calling EventStore/sync — atomicity owned by kernel (I-KERNEL-WRITE-1)."""
+        """Pure handler returns events without calling sync — atomicity owned by kernel (I-KERNEL-WRITE-1)."""
         mock_parse.return_value = [_task("T-401")]
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
 
         events = handler.handle(_command("T-401"))
 
         assert len(events) == 2
-        mock_store.append.assert_not_called()
         mock_sync.assert_not_called()
 
 
@@ -205,14 +196,12 @@ class TestAtomicity:
 
 class TestNoDirectFileWrite:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.parse_taskset")
     def test_no_direct_file_write_in_handler(
-        self, mock_parse, mock_event_store_cls, mock_sync, handler
+        self, mock_parse, mock_sync, handler
     ):
         """Handler never calls open() directly; all file mutations go through the kernel (I-CMD-4)."""
         mock_parse.return_value = [_task("T-401")]
-        mock_event_store_cls.return_value = MagicMock()
 
         with patch("builtins.open") as mock_open:
             handler.handle(_command("T-401"))

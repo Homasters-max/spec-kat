@@ -124,13 +124,17 @@ def test_command_spec_idempotent_default() -> None:
 
     I-CMD-IDEM-1: CommandSpec.idempotent classification is correct for every command.
     """
+    _non_idempotent = frozenset({
+        "switch-phase",   # navigation: each call is a unique history fact (I-CMD-IDEM-1)
+        "approve-spec",   # audit: each approval is a unique audit fact (BC-31-1)
+    })
     for name, spec in REGISTRY.items():
-        if name == "switch-phase":
+        if name in _non_idempotent:
             assert not spec.idempotent, (
-                "switch-phase must be idempotent=False (I-CMD-IDEM-1)"
+                f"{name!r} must be idempotent=False (I-CMD-IDEM-1)"
             )
         else:
             assert spec.idempotent, (
                 f"{name!r} must be idempotent=True (default); "
-                f"only navigation commands may be False"
+                f"only navigation/audit-unique commands may be False"
             )

@@ -156,7 +156,7 @@ def test_execute_command_calls_build_guards() -> None:
         patch("sdd.commands.registry.compute_command_id", return_value="deadbeef"),
         patch("sdd.commands.registry.compute_trace_id", return_value="cafebabe"),
         patch("sdd.commands.registry.get_current_state", return_value=fake_state),
-        patch("sdd.commands.registry.EventStore"),
+        patch("sdd.commands.registry.EventLog"),
         patch("sdd.commands.registry.load_catalog"),
         patch("sdd.commands.registry._run_domain_pipeline", return_value=(fake_guard_result, [])),
         patch("sdd.commands.registry.GuardContext"),

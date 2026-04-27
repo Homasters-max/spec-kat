@@ -11,17 +11,12 @@ from pathlib import Path
 
 from sdd.infra.db import open_sdd_connection
 from sdd.core.json_utils import canonical_json
-from sdd.infra.event_log import (
-    exists_command,
-    exists_semantic,
-    get_error_count,
-    sdd_append,
-)
+from sdd.infra.event_log import EventLog, sdd_append
 
 
 def test_exists_command_returns_false_when_absent(tmp_db_path: str) -> None:
     """exists_command returns False when no event carries that command_id."""
-    assert exists_command(tmp_db_path, "cmd-absent") is False
+    assert EventLog(tmp_db_path).exists_command("cmd-absent") is False
 
 
 def test_exists_command_returns_true_after_append(tmp_db_path: str) -> None:
@@ -32,12 +27,12 @@ def test_exists_command_returns_true_after_append(tmp_db_path: str) -> None:
         db_path=tmp_db_path,
         level="L1",
     )
-    assert exists_command(tmp_db_path, "cmd-001") is True
+    assert EventLog(tmp_db_path).exists_command("cmd-001") is True
 
 
 def test_exists_semantic_returns_false_when_absent(tmp_db_path: str) -> None:
     """exists_semantic returns False when no matching (command_type, task_id, phase_id, hash) event exists."""
-    assert exists_semantic(tmp_db_path, "TaskImplemented", "T-001", 4, "no-such-hash") is False
+    assert EventLog(tmp_db_path).exists_semantic("TaskImplemented", "T-001", 4, "no-such-hash") is False
 
 
 def test_exists_semantic_prevents_duplicate_effect(tmp_db_path: str) -> None:
@@ -55,7 +50,7 @@ def test_exists_semantic_prevents_duplicate_effect(tmp_db_path: str) -> None:
         db_path=tmp_db_path,
         level="L1",
     )
-    assert exists_semantic(tmp_db_path, "TaskImplemented", "T-002", 4, payload_hash) is True
+    assert EventLog(tmp_db_path).exists_semantic("TaskImplemented", "T-002", 4, payload_hash) is True
 
 
 def test_exists_semantic_different_hash_not_blocked(tmp_db_path: str) -> None:
@@ -68,13 +63,14 @@ def test_exists_semantic_different_hash_not_blocked(tmp_db_path: str) -> None:
         db_path=tmp_db_path,
         level="L1",
     )
-    assert exists_semantic(tmp_db_path, "TaskValidated", "T-003", 4, pass_hash) is True
-    assert exists_semantic(tmp_db_path, "TaskValidated", "T-003", 4, fail_hash) is False
+    el = EventLog(tmp_db_path)
+    assert el.exists_semantic("TaskValidated", "T-003", 4, pass_hash) is True
+    assert el.exists_semantic("TaskValidated", "T-003", 4, fail_hash) is False
 
 
 def test_get_error_count_zero_on_no_errors(tmp_db_path: str) -> None:
     """get_error_count returns 0 when no ErrorEvent exists for the given command_id."""
-    assert get_error_count(tmp_db_path, "cmd-no-errors") == 0
+    assert EventLog(tmp_db_path).get_error_count("cmd-no-errors") == 0
 
 
 def test_get_error_count_increments(tmp_db_path: str) -> None:
@@ -85,7 +81,7 @@ def test_get_error_count_increments(tmp_db_path: str) -> None:
         db_path=tmp_db_path,
         level="L2",
     )
-    assert get_error_count(tmp_db_path, "cmd-004") == 1
+    assert EventLog(tmp_db_path).get_error_count("cmd-004") == 1
 
     sdd_append(
         "ErrorEvent",
@@ -93,7 +89,7 @@ def test_get_error_count_increments(tmp_db_path: str) -> None:
         db_path=tmp_db_path,
         level="L2",
     )
-    assert get_error_count(tmp_db_path, "cmd-004") == 2
+    assert EventLog(tmp_db_path).get_error_count("cmd-004") == 2
 
 
 def test_exists_command_no_side_effects(tmp_db_path: str) -> None:
@@ -102,7 +98,7 @@ def test_exists_command_no_side_effects(tmp_db_path: str) -> None:
     before = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
     conn.close()
 
-    exists_command(tmp_db_path, "cmd-pure-read")
+    EventLog(tmp_db_path).exists_command("cmd-pure-read")
 
     conn = open_sdd_connection(tmp_db_path)
     after = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]

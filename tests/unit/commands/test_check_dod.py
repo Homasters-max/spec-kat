@@ -55,14 +55,12 @@ def handler(tmp_path):
 # ---------------------------------------------------------------------------
 
 class TestHappyPath:
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.read_state")
     def test_check_dod_emits_phase_completed_when_all_pass(
-        self, mock_read_state, mock_event_store_cls, handler
+        self, mock_read_state, handler
     ):
         """PhaseCompleted + MetricRecorded returned when all DoD conditions met (I-CMD-5)."""
         mock_read_state.return_value = _state()
-        mock_event_store_cls.return_value = MagicMock()
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             events = handler.handle(_command(phase_id=4))
@@ -88,40 +86,34 @@ class TestHappyPath:
 # ---------------------------------------------------------------------------
 
 class TestDoDConditions:
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.read_state")
     def test_check_dod_raises_if_tasks_incomplete(
-        self, mock_read_state, mock_event_store_cls, handler
+        self, mock_read_state, handler
     ):
         """DoDNotMet raised when tasks.completed < tasks.total (I-CMD-5)."""
         mock_read_state.return_value = _state(tasks_completed=3, tasks_total=5)
-        mock_event_store_cls.return_value = MagicMock()
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             with pytest.raises(DoDNotMet, match="not all tasks DONE"):
                 handler.handle(_command())
 
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.read_state")
     def test_check_dod_raises_if_invariants_fail(
-        self, mock_read_state, mock_event_store_cls, handler
+        self, mock_read_state, handler
     ):
         """DoDNotMet raised when invariants.status != PASS (I-CMD-5)."""
         mock_read_state.return_value = _state(invariants_status="FAIL")
-        mock_event_store_cls.return_value = MagicMock()
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             with pytest.raises(DoDNotMet, match="invariants not PASS"):
                 handler.handle(_command())
 
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.read_state")
     def test_check_dod_raises_if_tests_fail(
-        self, mock_read_state, mock_event_store_cls, handler
+        self, mock_read_state, handler
     ):
         """DoDNotMet raised when tests.status != PASS (I-CMD-5)."""
         mock_read_state.return_value = _state(tests_status="FAIL")
-        mock_event_store_cls.return_value = MagicMock()
 
         with patch.object(handler, "_check_idempotent", return_value=False):
             with pytest.raises(DoDNotMet, match="tests not PASS"):
@@ -133,23 +125,20 @@ class TestDoDConditions:
 # ---------------------------------------------------------------------------
 
 class TestPurity:
-    @patch("sdd.commands.update_state.EventStore")
     @patch("sdd.commands.update_state.read_state")
     def test_check_dod_handler_does_not_call_event_store(
-        self, mock_read_state, mock_event_store_cls, handler
+        self, mock_read_state, handler
     ):
-        """Pure handler: EventStore.append MUST NOT be called inside handle() (I-HANDLER-PURE-1).
+        """Pure handler: handle() returns events without any store writes (I-HANDLER-PURE-1).
 
-        Kernel (execute_and_project via REGISTRY["check-dod"]) owns EventStore writes.
+        EventStore is removed; kernel (execute_and_project) owns all writes via EventLog.
         """
         mock_read_state.return_value = _state()
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
 
         with patch.object(handler, "_check_idempotent", return_value=False):
-            handler.handle(_command())
+            events = handler.handle(_command())
 
-        mock_store.append.assert_not_called()
+        assert len(events) == 2
 
 
 # ---------------------------------------------------------------------------

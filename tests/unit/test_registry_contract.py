@@ -25,6 +25,7 @@ _EXPECTED_REGISTRY_KEYS: frozenset[str] = frozenset({
     "invalidate-event",
     "record-session",
     "approve-spec",
+    "amend-plan",
 })
 
 _READ_ONLY_COMMANDS: frozenset[str] = frozenset({

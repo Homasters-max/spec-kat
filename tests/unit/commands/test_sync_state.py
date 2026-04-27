@@ -45,19 +45,17 @@ def _command(
 
 class TestEmitFirst:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     def test_sync_state_writes_atomically(
-        self, mock_event_store_cls, mock_sync, handler
+        self, mock_sync, handler
     ):
-        """handle() is pure: EventStore and sync_projections are not called (I-KERNEL-WRITE-1, I-CI-PURITY-3).
+        """handle() is pure: sync_projections is not called (I-KERNEL-WRITE-1, I-CI-PURITY-3).
 
-        Emit-first ordering is now enforced by execute_and_project in the Write Kernel,
+        Emit-first ordering is enforced by execute_and_project in the Write Kernel,
         not by SyncStateHandler.handle() itself.
         """
         with patch.object(handler, "_check_idempotent", return_value=False):
             handler.handle(_command())
 
-        mock_event_store_cls.assert_not_called()
         mock_sync.assert_not_called()
 
 
@@ -68,12 +66,10 @@ class TestEmitFirst:
 
 class TestEventEmission:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     def test_sync_state_emits_synced_event(
-        self, mock_event_store_cls, mock_sync, handler
+        self, mock_sync, handler
     ):
         """Returned events contain exactly one StateSynced event with correct fields."""
-        mock_event_store_cls.return_value = MagicMock()
         cmd = _command(phase_id=4)
 
         with patch.object(handler, "_check_idempotent", return_value=False):
@@ -94,19 +90,14 @@ class TestEventEmission:
 
 class TestIdempotency:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     def test_sync_state_idempotent(
-        self, mock_event_store_cls, mock_sync, handler
+        self, mock_sync, handler
     ):
-        """Duplicate command_id returns [] with no append or sync calls (I-CMD-1)."""
-        mock_store = MagicMock()
-        mock_event_store_cls.return_value = mock_store
-
+        """Duplicate command_id returns [] with no sync calls (I-CMD-1)."""
         with patch.object(handler, "_check_idempotent", return_value=True):
             result = handler.handle(_command())
 
         assert result == []
-        mock_store.append.assert_not_called()
         mock_sync.assert_not_called()
 
 
@@ -117,9 +108,8 @@ class TestIdempotency:
 
 class TestAtomicWrite:
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     def test_sync_uses_atomic_write(
-        self, mock_event_store_cls, mock_sync, handler
+        self, mock_sync, handler
     ):
         """handle() does not call sync_projections — projection is the caller's responsibility (I-KERNEL-PROJECT-1).
 
@@ -134,17 +124,12 @@ class TestAtomicWrite:
         mock_sync.assert_not_called()
 
     @patch("sdd.commands.update_state.sync_projections")
-    @patch("sdd.commands.update_state.EventStore")
     def test_rebuild_not_called_when_append_fails(
-        self, mock_event_store_cls, mock_sync, handler
+        self, mock_sync, handler
     ):
-        """handle() never calls EventStore.append, so there is no append-failure path (I-KERNEL-WRITE-1).
-
-        Both EventStore and sync_projections remain uncalled — the handler is purely functional.
-        """
+        """handle() never calls sync_projections — the handler is purely functional (I-KERNEL-WRITE-1)."""
         with patch.object(handler, "_check_idempotent", return_value=False):
             events = handler.handle(_command())
 
-        mock_event_store_cls.assert_not_called()
         mock_sync.assert_not_called()
         assert len(events) == 1

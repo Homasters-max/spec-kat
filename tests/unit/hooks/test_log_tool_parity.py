@@ -27,13 +27,16 @@ _CANONICAL_HOOK = _REPO_ROOT / "src" / "sdd" / "hooks" / "log_tool.py"
 
 
 def _make_constrained_db(db_path: str) -> None:
-    """Create a DB that rejects ToolUseStarted/ToolUseCompleted; allows HookError."""
+    """Create a DB that rejects ToolUseStarted/ToolUseCompleted; allows HookError.
+
+    seq has no DEFAULT so open_sdd_connection can CREATE OR REPLACE SEQUENCE freely.
+    """
     conn = duckdb.connect(db_path)
     conn.execute("CREATE SEQUENCE IF NOT EXISTS sdd_event_seq START 1")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS events (
-            seq                BIGINT   NOT NULL PRIMARY KEY DEFAULT nextval('sdd_event_seq'),
+            seq                BIGINT   NOT NULL PRIMARY KEY,
             partition_key      VARCHAR  NOT NULL DEFAULT 'sdd',
             event_id           VARCHAR  NOT NULL UNIQUE,
             event_type         VARCHAR  NOT NULL
