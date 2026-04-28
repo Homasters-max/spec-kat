@@ -21,7 +21,7 @@ from sdd.commands._base import CommandHandlerBase
 from sdd.core.errors import Inconsistency, InvalidActor, MissingContext, SDDError
 from sdd.core.events import DomainEvent, PhaseInitializedEvent, PhaseStartedEvent, classify_event_level
 from sdd.domain.tasks.parser import parse_taskset
-from sdd.infra.paths import event_store_file, plan_file, state_file, taskset_file
+from sdd.infra.paths import event_store_url, get_sdd_root, plan_file, state_file, taskset_file
 
 
 def _utc_now_iso() -> str:
@@ -183,7 +183,7 @@ def main(args: list[str] | None = None) -> int:
                         help="Anchor phase id (BC-41-E); must be in phases_known (I-LOGICAL-ANCHOR-1,2)")
     parser.add_argument("--db", default=None)
     parsed = parser.parse_args(args)
-    db = parsed.db or str(event_store_file())
+    db = parsed.db or event_store_url()
     if parsed.tasks is not None:
         warnings.warn(
             "--tasks is deprecated; tasks_total is now auto-detected from TaskSet",

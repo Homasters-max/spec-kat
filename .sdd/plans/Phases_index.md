@@ -37,3 +37,5 @@
 | 41 | Phase Navigation Guards | .sdd/specs/Spec_v41_PhaseNavigationGuards.md | .sdd/plans/Plan_v41.md | COMPLETE |
 | 42 | Docker CI Infrastructure for PostgreSQL | .sdd/specs/Spec_v42_DockerCIInfrastructure.md | .sdd/plans/Plan_v42.md | PLANNED |
 | 43 | Unified PostgreSQL EventLog | .sdd/specs/Spec_v43_UnifiedPostgresEventLog.md | .sdd/plans/Plan_v43.md | PLANNED |
+| 44 | Routing Switch | .sdd/specs/Spec_v44_RoutingSwitch.md | .sdd/plans/Plan_v44.md | PLANNED |
+| 45 | Enforce PostgreSQL (BREAKING) | .sdd/specs/Spec_v45_EnforcePostgres.md | .sdd/plans/Plan_v45.md | PLANNED |

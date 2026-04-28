@@ -36,6 +36,11 @@ def _isolate_sdd_home(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, 
     so os.listdir(tmp_path) is unaffected). Read-only config dirs (norms, config …)
     are symlinked from the project .sdd/ so subprocess tests still find config files.
     state/ and runtime/ are isolated empty dirs — the production DB is never reached.
+
+    SDD_DATABASE_URL passthrough (BC-45-E, Путь A): if SDD_DATABASE_URL is set in the
+    parent env (CI with PG), pass it through so event_store_url() resolves correctly.
+    Unit tests without SDD_DATABASE_URL must use explicit db_path — event_store_url()
+    will raise EnvironmentError after BC-45-A, which is the correct unit-test behaviour.
     """
     project_sdd = pathlib.Path(".sdd").resolve()
     with tempfile.TemporaryDirectory(prefix="sdd_test_home_") as tmpdir:
@@ -53,6 +58,8 @@ def _isolate_sdd_home(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, 
             if src.exists():
                 shutil.copy2(src, runtime_dir / fname)
         monkeypatch.setenv("SDD_HOME", str(sdd_dir))
+        if db_url := os.environ.get("SDD_DATABASE_URL"):
+            monkeypatch.setenv("SDD_DATABASE_URL", db_url)
         reset_sdd_root()
         yield
     reset_sdd_root()

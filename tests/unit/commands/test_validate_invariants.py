@@ -225,8 +225,18 @@ class TestSubprocessConstraints:
 
     @patch("sdd.commands.validate_invariants.load_config")
     @patch("sdd.commands.validate_invariants.subprocess.Popen")  # subprocess boundary — intentional
-    def test_subprocess_env_empty_when_whitelist_empty(self, mock_popen, mock_load, handler):
-        """Empty env_whitelist → subprocess receives empty env dict (I-CMD-13)."""
+    def test_subprocess_env_no_full_passthrough_when_whitelist_empty(
+        self, mock_popen, mock_load, handler, monkeypatch
+    ):
+        """Empty env_whitelist → subprocess env contains only _ALWAYS_PASSTHROUGH vars (I-CMD-13, I-SUBPROCESS-ENV-1).
+
+        Full os.environ must NOT be forwarded; arbitrary vars not in whitelist or passthrough
+        must be absent even when present in the parent process environment.
+        """
+        from sdd.commands.validate_invariants import _ALWAYS_PASSTHROUGH
+
+        monkeypatch.setenv("SECRET_TOKEN", "should-not-leak")
+        monkeypatch.setenv("RANDOM_VAR", "also-not-here")
         mock_load.return_value = _fake_config("lint")
         mock_popen.return_value = _popen_mock()
         cmd = _command(env_whitelist=())
@@ -234,7 +244,13 @@ class TestSubprocessConstraints:
         handler.handle(cmd)
 
         _, kwargs = mock_popen.call_args
-        assert kwargs["env"] == {}
+        subprocess_env: dict = kwargs["env"]
+        # Arbitrary env vars must not leak through (I-CMD-13)
+        assert "SECRET_TOKEN" not in subprocess_env
+        assert "RANDOM_VAR" not in subprocess_env
+        # Only _ALWAYS_PASSTHROUGH vars (if set) may appear
+        for key in subprocess_env:
+            assert key in _ALWAYS_PASSTHROUGH, f"Unexpected env var leaked: {key!r}"
 
     @patch("sdd.commands.validate_invariants.os.killpg")
     @patch("sdd.commands.validate_invariants.os.getpgid", return_value=12345)

@@ -25,25 +25,33 @@ def event_store_file() -> Path:
 
 
 def event_store_url() -> str:
-    """Single routing point: PG URL if SDD_DATABASE_URL set; else DuckDB file path.
+    """Single routing point for event store backend.
 
-    I-EVENT-STORE-URL-1: single backend determination point.
+    I-DB-URL-REQUIRED-1: SDD_DATABASE_URL MUST be set.
+    Raises EnvironmentError if not set (no DuckDB fallback).
     """
     pg_url = os.environ.get("SDD_DATABASE_URL")
-    if pg_url:
-        return pg_url
-    return str(event_store_file())
+    if not pg_url:
+        raise EnvironmentError(
+            "SDD_DATABASE_URL is not set. "
+            "Run: source scripts/dev-up.sh"
+        )
+    return pg_url
 
 
 def is_production_event_store(db_path: str) -> bool:
     """True if db_path refers to the production event store.
 
-    I-PROD-GUARD-1: unified guard for DuckDB (file path) and PG (URL) backends.
+    I-PROD-GUARD-1: agreed with event_store_url().
+    Raises EnvironmentError if SDD_DATABASE_URL is not set.
     """
     pg_url = os.environ.get("SDD_DATABASE_URL")
-    if pg_url:
-        return db_path == pg_url
-    return Path(db_path).resolve() == event_store_file().resolve()
+    if not pg_url:
+        raise EnvironmentError(
+            "SDD_DATABASE_URL is not set. "
+            "Cannot determine production event store."
+        )
+    return db_path == pg_url
 
 
 def state_file() -> Path:

@@ -38,7 +38,7 @@ def main(args: list[str] | None = None) -> int:
 
     from sdd.infra.bootstrap_manifest import list_unreconciled, mark_reconciled
     from sdd.infra.event_log import EventLog
-    from sdd.infra.paths import event_store_file, state_file, taskset_file
+    from sdd.infra.paths import event_store_url, state_file, taskset_file
     from sdd.commands.registry import ProjectionType, project_all
 
     pending = list_unreconciled()
@@ -47,7 +47,7 @@ def main(args: list[str] | None = None) -> int:
         print(json.dumps({"status": "nothing_to_reconcile"}))
         return 0
 
-    db_path = str(event_store_file())
+    db_path = event_store_url()
     store = EventLog(db_path)
 
     reconciled_ids: list[str] = []

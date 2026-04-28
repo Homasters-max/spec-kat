@@ -1,14 +1,37 @@
 """Tests for ReportErrorHandler — Spec_v4 §9 Verification row 10.
 
-Invariants: I-CMD-1, I-ERR-1
+Invariants: I-CMD-1, I-ERR-1, I-CLI-DB-RESOLUTION-1
 """
 from __future__ import annotations
 
+import unittest.mock
 import uuid
 
 import pytest
 
 from sdd.commands.report_error import ReportErrorCommand, ReportErrorHandler
+
+
+# ---------------------------------------------------------------------------
+# test_report_error_argparse_no_eager_eval
+# ---------------------------------------------------------------------------
+
+def test_report_error_argparse_no_eager_eval(tmp_db_path: str) -> None:
+    """event_store_url must NOT be called when --db is explicit (I-CLI-DB-RESOLUTION-1).
+
+    With eager eval (default=str(event_store_url())), the function is called at
+    add_argument() time — even when --db is provided on the CLI.
+    With lazy eval (default=None + post-parse resolution), it is never called when
+    --db is explicit.
+    """
+    from sdd.commands import report_error
+    with unittest.mock.patch("sdd.commands.report_error.event_store_url") as mock_url:
+        report_error.main([
+            "--db", tmp_db_path,
+            "--type", "TestError",
+            "--message", "test message",
+        ])
+    mock_url.assert_not_called()
 
 
 def _cmd(command_id: str | None = None) -> ReportErrorCommand:

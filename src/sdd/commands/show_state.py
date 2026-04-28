@@ -13,7 +13,7 @@ import yaml
 from sdd.core.errors import Inconsistency, MissingState, SDDError
 from sdd.domain.phase_order import PhaseOrder
 from sdd.domain.state.reducer import FrozenPhaseSnapshot
-from sdd.infra.paths import event_store_file, state_file
+from sdd.infra.paths import state_file
 
 
 def _load(path: str) -> dict:
@@ -126,7 +126,7 @@ def main(args: list[str] | None = None) -> int:
     state_path = parsed.state or str(state_file())
     try:
         from sdd.infra.projections import rebuild_state  # noqa: PLC0415
-        rebuild_state(str(event_store_file()), state_path)
+        rebuild_state(state_path=state_path)
     except Exception:
         pass  # best-effort rebuild; State Guard will catch staleness below
     try:

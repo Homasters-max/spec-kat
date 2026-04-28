@@ -6,7 +6,7 @@ from sdd.commands._base import CommandHandlerBase
 from sdd.core.events import DomainEvent
 from sdd.domain.guards.context import DAG, load_dag
 from sdd.domain.tasks.parser import Task, parse_taskset
-from sdd.infra.paths import event_store_file, taskset_file
+from sdd.infra.paths import event_store_url, taskset_file
 from sdd.infra.projections import get_current_state
 
 # Single source of truth for task done status (I-CMD-IDEM-1, I-CMD-IDEM-2)
@@ -24,7 +24,7 @@ def next_tasks(cmd: NextTasksCommand) -> list[Task]:
 
     Read-only; bypasses Write Kernel (I-READ-ONLY-EXCEPTION-1).
     """
-    db = cmd.db_path or str(event_store_file())
+    db = cmd.db_path or event_store_url()
     state = get_current_state(db)
     ts_path = str(taskset_file(cmd.phase_id))
     tasks = parse_taskset(ts_path)

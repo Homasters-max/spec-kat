@@ -62,10 +62,10 @@ from sdd.domain.guards.task_guard import make_task_guard
 from sdd.domain.norms.catalog import load_catalog
 from sdd.domain.state.reducer import SDDState
 from sdd.domain.tasks.parser import Task, parse_taskset
-from sdd.infra.event_log import EventLog, EventLogError, EventLogKernelProtocol
+from sdd.infra.event_log import EventLog, EventLogError, EventLogKernelProtocol, open_event_log
 from sdd.infra.paths import (
     audit_log_file,
-    event_store_file,
+    event_store_url,
     norm_catalog_file,
     state_file,
     taskset_file,
@@ -627,11 +627,11 @@ def execute_command(
     event_log: injected EventLog implementation (I-ELK-PROTO-1); defaults to EventLog(db_path).
     """
     with kernel_context("execute_command"):
-        _db  = db_path    or str(event_store_file())
+        _db  = db_path    or event_store_url()
         _st  = state_path or str(state_file())
         _ts_override = taskset_path   # A-18: deferred — resolved from state.phase_current after step 1
         _nrm = norm_path  or str(norm_catalog_file())
-        _el: EventLogKernelProtocol = event_log if event_log is not None else EventLog(_db)
+        _el: EventLogKernelProtocol = event_log if event_log is not None else open_event_log(_db)
 
         # Step 0: stable idempotency key + per-execution trace correlation (A-7, A-9)
         command_id = compute_command_id(cmd)          # A-7: payload-only, stable across all retries
@@ -803,7 +803,7 @@ def project_all(
     """
     if projection == ProjectionType.NONE:
         return
-    _db = db_path    or str(event_store_file())
+    _db = db_path    or event_store_url()
     _st = state_path or str(state_file())
     state = rebuild_state(_db, _st, mode=RebuildMode.STRICT)
     if projection == ProjectionType.FULL and taskset_path:
@@ -844,13 +844,13 @@ def execute_and_project(
     if spec.projection == ProjectionType.NONE:
         return events
 
-    _db = db_path or str(event_store_file())
+    _db = db_path or event_store_url()
     try:
         project_all(spec.projection, db_path, state_path, taskset_path)
     except Exception as proj_exc:
         # Events committed successfully; only projection failed.
         try:
-            post_head: int | None = EventLog(_db).max_seq()
+            post_head: int | None = open_event_log(_db).max_seq()
         except Exception:
             post_head = None
         trace_id = compute_trace_id(cmd, post_head)

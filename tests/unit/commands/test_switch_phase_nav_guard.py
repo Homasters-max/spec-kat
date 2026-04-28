@@ -66,7 +66,7 @@ def test_switch_phase_stderr_on_error(capsys) -> None:
     err = MissingContext("I-PHASE-CONTEXT-2: phase 99 not in phases_known=[]")
 
     with (
-        patch("sdd.commands.switch_phase.event_store_file", return_value="/fake/db.duckdb"),
+        patch("sdd.commands.switch_phase.event_store_url", return_value="/fake/db.duckdb"),
         patch("sdd.infra.projections.get_current_state", side_effect=err),
     ):
         rc = main(["99"])

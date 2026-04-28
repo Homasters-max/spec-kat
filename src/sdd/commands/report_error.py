@@ -17,7 +17,7 @@ from sdd.core.errors import SDDError
 from sdd.core.events import DomainEvent, ErrorEvent, classify_event_level
 from sdd.core.payloads import _unpack_payload, build_command
 from sdd.infra.event_log import EventLog
-from sdd.infra.paths import event_store_file
+from sdd.infra.paths import event_store_url
 
 # ---------------------------------------------------------------------------
 # Legacy command envelope shim (I-CMD-ENV-1)
@@ -96,10 +96,11 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--message", required=True)
     parser.add_argument("--source", default="cli")
     parser.add_argument("--recoverable", action="store_true")
-    parser.add_argument("--db", default=str(event_store_file()))
+    parser.add_argument("--db", default=None)
     parsed = parser.parse_args(args)
+    db_path = parsed.db or event_store_url()
     try:
-        ReportErrorHandler(parsed.db).handle(build_command(
+        ReportErrorHandler(db_path).handle(build_command(
             "ReportError",
             error_type=parsed.error_type,
             message=parsed.message,

@@ -22,7 +22,7 @@ from sdd.infra.metrics import (
     detect_anomalies,
     load_metrics,
 )
-from sdd.infra.paths import event_store_file, reports_dir, state_file
+from sdd.infra.paths import event_store_url, reports_dir, state_file
 
 _DEFAULT_METRIC_IDS: list[str] = [
     "task.lead_time",
@@ -180,7 +180,7 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--state", default=None)
     parsed = parser.parse_args(args)
 
-    db = parsed.db or str(event_store_file())
+    db = parsed.db or event_store_url()
     state = parsed.state or str(state_file())
 
     try:

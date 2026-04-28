@@ -107,10 +107,10 @@ def main(argv: list[str] | None = None) -> int:
     import json
 
     from sdd.commands.registry import REGISTRY, execute_and_project
-    from sdd.infra.paths import event_store_file
+    from sdd.infra.paths import event_store_url
     from sdd.infra.projections import get_current_state
 
-    _db = args.db or str(event_store_file())
+    _db = args.db or event_store_url()
     state = get_current_state(_db)
 
     cmd = InvalidateEventCommand(

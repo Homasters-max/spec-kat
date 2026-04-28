@@ -238,3 +238,18 @@ def test_hook_logs_stderr_on_double_failure(tmp_path: Path) -> None:
     result = _run(_LOG_TOOL, _PRE, db_path=_bad_db(tmp_path))
     assert result.returncode == 0
     assert "double failure" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# I-CLI-DB-RESOLUTION-1: fallback to event_store_url() when no SDD_DB_PATH
+# ---------------------------------------------------------------------------
+
+
+def test_log_tool_uses_event_store_url() -> None:
+    """BC-44-D: log_tool.py MUST use event_store_url() for DB routing, not event_store_file().
+
+    Source check only — backend-specific fallback behavior is tested in test_paths.py.
+    """
+    source = _LOG_TOOL.read_text()
+    assert "event_store_url" in source, "log_tool.py must use event_store_url() for DB routing"
+    assert "event_store_file" not in source, "log_tool.py must not call event_store_file() directly"

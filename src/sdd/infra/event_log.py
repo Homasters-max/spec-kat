@@ -854,3 +854,11 @@ class PostgresEventLog:
             return int(row[0]) if row else 0
         finally:
             conn.close()
+
+
+def open_event_log(db_path: str) -> "EventLog | PostgresEventLog":
+    """Factory: returns PostgresEventLog for PG URLs, EventLog for DuckDB paths."""
+    from sdd.db.connection import is_postgres_url
+    if is_postgres_url(db_path):
+        return PostgresEventLog(db_path)
+    return EventLog(db_path)

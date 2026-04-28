@@ -21,7 +21,7 @@ from sdd.core.events import DomainEvent, PhaseContextSwitchedEvent, classify_eve
 from sdd.domain.guards.context import GuardContext, GuardOutcome, GuardResult
 from sdd.domain.guards.norm_guard import make_norm_guard
 from sdd.domain.guards.types import Guard
-from sdd.infra.paths import event_store_file
+from sdd.infra.paths import event_store_url
 
 if TYPE_CHECKING:
     pass
@@ -137,7 +137,7 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--actor", default="human")
     parser.add_argument("--db", default=None)
     parsed = parser.parse_args(args)
-    db = parsed.db or str(event_store_file())
+    db = parsed.db or event_store_url()
     try:
         from sdd.commands.registry import REGISTRY, execute_and_project
         from sdd.infra.projections import get_current_state

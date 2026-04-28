@@ -60,7 +60,7 @@ class TestNextTasks:
     @patch("sdd.commands.next_tasks.parse_taskset")
     @patch("sdd.commands.next_tasks.get_current_state")
     @patch("sdd.commands.next_tasks.taskset_file")
-    @patch("sdd.commands.next_tasks.event_store_file")
+    @patch("sdd.commands.next_tasks.event_store_url")
     def _call(
         self,
         mock_store,

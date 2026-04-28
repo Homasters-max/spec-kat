@@ -25,7 +25,7 @@ from sdd.core.events import DomainEvent, classify_event_level
 from sdd.domain.metrics.aggregator import MetricsAggregator
 from sdd.infra.config_loader import load_config
 from sdd.infra.event_query import EventLogQuerier, QueryFilters
-from sdd.infra.paths import config_file, event_store_file, taskset_file
+from sdd.infra.paths import config_file, event_store_url, taskset_file
 
 _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 _DEFAULT_TIMEOUT_SECS = 300
@@ -131,10 +131,10 @@ class ValidateInvariantsHandler(CommandHandlerBase):
 
         timeout = command.timeout_secs if command.timeout_secs > 0 else _DEFAULT_TIMEOUT_SECS
 
-        # Build env from whitelist only — never os.environ pass-through (I-CMD-13)
+        # Build env from whitelist + mandatory passthrough (I-CMD-13, I-SUBPROCESS-ENV-1)
         env: dict[str, str] = {
             k: os.environ[k]
-            for k in command.env_whitelist
+            for k in (_ALWAYS_PASSTHROUGH | set(command.env_whitelist))
             if k in os.environ
         }
 
@@ -374,6 +374,13 @@ def _run_acceptance_check(
 
 _DEFAULT_ENV_WHITELIST = ("PATH", "HOME", "PYTHONPATH", "VIRTUAL_ENV")
 
+# I-SUBPROCESS-ENV-1: always passed to subprocess without explicit --env
+_ALWAYS_PASSTHROUGH: frozenset[str] = frozenset({
+    "SDD_DATABASE_URL",
+    "SDD_PROJECT",
+    "SDD_HOME",
+})
+
 
 def _run_full_src_check(invariant_id: str, config: dict[str, Any], cwd: str) -> int:
     """Scan source_root for the forbidden pattern matching invariant_id.
@@ -452,7 +459,7 @@ def main(args: list[str] | None = None) -> int:
     parsed = parser.parse_args(args)
 
     config_path = parsed.config or str(config_file())
-    db_path = parsed.db or str(event_store_file())
+    db_path = parsed.db or event_store_url()
 
     # --scope full-src + --check: dedicated invariant scan, no --phase required
     if parsed.scope == "full-src" and parsed.check:
@@ -502,7 +509,7 @@ def main(args: list[str] | None = None) -> int:
         if parsed.task:
             config = load_config(config_path)
             if config.get("build", {}).get("commands", {}).get("acceptance"):
-                env = {k: os.environ[k] for k in parsed.env if k in os.environ}
+                env = {k: os.environ[k] for k in (_ALWAYS_PASSTHROUGH | set(parsed.env)) if k in os.environ}
                 timeout = parsed.timeout if parsed.timeout > 0 else _DEFAULT_TIMEOUT_SECS
                 # Extract test result from build loop events (I-ACCEPT-REUSE-1)
                 # In task mode, test is intentionally skipped — treat as 0 (not failed)

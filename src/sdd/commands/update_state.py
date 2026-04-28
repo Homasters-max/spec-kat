@@ -26,7 +26,7 @@ from sdd.core.events import (
 from sdd.core.payloads import _unpack_payload, build_command
 from sdd.domain.state.yaml_state import read_state
 from sdd.domain.tasks.parser import parse_taskset
-from sdd.infra.paths import event_store_file, state_file, taskset_file
+from sdd.infra.paths import event_store_url, state_file, taskset_file
 from sdd.infra.projections import sync_projections
 
 # ---------------------------------------------------------------------------
@@ -391,8 +391,8 @@ def main(args: list[str] | None = None) -> int:
     p_comp.add_argument("task_id")
     p_comp.add_argument("--phase", type=int, default=None)
     p_comp.add_argument("--taskset", default=None)
-    p_comp.add_argument("--state", default=str(state_file()))
-    p_comp.add_argument("--db", default=str(event_store_file()))
+    p_comp.add_argument("--state", default=None)
+    p_comp.add_argument("--db", default=None)
 
     p_val = sub.add_parser("validate")
     p_val.add_argument("task_id", nargs="?")
@@ -400,18 +400,20 @@ def main(args: list[str] | None = None) -> int:
     p_val.add_argument("--result", choices=["PASS", "FAIL"], default=None)
     p_val.add_argument("--check-dod", action="store_true")
     p_val.add_argument("--taskset", default=None)
-    p_val.add_argument("--state", default=str(state_file()))
-    p_val.add_argument("--db", default=str(event_store_file()))
+    p_val.add_argument("--state", default=None)
+    p_val.add_argument("--db", default=None)
 
     p_sync = sub.add_parser("sync")
     p_sync.add_argument("--phase", type=int, default=None)
     p_sync.add_argument("--taskset", default=None)
-    p_sync.add_argument("--state", default=str(state_file()))
-    p_sync.add_argument("--db", default=str(event_store_file()))
+    p_sync.add_argument("--state", default=None)
+    p_sync.add_argument("--db", default=None)
 
     parsed = parser.parse_args(args)
     try:
-        phase_id = parsed.phase if parsed.phase is not None else _read_phase(parsed.state)
+        state_path = parsed.state or str(state_file())
+        db_path = parsed.db or event_store_url()
+        phase_id = parsed.phase if parsed.phase is not None else _read_phase(state_path)
         taskset = parsed.taskset or str(taskset_file(phase_id))
 
         if parsed.cmd == "complete":
@@ -440,10 +442,10 @@ def main(args: list[str] | None = None) -> int:
                     task_id=parsed.task_id,
                     phase_id=phase_id,
                     taskset_path=taskset,
-                    state_path=parsed.state,
+                    state_path=state_path,
                 ),
-                db_path=parsed.db,
-                state_path=parsed.state,
+                db_path=db_path,
+                state_path=state_path,
                 taskset_path=taskset,
             )
             status = "noop" if not events else "done"
@@ -456,10 +458,10 @@ def main(args: list[str] | None = None) -> int:
                     build_command(
                         "CheckDoD",
                         phase_id=phase_id,
-                        state_path=parsed.state,
+                        state_path=state_path,
                     ),
-                    db_path=parsed.db,
-                    state_path=parsed.state,
+                    db_path=db_path,
+                    state_path=state_path,
                 )
             else:
                 from sdd.commands.registry import REGISTRY, execute_and_project
@@ -472,19 +474,19 @@ def main(args: list[str] | None = None) -> int:
                         result=parsed.result,
                         check_dod=False,
                         taskset_path=taskset,
-                        state_path=parsed.state,
+                        state_path=state_path,
                     ),
-                    db_path=parsed.db,
-                    state_path=parsed.state,
+                    db_path=db_path,
+                    state_path=state_path,
                     taskset_path=taskset,
                 )
         elif parsed.cmd == "sync":
             from sdd.commands.registry import REGISTRY, execute_and_project
             execute_and_project(
                 REGISTRY["sync-state"],
-                build_command("SyncState", phase_id=phase_id, taskset_path=taskset, state_path=parsed.state),
-                db_path=parsed.db,
-                state_path=parsed.state,
+                build_command("SyncState", phase_id=phase_id, taskset_path=taskset, state_path=state_path),
+                db_path=db_path,
+                state_path=state_path,
                 taskset_path=taskset,
             )
         return 0

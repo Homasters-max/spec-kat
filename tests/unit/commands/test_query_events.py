@@ -1,12 +1,14 @@
 """Tests for commands/query_events.py.
 
-Invariants covered: I-QE-1, I-QE-2, I-QE-3, I-QE-4, I-PROJ-CONST-2
+Invariants covered: I-QE-1, I-QE-2, I-QE-3, I-QE-4, I-PROJ-CONST-2, I-CLI-DB-RESOLUTION-1
 """
 from __future__ import annotations
 
 import json
 import hashlib
 import time
+
+import unittest.mock
 
 import pytest
 
@@ -18,6 +20,23 @@ from sdd.commands.query_events import (
     QueryEventsResult,
     QueryHandler,
 )
+
+
+# ── test_query_events_argparse_no_eager_eval ─────────────────────────────────
+
+
+def test_query_events_argparse_no_eager_eval(tmp_db_path: str) -> None:
+    """event_store_url must NOT be called when --db is explicit (I-CLI-DB-RESOLUTION-1).
+
+    With eager eval (default=str(event_store_url())), the function is called at
+    add_argument() time — even when --db is provided on the CLI.
+    With lazy eval (default=None + post-parse resolution), it is never called when
+    --db is explicit.
+    """
+    from sdd.commands import query_events
+    with unittest.mock.patch("sdd.commands.query_events.event_store_url") as mock_url:
+        query_events.main(["--db", tmp_db_path, "--list-types"])
+    mock_url.assert_not_called()
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────

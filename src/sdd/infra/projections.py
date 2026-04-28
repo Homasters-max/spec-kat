@@ -23,7 +23,7 @@ from sdd.domain.state.reducer import EventReducer, SDDState
 from sdd.domain.state.yaml_state import read_state, write_state
 from sdd.infra.audit import atomic_write
 from sdd.infra.db import open_sdd_connection
-from sdd.infra.paths import event_store_file, state_file
+from sdd.infra.paths import state_file
 
 _TASK_HEADER_RE = re.compile(r"^(T-\d+[a-z]*):\s")  # I-TASK-ID-1: suffix support
 _STATUS_LINE_RE = re.compile(r"^(Status:\s+)(TODO|DONE)(.*)$")
@@ -44,7 +44,7 @@ def _read_yaml_phase_current(state_path: str) -> int:
 
 
 def rebuild_state(
-    db_path: str | None = None,
+    db_path: str,
     state_path: str | None = None,
     mode: RebuildMode = RebuildMode.STRICT,
 ) -> SDDState:
@@ -61,8 +61,6 @@ def rebuild_state(
     Delegates to get_current_state() for EventLog → SDDState mapping
     (I-PROJECTION-SHARED-CORE-1): replay logic is not duplicated here.
     """
-    if db_path is None:
-        db_path = str(event_store_file())
     if state_path is None:
         state_path = str(state_file())
 
@@ -74,7 +72,7 @@ def rebuild_state(
             )
 
     # I-PROJECTION-SHARED-CORE-1: single replay path — delegate, do not duplicate.
-    state: SDDState = get_current_state(db_path)
+    state: SDDState = get_current_state(db_path, full_replay=True)
 
     if mode == RebuildMode.STRICT:
         # I-PROJ-2: compat fallback for pre-Phase-5 EventLogs without activation events.
@@ -147,19 +145,43 @@ def rebuild_taskset(
     atomic_write(taskset_path, "".join(result))
 
 
-def get_current_state(db_path: str) -> SDDState:
+def _pg_max_seq(db_url: str) -> int:
+    """Query MAX sequence_id across all events (no filter) — O(1) index scan."""
+    from sdd.db.connection import is_postgres_url
+    if is_postgres_url(db_url):
+        sql = "SELECT COALESCE(MAX(sequence_id), 0) FROM event_log"
+    else:
+        sql = "SELECT COALESCE(MAX(seq), 0) FROM events"
+    conn = open_sdd_connection(db_url, read_only=True)
+    try:
+        row = conn.execute(sql).fetchone()
+        return int(row[0]) if row else 0
+    finally:
+        conn.close()
+
+
+def _read_yaml() -> SDDState | None:
+    """Read SDDState from State_index.yaml; return None if absent or unreadable."""
+    try:
+        return read_state(str(state_file()))
+    except Exception:
+        return None
+
+
+def _replay_from_event_log(db_url: str) -> SDDState:
     """Full EventLog replay from seq=0 — authoritative read path (I-PROJECTION-READ-1).
 
     Pure function: no YAML compat fallback, no caching, no partial replay.
     MUST be called only from guards and projections (I-STATE-ACCESS-LAYER-1).
     Filters out invalidated seqs (I-INVALID-2) before reducer dispatch.
+    Stamps snapshot_event_id = MAX(seq) so callers can persist a staleness sentinel.
 
     PG branch (BC-43): queries event_log+sequence_id; handles JSONB payload (psycopg3
     returns dict directly — isinstance guard prevents double-decode).
     DuckDB branch: events+seq, unchanged.
     """
     from sdd.db.connection import is_postgres_url
-    _pg = is_postgres_url(db_path)
+    _pg = is_postgres_url(db_url)
 
     if _pg:
         _inv_sql = (
@@ -178,7 +200,7 @@ def get_current_state(db_path: str) -> SDDState:
             "FROM events ORDER BY seq ASC"
         )
 
-    conn = open_sdd_connection(db_path, read_only=True)
+    conn = open_sdd_connection(db_url, read_only=True)
     try:
         inv_rows = conn.execute(_inv_sql).fetchall()
         invalidated_seqs: frozenset[int] = frozenset(
@@ -187,6 +209,8 @@ def get_current_state(db_path: str) -> SDDState:
         rows = conn.execute(_rows_sql).fetchall()
     finally:
         conn.close()
+
+    max_seq: int = rows[-1][0] if rows else 0
 
     events: list[dict] = []
     for seq, event_type, row_payload, level, event_source, caused_by_meta_seq in rows:
@@ -207,7 +231,33 @@ def get_current_state(db_path: str) -> SDDState:
         }
         event.update(payload)
         events.append(event)
-    return EventReducer().reduce(events)
+
+    state = EventReducer().reduce(events)
+    return dataclasses.replace(state, snapshot_event_id=max_seq)
+
+
+def get_current_state(db_url: str, full_replay: bool = False) -> SDDState:
+    """Read current state.
+
+    Default: YAML (O(1)). Falls back to replay if:
+    - full_replay=True (explicit, e.g. rebuild-state command)
+    - YAML absent or unreadable
+    - YAML stale: snapshot_event_id is None or snapshot_event_id < event_log.max_seq
+
+    I-STATE-READ-1: staleness guard prevents stale state from reaching guards.
+    """
+    if not full_replay:
+        yaml_state = _read_yaml()
+        if yaml_state is not None and yaml_state.snapshot_event_id is not None:
+            max_seq = _pg_max_seq(db_url)
+            if yaml_state.snapshot_event_id >= max_seq:
+                return yaml_state
+            logging.warning(
+                "State_index.yaml is stale (snapshot_event_id=%d < el_max=%d). Replaying.",
+                yaml_state.snapshot_event_id,
+                max_seq,
+            )
+    return _replay_from_event_log(db_url)
 
 
 def sync_projections(db_path: str, taskset_path: str, state_path: str) -> None:

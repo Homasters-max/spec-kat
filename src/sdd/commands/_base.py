@@ -19,7 +19,7 @@ from sdd.core.errors import SDDError
 from sdd.core.events import DomainEvent, ErrorEvent, EventLevel, SpecApproved
 from sdd.core.json_utils import canonical_json
 from sdd.core.types import Command
-from sdd.infra.event_log import EventLog
+from sdd.infra.event_log import EventLog, open_event_log
 
 _fallback_log = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def error_event_boundary(source: str) -> Callable:
                 return fn(self, command)
             except Exception as exc:
                 try:
-                    retry_count = EventLog(self._db_path).get_error_count(command.command_id)
+                    retry_count = open_event_log(self._db_path).get_error_count(command.command_id)
                 except Exception as count_exc:
                     _fallback_log.error(
                         "error_event_boundary get_error_count failed: %s; original: %s",
@@ -124,7 +124,7 @@ def apply_post_event_hooks(
                     context=(("message", str(move_exc)), ("spec_path", event.spec_path)),
                 )
                 try:
-                    EventLog(db_path).append([error_event], source="post_event_hook")
+                    open_event_log(db_path).append([error_event], source="post_event_hook")
                 except Exception:
                     _fallback_log.error(
                         "apply_post_event_hooks: failed to emit ErrorEvent for spec_path=%s: %s",
@@ -152,7 +152,7 @@ class CommandHandlerBase:
           2. Semantic:    exists_semantic(command_type, task_id, phase_id, payload_hash)
                           — prevents duplicate effects even with a new command_id
         """
-        el = EventLog(self._db_path)
+        el = open_event_log(self._db_path)
         if el.exists_command(command.command_id):
             return True
         return el.exists_semantic(

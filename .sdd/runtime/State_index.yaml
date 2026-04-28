@@ -14,35 +14,31 @@
 # (deterministic: all tasks done + invariants PASS + tests PASS).
 
 phase:
-  current: 43
+  current: 45
   status: COMPLETE
 plan:
-  version: 43
+  version: 45
   status: COMPLETE
 tasks:
-  version: 43
-  total: 11
-  completed: 11
+  version: 45
+  total: 7
+  completed: 7
   done_ids:
-  - T-4301
-  - T-4302
-  - T-4303
-  - T-4304
-  - T-4305
-  - T-4306
-  - T-4307
-  - T-4308
-  - T-4309
-  - T-4310
-  - T-4311
+  - T-4501
+  - T-4502
+  - T-4503
+  - T-4504
+  - T-4505
+  - T-4506
+  - T-4507
 invariants:
   status: PASS
 tests:
   status: PASS
 meta:
-  last_updated: '2026-04-28T12:42:02Z'
+  last_updated: '2026-04-28T15:47:46Z'
   schema_version: 1
-  snapshot_event_id: null
+  snapshot_event_id: 27329
   reducer_version: 2
 phases_known:
 - 15
@@ -65,6 +61,8 @@ phases_known:
 - 41
 - 42
 - 43
+- 44
+- 45
 phases_snapshots:
 - phase_id: 15
   phase_status: COMPLETE
@@ -491,5 +489,46 @@ phases_snapshots:
   tasks_version: 43
   invariants_status: PASS
   tests_status: PASS
+- phase_id: 44
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 14
+  tasks_completed: 14
+  tasks_done_ids:
+  - T-4401
+  - T-4402
+  - T-4403
+  - T-4404
+  - T-4405
+  - T-4406
+  - T-4407
+  - T-4408
+  - T-4409
+  - T-4410
+  - T-4411
+  - T-4412
+  - T-4413
+  - T-4414
+  plan_version: 44
+  tasks_version: 44
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 45
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 7
+  tasks_completed: 7
+  tasks_done_ids:
+  - T-4501
+  - T-4502
+  - T-4503
+  - T-4504
+  - T-4505
+  - T-4506
+  - T-4507
+  plan_version: 45
+  tasks_version: 45
+  invariants_status: PASS
+  tests_status: PASS
 
-# state_hash: e4c1447574963a931b60a01920048a117b118ffb4ed8e0e1d5a12e9f5b0ae23b
+# state_hash: a3a1492b34d4fc84bcf9a9a7e91281dd2fdf2b2affa69b23a20af917d454aed3

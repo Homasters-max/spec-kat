@@ -255,9 +255,9 @@ def record_decision(decision_id: str, title: str, summary: str, phase: int | Non
 
     from sdd.commands.record_decision import RecordDecisionCommand
     from sdd.commands.registry import REGISTRY, execute_and_project, get_current_state
+    from sdd.commands.registry import event_store_url
 
-    _root = _sdd_root()
-    _db = str(_root / "state" / "sdd_events.duckdb")
+    _db = event_store_url()
 
     if phase is None:
         state = get_current_state(_db)
@@ -287,9 +287,9 @@ def record_session(session_type: str, phase: int | None, task_id: str | None, pl
 
     from sdd.commands.record_session import RecordSessionCommand
     from sdd.commands.registry import REGISTRY, execute_and_project, get_current_state
+    from sdd.commands.registry import event_store_url
 
-    _root = _sdd_root()
-    _db = str(_root / "state" / "sdd_events.duckdb")
+    _db = event_store_url()
 
     if phase is None:
         state = get_current_state(_db)
@@ -316,9 +316,9 @@ def approve_spec_cmd(phase: int) -> None:
     import uuid
 
     from sdd.commands.registry import REGISTRY, execute_and_project
+    from sdd.commands.registry import event_store_url
 
-    _root = _sdd_root()
-    _db = str(_root / "state" / "sdd_events.duckdb")
+    _db = event_store_url()
 
     command = types.SimpleNamespace(
         command_id=str(uuid.uuid4()),
@@ -340,9 +340,9 @@ def amend_plan_cmd(phase: int, reason: str) -> None:
     import uuid
 
     from sdd.commands.registry import REGISTRY, execute_and_project
+    from sdd.commands.registry import event_store_url
 
-    _root = _sdd_root()
-    _db = str(_root / "state" / "sdd_events.duckdb")
+    _db = event_store_url()
 
     command = types.SimpleNamespace(
         command_id=str(uuid.uuid4()),
@@ -364,9 +364,9 @@ def rebuild_state_cmd(full: bool) -> None:
     import uuid
 
     from sdd.commands.registry import REGISTRY, execute_and_project
+    from sdd.commands.registry import event_store_url
 
-    _root = _sdd_root()
-    _db = str(_root / "state" / "sdd_events.duckdb")
+    _db = event_store_url()
 
     command = types.SimpleNamespace(
         command_id=str(uuid.uuid4()),

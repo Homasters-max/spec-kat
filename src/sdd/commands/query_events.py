@@ -8,7 +8,7 @@ from typing import Protocol
 
 from sdd.core.errors import SDDError
 from sdd.infra.event_query import EventLogQuerier, EventRecord, QueryFilters
-from sdd.infra.paths import event_store_file, reports_dir
+from sdd.infra.paths import event_store_url, reports_dir
 
 
 class QueryHandler(Protocol):
@@ -62,7 +62,7 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--order", choices=["ASC", "DESC"], default="ASC")
     parser.add_argument("--replay", action="store_true", help="Filter to L1 domain events")
     parser.add_argument("--json", action="store_true", dest="as_json")
-    parser.add_argument("--db", default=str(event_store_file()))
+    parser.add_argument("--db", default=None)
     parser.add_argument("--step", default=None, dest="task_id",
                         help="Filter by task ID (e.g. T-2911)")
     parser.add_argument("--include-bash", action="store_true",
@@ -72,6 +72,7 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("--list-types", action="store_true",
                         help="Print distinct event_type values and exit")
     parsed = parser.parse_args(args)
+    db_path = parsed.db or event_store_url()
     try:
         filters = QueryFilters(
             phase_id=parsed.phase,
@@ -81,7 +82,7 @@ def main(args: list[str] | None = None) -> int:
             order=parsed.order,
             task_id=parsed.task_id,
         )
-        result = QueryEventsHandler(parsed.db).execute(QueryEventsCommand(filters=filters))
+        result = QueryEventsHandler(db_path).execute(QueryEventsCommand(filters=filters))
         events = result.events
         if parsed.replay:
             events = tuple(e for e in events if e.level == "L1")

@@ -1,4 +1,7 @@
 {
+  "env": {
+    "SDD_DATABASE_URL": "postgresql://sdd:sdd@localhost:5432/sdd"
+  },
   "permissions": {
     "allow": [
       "Bash(PYTHONPATH=src python3 -c \"from sdd.commands.metrics_report import MetricsReportCommand, MetricsReportHandler; print\\('OK'\\)\")"

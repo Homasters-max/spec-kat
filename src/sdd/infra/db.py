@@ -80,10 +80,14 @@ def open_sdd_connection(
         return open_db_connection(db_path)
     if os.environ.get("PYTEST_CURRENT_TEST"):
         timeout_secs = 0.0
-        if is_production_event_store(db_path):
-            raise RuntimeError(
-                f"I-DB-TEST-1 violated: test must not open production DB '{db_path}'"
-            )
+        try:
+            if is_production_event_store(db_path):
+                raise RuntimeError(
+                    f"I-DB-TEST-1 violated: test must not open production DB '{db_path}'"
+                )
+        except EnvironmentError:
+            # SDD_DATABASE_URL not set → no production DB exists → DuckDB path is safe
+            pass
     import duckdb  # lazy — only reached in DuckDB branch (I-LAZY-DUCK-1)
     # In-memory connections have no file lock — skip retry entirely (I-LOCK-2)
     if db_path == ":memory:":

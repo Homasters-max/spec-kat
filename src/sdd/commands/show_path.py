@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+from urllib.parse import urlparse, urlunparse
 
 import yaml
 
@@ -19,6 +21,19 @@ from sdd.infra.paths import (
     state_file,
     taskset_file,
 )
+
+
+def _show_event_store_path() -> str:
+    """Return event store path/URL for diagnostic output.
+
+    BC-45-F: In PG mode, shows masked URL (no password). Fallback: DuckDB path.
+    """
+    pg_url = os.environ.get("SDD_DATABASE_URL")
+    if pg_url:
+        parsed = urlparse(pg_url)
+        safe = parsed._replace(netloc=parsed.netloc.rsplit("@", 1)[-1])
+        return f"[PG] {urlunparse(safe)}"
+    return str(event_store_file())
 
 
 def _read_phase_from_state() -> int:
@@ -68,7 +83,7 @@ def main(args: list[str] | None = None) -> int:
         return 0
 
     if resource == "eventlog":
-        print(str(event_store_file().resolve()))
+        print(_show_event_store_path())
         return 0
 
     if resource == "config":

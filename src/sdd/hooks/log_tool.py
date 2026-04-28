@@ -90,8 +90,9 @@ def main() -> None:
     hook_event_name: str = payload.get("hook_event_name", "")
     tool_input: dict = payload.get("tool_input") or {}
     timestamp_ms = int(time.time() * 1000)
-    from sdd.infra.paths import event_store_file  # noqa: PLC0415
-    db = os.environ.get("SDD_DB_PATH") or str(event_store_file())
+    from sdd.infra.paths import event_store_url  # noqa: PLC0415
+    # SDD_DB_PATH — legacy override for subprocess context
+    db = os.environ.get("SDD_DB_PATH") or event_store_url()
 
     event_type = ""
     event_payload: dict = {}
