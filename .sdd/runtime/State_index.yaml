@@ -14,22 +14,33 @@
 # (deterministic: all tasks done + invariants PASS + tests PASS).
 
 phase:
-  current: 42
-  status: ACTIVE
+  current: 43
+  status: COMPLETE
 plan:
-  version: 42
-  status: ACTIVE
+  version: 43
+  status: COMPLETE
 tasks:
-  version: 42
-  total: 12
-  completed: 0
-  done_ids: []
+  version: 43
+  total: 11
+  completed: 11
+  done_ids:
+  - T-4301
+  - T-4302
+  - T-4303
+  - T-4304
+  - T-4305
+  - T-4306
+  - T-4307
+  - T-4308
+  - T-4309
+  - T-4310
+  - T-4311
 invariants:
-  status: UNKNOWN
+  status: PASS
 tests:
-  status: UNKNOWN
+  status: PASS
 meta:
-  last_updated: '2026-04-27T21:51:11Z'
+  last_updated: '2026-04-28T12:42:02Z'
   schema_version: 1
   snapshot_event_id: null
   reducer_version: 2
@@ -50,8 +61,10 @@ phases_known:
 - 32
 - 33
 - 34
+- 35
 - 41
 - 42
+- 43
 phases_snapshots:
 - phase_id: 15
   phase_status: COMPLETE
@@ -395,6 +408,24 @@ phases_snapshots:
   tasks_version: 34
   invariants_status: PASS
   tests_status: PASS
+- phase_id: 35
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 8
+  tasks_completed: 8
+  tasks_done_ids:
+  - T-3501
+  - T-3502
+  - T-3503
+  - T-3504
+  - T-3505
+  - T-3506
+  - T-3507
+  - T-3508
+  plan_version: 35
+  tasks_version: 35
+  invariants_status: PASS
+  tests_status: PASS
 - phase_id: 41
   phase_status: COMPLETE
   plan_status: COMPLETE
@@ -418,14 +449,47 @@ phases_snapshots:
   invariants_status: PASS
   tests_status: PASS
 - phase_id: 42
-  phase_status: ACTIVE
-  plan_status: ACTIVE
+  phase_status: COMPLETE
+  plan_status: COMPLETE
   tasks_total: 12
-  tasks_completed: 0
-  tasks_done_ids: []
+  tasks_completed: 12
+  tasks_done_ids:
+  - T-4201
+  - T-4202
+  - T-4203
+  - T-4204
+  - T-4205
+  - T-4206
+  - T-4207
+  - T-4208
+  - T-4209
+  - T-4210
+  - T-4211
+  - T-4212
   plan_version: 42
   tasks_version: 42
-  invariants_status: UNKNOWN
-  tests_status: UNKNOWN
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 43
+  phase_status: COMPLETE
+  plan_status: COMPLETE
+  tasks_total: 11
+  tasks_completed: 11
+  tasks_done_ids:
+  - T-4301
+  - T-4302
+  - T-4303
+  - T-4304
+  - T-4305
+  - T-4306
+  - T-4307
+  - T-4308
+  - T-4309
+  - T-4310
+  - T-4311
+  plan_version: 43
+  tasks_version: 43
+  invariants_status: PASS
+  tests_status: PASS
 
-# state_hash: 9c40654e1ace14cfe0b732c90364d615627c4d48152653c4a6e9a5e5eb961e60
+# state_hash: e4c1447574963a931b60a01920048a117b118ffb4ed8e0e1d5a12e9f5b0ae23b

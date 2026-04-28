@@ -1,16 +1,16 @@
 # TaskSet_v42 — Phase 42: Docker CI Infrastructure for PostgreSQL
 
-Spec: specs/Spec_v40_DockerCIInfrastructure.md
+Spec: specs/Spec_v42_DockerCIInfrastructure.md
 Plan: plans/Plan_v42.md
 
 ---
 
 T-4201: Refactor `sdd.db.connection` public API
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-0
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-0
 Invariants:           I-DB-1, I-DB-TEST-2
-spec_refs:            [Spec_v40 §2 BC-40-0, I-DB-1, I-DB-TEST-2]
+spec_refs:            [Spec_v42 §2 BC-40-0, I-DB-1, I-DB-TEST-2]
 produces_invariants:  [I-DB-1]
 requires_invariants:  []
 Inputs:               src/sdd/db/connection.py
@@ -22,10 +22,10 @@ Depends on:           —
 
 T-4202: Export new API from `sdd.db.__init__`
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-0
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-0
 Invariants:           I-DB-1
-spec_refs:            [Spec_v40 §2 BC-40-0, I-DB-1]
+spec_refs:            [Spec_v42 §2 BC-40-0, I-DB-1]
 produces_invariants:  [I-DB-1]
 requires_invariants:  [I-DB-1]
 Inputs:               src/sdd/db/__init__.py, src/sdd/db/connection.py
@@ -37,10 +37,10 @@ Depends on:           T-4201
 
 T-4203: Update callers to new API (BC-40-0a)
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-0a
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-0a
 Invariants:           I-DB-1, I-DB-TEST-1, I-DB-TEST-2
-spec_refs:            [Spec_v40 §2 BC-40-0a, I-DB-1, I-DB-TEST-1]
+spec_refs:            [Spec_v42 §2 BC-40-0a, I-DB-1, I-DB-TEST-1]
 produces_invariants:  [I-DB-TEST-1]
 requires_invariants:  [I-DB-1]
 Inputs:               src/sdd/commands/init_project.py, src/sdd/commands/analytics_refresh.py, tests/test_db_connection.py, tests/unit/commands/test_init_project.py
@@ -52,10 +52,10 @@ Depends on:           T-4201, T-4202
 
 T-4204: Create `docker-compose.yml` with postgres:16-alpine
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-1
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-1
 Invariants:           I-CI-PG-4
-spec_refs:            [Spec_v40 §2 BC-40-1, I-CI-PG-4]
+spec_refs:            [Spec_v42 §2 BC-40-1, I-CI-PG-4]
 produces_invariants:  [I-CI-PG-4]
 requires_invariants:  []
 Inputs:               —
@@ -67,10 +67,10 @@ Depends on:           —
 
 T-4205: Create `scripts/dev-up.sh`
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-5
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-5
 Invariants:           I-CI-PG-4
-spec_refs:            [Spec_v40 §2 BC-40-5, I-CI-PG-4]
+spec_refs:            [Spec_v42 §2 BC-40-5, I-CI-PG-4]
 produces_invariants:  [I-CI-PG-4]
 requires_invariants:  [I-CI-PG-4]
 Inputs:               docker-compose.yml
@@ -82,10 +82,10 @@ Depends on:           T-4204
 
 T-4206: Add Makefile targets `pg-up`, `pg-down`, `ci-pg`
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-5
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-5
 Invariants:           I-CI-PG-4
-spec_refs:            [Spec_v40 §2 BC-40-5, I-CI-PG-4]
+spec_refs:            [Spec_v42 §2 BC-40-5, I-CI-PG-4]
 produces_invariants:  [I-CI-PG-4]
 requires_invariants:  [I-CI-PG-4]
 Inputs:               Makefile, docker-compose.yml
@@ -97,10 +97,10 @@ Depends on:           T-4204
 
 T-4207: Update `pyproject.toml` — postgres extra, pg marker, scripts/ pythonpath
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-6
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-6
 Invariants:           I-CI-PG-3, I-DB-SCHEMA-1
-spec_refs:            [Spec_v40 §2 BC-40-6, §5 Invariants, I-CI-PG-3]
+spec_refs:            [Spec_v42 §2 BC-40-6, §5 Invariants, I-CI-PG-3]
 produces_invariants:  [I-CI-PG-3]
 requires_invariants:  []
 Inputs:               pyproject.toml
@@ -112,10 +112,10 @@ Depends on:           —
 
 T-4208: Update `tests/conftest.py` — pg_url and pg_conn fixtures
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-4
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-4
 Invariants:           I-CI-PG-2, I-CI-PG-3, I-DB-TEST-1, I-DB-SCHEMA-1
-spec_refs:            [Spec_v40 §2 BC-40-4, §5 Invariants, I-CI-PG-2, I-CI-PG-3, I-DB-TEST-1]
+spec_refs:            [Spec_v42 §2 BC-40-4, §5 Invariants, I-CI-PG-2, I-CI-PG-3, I-DB-TEST-1]
 produces_invariants:  [I-CI-PG-2, I-CI-PG-3]
 requires_invariants:  [I-DB-1]
 Inputs:               tests/conftest.py, src/sdd/db/connection.py
@@ -127,10 +127,10 @@ Depends on:           T-4201, T-4207
 
 T-4209: Create `tests/integration/test_pg_init_project.py`
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-3; §7 Use Cases
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-3; §7 Use Cases
 Invariants:           I-CI-PG-1, I-CI-PG-2, I-DB-SCHEMA-1
-spec_refs:            [Spec_v40 §2 BC-40-3, §7, I-CI-PG-1, I-DB-SCHEMA-1]
+spec_refs:            [Spec_v42 §2 BC-40-3, §7, I-CI-PG-1, I-DB-SCHEMA-1]
 produces_invariants:  [I-CI-PG-1]
 requires_invariants:  [I-CI-PG-2, I-CI-PG-3, I-DB-1]
 Inputs:               src/sdd/commands/init_project.py, tests/conftest.py
@@ -142,10 +142,10 @@ Depends on:           T-4203, T-4208
 
 T-4210: Create `tests/integration/test_pg_migration.py`
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-3; §9 Verification
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-3; §9 Verification
 Invariants:           I-CI-PG-1, I-CI-PG-3, I-STATE-REBUILD-1
-spec_refs:            [Spec_v40 §2 BC-40-3, §9, I-CI-PG-3, I-STATE-REBUILD-1]
+spec_refs:            [Spec_v42 §2 BC-40-3, §9, I-CI-PG-3, I-STATE-REBUILD-1]
 produces_invariants:  [I-STATE-REBUILD-1]
 requires_invariants:  [I-CI-PG-2, I-CI-PG-3, I-DB-1]
 Inputs:               scripts/migrate_duckdb_to_pg.py, tests/conftest.py
@@ -157,10 +157,10 @@ Depends on:           T-4208
 
 T-4211: Create `tests/integration/test_pg_rebuild_state.py`
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-3; §9 Verification
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-3; §9 Verification
 Invariants:           I-CI-PG-2, I-DB-TEST-1, I-DB-SCHEMA-1
-spec_refs:            [Spec_v40 §2 BC-40-3, §9, I-CI-PG-2, I-DB-TEST-1]
+spec_refs:            [Spec_v42 §2 BC-40-3, §9, I-CI-PG-2, I-DB-TEST-1]
 produces_invariants:  [I-CI-PG-2]
 requires_invariants:  [I-CI-PG-2, I-CI-PG-3, I-DB-1]
 Inputs:               src/sdd/commands/rebuild_state.py, tests/conftest.py
@@ -172,10 +172,10 @@ Depends on:           T-4208
 
 T-4212: Create `.github/workflows/ci.yml`
 
-Status:               TODO
-Spec ref:             Spec_v40 §2 Architecture/BCs — BC-40-2; §6 Pre/Post Conditions; §9 Verification
+Status:               DONE
+Spec ref:             Spec_v42 §2 Architecture/BCs — BC-40-2; §6 Pre/Post Conditions; §9 Verification
 Invariants:           I-CI-PG-1, I-CI-PG-4
-spec_refs:            [Spec_v40 §2 BC-40-2, §6, §9, I-CI-PG-1, I-CI-PG-4]
+spec_refs:            [Spec_v42 §2 BC-40-2, §6, §9, I-CI-PG-1, I-CI-PG-4]
 produces_invariants:  [I-CI-PG-1, I-CI-PG-4]
 requires_invariants:  [I-CI-PG-4]
 Inputs:               docker-compose.yml, pyproject.toml, tests/integration/test_pg_init_project.py, tests/integration/test_pg_migration.py, tests/integration/test_pg_rebuild_state.py

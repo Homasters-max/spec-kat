@@ -1,6 +1,6 @@
 # Spec_v35 — Phase 35: Test Harness Elevation
 
-Status: Draft
+Status: Approved
 Baseline: Spec_v34_EventLogDeepModule.md
 
 ---
@@ -53,9 +53,12 @@ Phase 35 устраняет оба паттерна в тестах поведе
 ### BC-35-1: Idempotency Tests → execute_sequence Double-Call
 
 **Файлы:**
-- `tests/unit/commands/test_validate_invariants.py` — ~10 вхождений `patch.object(handler, "_check_idempotent")`
+- `tests/unit/commands/test_validate_invariants.py` — ~20 вхождений `patch.object(handler, "_check_idempotent")`
 - `tests/unit/commands/test_validate_timeout.py` — 2 вхождения
 - `tests/unit/commands/test_check_dod.py` — 6 вхождений
+- `tests/unit/commands/test_amend_plan.py` — 1 вхождение (добавлен в Phase 40+)
+- `tests/unit/commands/test_validate_invariants_v31.py` — 1 вхождение
+- `tests/unit/commands/test_sync_state.py` — 1 вхождение (обнаружен при реализации, R-3)
 
 **Текущий паттерн (заменить):**
 ```python
@@ -110,7 +113,7 @@ assert ("TaskImplemented",) in rows
 
 **Новый паттерн (предпочтительный):**
 ```python
-from sdd.infra.event_log import EventLogQuerier
+from sdd.infra.event_query import EventLogQuerier
 
 querier = EventLogQuerier(db_path)
 events = querier.query()
@@ -155,7 +158,7 @@ Phase 35 не эмитирует новых domain events.
 |-----|--------|------------|
 | `execute_sequence(cmds, db_path)` | `tests/harness/api.py` | Double-call idempotency test |
 | `REGISTRY["<name>"].spec` | `sdd.commands.registry` | Получить CommandSpec без ручного конструирования |
-| `EventLogQuerier(db_path).query()` | `sdd.infra.event_log` | Публичный запрос событий |
+| `EventLogQuerier(db_path).query()` | `sdd.infra.event_query` | Публичный запрос событий |
 | `get_current_state(db_path)` | `sdd.infra.projections` | Текущее состояние через проекцию |
 
 ---

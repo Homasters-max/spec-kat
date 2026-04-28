@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import hashlib
 import types
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 
@@ -29,6 +31,14 @@ from sdd.domain.state.reducer import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class _AmendCmd:
+    command_id: str
+    phase_id: int
+    reason: str = "test reason"
+    actor: str = "human"
+
+
 def _make_state_with_status(phase_status: str) -> Any:
     from dataclasses import replace
     return replace(EMPTY_STATE, phase_status=phase_status)
@@ -38,12 +48,8 @@ def _guard_ctx(phase_status: str) -> Any:
     return types.SimpleNamespace(state=_make_state_with_status(phase_status))
 
 
-def _mock_cmd(phase_id: int, reason: str = "test reason", actor: str = "human") -> Any:
-    cmd = MagicMock()
-    cmd.phase_id = phase_id
-    cmd.reason = reason
-    cmd.actor = actor
-    return cmd
+def _mock_cmd(phase_id: int, reason: str = "test reason", actor: str = "human") -> _AmendCmd:
+    return _AmendCmd(command_id=str(uuid4()), phase_id=phase_id, reason=reason, actor=actor)
 
 
 def _phase_init_event(phase_id: int, plan_hash: str = "") -> dict:
@@ -108,17 +114,16 @@ class TestAmendPlanGuard:
 class TestAmendPlanHandler:
     """Unit-tests for the pure handle() logic.
 
-    @error_event_boundary adds idempotency check via DuckDB; we patch _check_idempotent
-    to False (not yet seen) so the pure handler body runs without a real DB.
+    Uses a fresh DuckDB in tmp_path — _check_idempotent returns False naturally
+    (command_id not yet seen), so the handler body runs without patching internals.
     """
 
     def _handler(self, tmp_path: Path) -> AmendPlanHandler:
         return AmendPlanHandler(db_path=str(tmp_path / "sdd_test.duckdb"))
 
     def _run(self, handler: AmendPlanHandler, cmd: Any, plan_path: Path) -> list:
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            with patch("sdd.commands.amend_plan.plan_file", return_value=plan_path):
-                return handler.handle(cmd)
+        with patch("sdd.commands.amend_plan.plan_file", return_value=plan_path):
+            return handler.handle(cmd)
 
     def test_returns_plan_amended_event(self, tmp_path: Path) -> None:
         """§9 #3: handler returns [PlanAmended] — I-HANDLER-PURE-1."""

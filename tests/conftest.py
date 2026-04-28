@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import pathlib
 import shutil
 import tempfile
@@ -7,6 +8,7 @@ from collections.abc import Generator
 
 import pytest
 
+from sdd.db.connection import open_db_connection
 from sdd.infra.db import open_sdd_connection
 from sdd.infra.paths import reset_sdd_root
 
@@ -94,6 +96,24 @@ def _test_postgres_schema(monkeypatch: pytest.MonkeyPatch) -> None:
     Sets SDD_PROJECT=test_default so open_sdd_connection resolves schema=p_test_default.
     """
     monkeypatch.setenv("SDD_PROJECT", "test_default")
+
+
+@pytest.fixture()
+def pg_url() -> str:
+    """I-CI-PG-2: skip test when SDD_DATABASE_URL is not configured."""
+    url = os.environ.get("SDD_DATABASE_URL", "")
+    if not url:
+        pytest.skip("SDD_DATABASE_URL not set — PostgreSQL tests skipped")
+    return url
+
+
+@pytest.fixture()
+def pg_conn(pg_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[object, None, None]:
+    """I-CI-PG-3: isolated PostgreSQL connection using schema p_test_pg."""
+    monkeypatch.setenv("SDD_PROJECT", "test_pg")
+    conn = open_db_connection(pg_url)
+    yield conn
+    conn.close()
 
 
 @pytest.fixture(autouse=True)

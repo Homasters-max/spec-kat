@@ -24,6 +24,28 @@ def event_store_file() -> Path:
     return get_sdd_root() / "state" / "sdd_events.duckdb"
 
 
+def event_store_url() -> str:
+    """Single routing point: PG URL if SDD_DATABASE_URL set; else DuckDB file path.
+
+    I-EVENT-STORE-URL-1: single backend determination point.
+    """
+    pg_url = os.environ.get("SDD_DATABASE_URL")
+    if pg_url:
+        return pg_url
+    return str(event_store_file())
+
+
+def is_production_event_store(db_path: str) -> bool:
+    """True if db_path refers to the production event store.
+
+    I-PROD-GUARD-1: unified guard for DuckDB (file path) and PG (URL) backends.
+    """
+    pg_url = os.environ.get("SDD_DATABASE_URL")
+    if pg_url:
+        return db_path == pg_url
+    return Path(db_path).resolve() == event_store_file().resolve()
+
+
 def state_file() -> Path:
     return get_sdd_root() / "runtime" / "State_index.yaml"
 

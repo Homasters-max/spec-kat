@@ -10,7 +10,7 @@ def test_open_sdd_connection_raises_lock_timeout_error(tmp_path):
     """Lock exhaustion must raise DuckDBLockTimeoutError, not raw IOException (I-LOCK-1)."""
     db_path = str(tmp_path / "test.db")
     lock_error = duckdb.IOException("Could not set lock on file")
-    with patch("sdd.infra.db.duckdb.connect", side_effect=lock_error):
+    with patch("duckdb.connect", side_effect=lock_error):
         with pytest.raises(DuckDBLockTimeoutError):
             open_sdd_connection(db_path=db_path, timeout_secs=0.1)
 
@@ -26,7 +26,7 @@ def test_open_sdd_connection_raises_io_error_immediately(tmp_path):
         call_count += 1
         raise io_error
 
-    with patch("sdd.infra.db.duckdb.connect", side_effect=side_effect):
+    with patch("duckdb.connect", side_effect=side_effect):
         with pytest.raises(duckdb.IOException):
             open_sdd_connection(db_path=db_path, timeout_secs=5.0)
     assert call_count == 1

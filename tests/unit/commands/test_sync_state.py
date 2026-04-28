@@ -4,6 +4,8 @@ Invariants: I-CMD-1, I-CMD-8, I-PK-5, I-SYNC-1
 """
 from __future__ import annotations
 
+import json
+import time
 import uuid
 from unittest.mock import MagicMock, patch
 
@@ -53,8 +55,7 @@ class TestEmitFirst:
         Emit-first ordering is enforced by execute_and_project in the Write Kernel,
         not by SyncStateHandler.handle() itself.
         """
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            handler.handle(_command())
+        handler.handle(_command())
 
         mock_sync.assert_not_called()
 
@@ -72,8 +73,7 @@ class TestEventEmission:
         """Returned events contain exactly one StateSynced event with correct fields."""
         cmd = _command(phase_id=4)
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            events = handler.handle(cmd)
+        events = handler.handle(cmd)
 
         assert len(events) == 1
         ev = events[0]
@@ -94,8 +94,23 @@ class TestIdempotency:
         self, mock_sync, handler
     ):
         """Duplicate command_id returns [] with no sync calls (I-CMD-1)."""
-        with patch.object(handler, "_check_idempotent", return_value=True):
-            result = handler.handle(_command())
+        cmd = _command()
+
+        conn = open_sdd_connection(handler._db_path)
+        try:
+            conn.execute(
+                "INSERT INTO events (seq, event_id, event_type, payload, appended_at) "
+                "VALUES (nextval('sdd_event_seq'), ?, 'StateSynced', ?, ?)",
+                [
+                    str(uuid.uuid4()),
+                    json.dumps({"command_id": cmd.command_id, "_source": "test"}),
+                    int(time.time() * 1000),
+                ],
+            )
+        finally:
+            conn.close()
+
+        result = handler.handle(cmd)
 
         assert result == []
         mock_sync.assert_not_called()
@@ -118,8 +133,7 @@ class TestAtomicWrite:
         """
         cmd = _command(taskset_path="fake/TaskSet_v4.md", state_path="fake/State_index.yaml")
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            handler.handle(cmd)
+        handler.handle(cmd)
 
         mock_sync.assert_not_called()
 
@@ -128,8 +142,7 @@ class TestAtomicWrite:
         self, mock_sync, handler
     ):
         """handle() never calls sync_projections — the handler is purely functional (I-KERNEL-WRITE-1)."""
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            events = handler.handle(_command())
+        events = handler.handle(_command())
 
         mock_sync.assert_not_called()
         assert len(events) == 1

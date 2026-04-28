@@ -62,8 +62,7 @@ class TestHappyPath:
         """PhaseCompleted + MetricRecorded returned when all DoD conditions met (I-CMD-5)."""
         mock_read_state.return_value = _state()
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            events = handler.handle(_command(phase_id=4))
+        events = handler.handle(_command(phase_id=4))
 
         assert len(events) == 2
         event_types = {e.event_type for e in events}
@@ -93,9 +92,8 @@ class TestDoDConditions:
         """DoDNotMet raised when tasks.completed < tasks.total (I-CMD-5)."""
         mock_read_state.return_value = _state(tasks_completed=3, tasks_total=5)
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            with pytest.raises(DoDNotMet, match="not all tasks DONE"):
-                handler.handle(_command())
+        with pytest.raises(DoDNotMet, match="not all tasks DONE"):
+            handler.handle(_command())
 
     @patch("sdd.commands.update_state.read_state")
     def test_check_dod_raises_if_invariants_fail(
@@ -104,9 +102,8 @@ class TestDoDConditions:
         """DoDNotMet raised when invariants.status != PASS (I-CMD-5)."""
         mock_read_state.return_value = _state(invariants_status="FAIL")
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            with pytest.raises(DoDNotMet, match="invariants not PASS"):
-                handler.handle(_command())
+        with pytest.raises(DoDNotMet, match="invariants not PASS"):
+            handler.handle(_command())
 
     @patch("sdd.commands.update_state.read_state")
     def test_check_dod_raises_if_tests_fail(
@@ -115,9 +112,8 @@ class TestDoDConditions:
         """DoDNotMet raised when tests.status != PASS (I-CMD-5)."""
         mock_read_state.return_value = _state(tests_status="FAIL")
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            with pytest.raises(DoDNotMet, match="tests not PASS"):
-                handler.handle(_command())
+        with pytest.raises(DoDNotMet, match="tests not PASS"):
+            handler.handle(_command())
 
 
 # ---------------------------------------------------------------------------
@@ -135,8 +131,7 @@ class TestPurity:
         """
         mock_read_state.return_value = _state()
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            events = handler.handle(_command())
+        events = handler.handle(_command())
 
         assert len(events) == 2
 
@@ -153,8 +148,7 @@ class TestBatchAtomicity:
         """handle() returns [PhaseCompleted, MetricRecorded] as a single batch for kernel to commit (I-ES-1)."""
         mock_read_state.return_value = _state()
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            events = handler.handle(_command())
+        events = handler.handle(_command())
 
         assert len(events) == 2
         event_types = {e.event_type for e in events}

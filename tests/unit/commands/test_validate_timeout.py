@@ -61,7 +61,7 @@ def handler(tmp_path):
 @patch("sdd.commands.validate_invariants.os.getpgid", return_value=12345)
 @patch("sdd.commands.validate_invariants.os.killpg")
 @patch("sdd.commands.validate_invariants.load_config")
-@patch("sdd.commands.validate_invariants.subprocess.Popen")
+@patch("sdd.commands.validate_invariants.subprocess.Popen")  # subprocess boundary — intentional
 def test_timeout_records_124_and_continues(
     mock_popen, mock_load, mock_killpg, mock_getpgid, handler
 ):
@@ -78,8 +78,7 @@ def test_timeout_records_124_and_continues(
     ok_proc = _popen_mock(returncode=0)
     mock_popen.side_effect = [timeout_proc, ok_proc]
 
-    with patch.object(handler, "_check_idempotent", return_value=False):
-        events = handler.handle(_command())
+    events = handler.handle(_command())
 
     assert mock_popen.call_count == 2
 
@@ -95,14 +94,13 @@ def test_timeout_records_124_and_continues(
 
 
 @patch("sdd.commands.validate_invariants.load_config")
-@patch("sdd.commands.validate_invariants.subprocess.Popen")
+@patch("sdd.commands.validate_invariants.subprocess.Popen")  # subprocess boundary — intentional
 def test_uses_start_new_session(mock_popen, mock_load, handler):
     """All Popen calls in build loop MUST use start_new_session=True (I-CMD-7)."""
     mock_load.return_value = _fake_config("lint", "checks")
     mock_popen.return_value = _popen_mock()
 
-    with patch.object(handler, "_check_idempotent", return_value=False):
-        handler.handle(_command())
+    handler.handle(_command())
 
     for i, c in enumerate(mock_popen.call_args_list):
         assert c.kwargs.get("start_new_session") is True, (

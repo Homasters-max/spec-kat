@@ -1,5 +1,6 @@
 .PHONY: lint typecheck test check-handler-purity check ci \
-        vr-fast vr-full vr-stress vr-mutation vr-release
+        vr-fast vr-full vr-stress vr-mutation vr-release \
+        pg-up pg-down ci-pg
 
 lint:
 	ruff check src/
@@ -102,3 +103,12 @@ vr-release:
 check: lint typecheck test check-handler-purity
 
 ci: check vr-fast
+
+pg-up:
+	@./scripts/dev-up.sh
+
+pg-down:
+	docker compose down -v
+
+ci-pg:
+	pytest tests/integration/ -m pg -v --tb=short

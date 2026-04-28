@@ -7,9 +7,9 @@ name = "sdd"
 version = "0.8.0"
 requires-python = ">=3.12"
 dependencies = [
-    "duckdb>=0.10",
     "PyYAML>=6.0",
     "click>=8.0",
+    "psycopg[binary]>=3.1",
 ]
 
 [project.scripts]
@@ -47,8 +47,11 @@ explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "scripts"]
 addopts = "--tb=short --timeout=30"
+markers = [
+    "pg: tests that require a live PostgreSQL connection",
+]
 
 [tool.coverage.run]
 source = ["sdd"]

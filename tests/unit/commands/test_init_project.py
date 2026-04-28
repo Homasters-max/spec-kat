@@ -66,7 +66,7 @@ class TestInitProjectHandler:
         """Acceptance criterion: --name foo → schema p_foo + shared.projects record."""
         conn, cursor = _make_mock_conn()
 
-        with patch("sdd.commands.init_project.open_sdd_connection", return_value=conn):
+        with patch("sdd.commands.init_project.open_db_connection", return_value=conn):
             handler = InitProjectHandler(db_path)
             events = handler.handle(_cmd("foo"))
 
@@ -89,14 +89,14 @@ class TestInitProjectHandler:
     def test_db_schema_naming_rule(self, db_path):
         """I-DB-SCHEMA-1: schema MUST be p_{name}."""
         conn, _ = _make_mock_conn()
-        with patch("sdd.commands.init_project.open_sdd_connection", return_value=conn):
+        with patch("sdd.commands.init_project.open_db_connection", return_value=conn):
             events = InitProjectHandler(db_path).handle(_cmd("myproject"))
         assert events[0].db_schema == "p_myproject"
 
     def test_empty_name_raises(self, db_path):
         """I-DB-SCHEMA-1: empty name must be rejected before any DB call."""
         conn, _ = _make_mock_conn()
-        with patch("sdd.commands.init_project.open_sdd_connection", return_value=conn):
+        with patch("sdd.commands.init_project.open_db_connection", return_value=conn):
             with pytest.raises(Exception):
                 InitProjectHandler(db_path).handle(_cmd(""))
         conn.cursor.assert_not_called()
@@ -104,7 +104,7 @@ class TestInitProjectHandler:
     def test_invalid_name_raises(self, db_path):
         """I-DB-SCHEMA-1: names with special chars are rejected (SQL injection guard)."""
         conn, _ = _make_mock_conn()
-        with patch("sdd.commands.init_project.open_sdd_connection", return_value=conn):
+        with patch("sdd.commands.init_project.open_db_connection", return_value=conn):
             with pytest.raises(Exception, match="I-DB-SCHEMA-1"):
                 InitProjectHandler(db_path).handle(_cmd("bad name!"))
         conn.cursor.assert_not_called()
@@ -114,7 +114,7 @@ class TestInitProjectHandler:
         conn, cursor = _make_mock_conn()
         cursor.execute.side_effect = RuntimeError("db error")
 
-        with patch("sdd.commands.init_project.open_sdd_connection", return_value=conn):
+        with patch("sdd.commands.init_project.open_db_connection", return_value=conn):
             with pytest.raises(Exception):
                 InitProjectHandler(db_path).handle(_cmd("foo"))
 

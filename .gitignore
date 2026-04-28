@@ -22,11 +22,11 @@ htmlcov/
 .mypy_cache/
 
 # SDD governance (local only — not part of source code)
-.ser/
 fake/
 sdd_plan.md
 sdd_v1/
 .sdd/state/sdd_events.duckdb
+obsidian-vault/
 
 # OS
 .DS_Store

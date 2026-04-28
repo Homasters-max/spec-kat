@@ -6,11 +6,12 @@ import pathlib
 
 import pytest
 
-from sdd.db.connection import _resolve_url, open_sdd_connection
+from sdd.db import open_db_connection
+from sdd.db.connection import _resolve_url
 
 
 # ---------------------------------------------------------------------------
-# I-DB-1: open_sdd_connection(db_url) — db_url MUST be explicit non-empty str
+# I-DB-1: open_db_connection(db_url) — db_url MUST be explicit non-empty str
 # ---------------------------------------------------------------------------
 
 
@@ -36,20 +37,20 @@ class TestResolveUrl:
 class TestOpenSddConnectionIDB1:
     def test_empty_url_raises(self) -> None:
         with pytest.raises(ValueError, match="I-DB-1"):
-            open_sdd_connection("")
+            open_db_connection("")
 
     def test_none_without_env_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("SDD_DATABASE_URL", raising=False)
         with pytest.raises(ValueError, match="I-DB-1"):
-            open_sdd_connection(None)
+            open_db_connection(None)
 
     def test_memory_url_opens_duckdb(self) -> None:
-        conn = open_sdd_connection(":memory:")
+        conn = open_db_connection(":memory:")
         assert conn is not None
         conn.close()
 
     def test_file_url_opens_duckdb(self, tmp_db_path: str) -> None:
-        conn = open_sdd_connection(tmp_db_path)
+        conn = open_db_connection(tmp_db_path)
         assert conn is not None
         conn.close()
 
@@ -57,7 +58,7 @@ class TestOpenSddConnectionIDB1:
         self, monkeypatch: pytest.MonkeyPatch, tmp_db_path: str
     ) -> None:
         monkeypatch.setenv("SDD_DATABASE_URL", tmp_db_path)
-        conn = open_sdd_connection(None)
+        conn = open_db_connection(None)
         assert conn is not None
         conn.close()
 
@@ -88,7 +89,7 @@ class TestProductionDbIsolation:
         """I-DB-TEST-1: :memory: connections must not open any file path."""
         prod_db = pathlib.Path(".sdd/state/sdd_events.duckdb")
         mtime_before = prod_db.stat().st_mtime_ns if prod_db.exists() else None
-        conn = open_sdd_connection(":memory:")
+        conn = open_db_connection(":memory:")
         conn.close()
         if prod_db.exists() and mtime_before is not None:
             assert prod_db.stat().st_mtime_ns == mtime_before, (
@@ -129,6 +130,6 @@ class TestTestContextBehavior:
         """I-DB-TEST-2: DuckDB file connection in test context must open (fail-fast, not block)."""
         assert os.environ.get("PYTEST_CURRENT_TEST")
         assert os.environ.get("SDD_DB_TIMEOUT_SECS") == "0.0"
-        conn = open_sdd_connection(tmp_db_path)
+        conn = open_db_connection(tmp_db_path)
         assert conn is not None
         conn.close()

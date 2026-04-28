@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import os
 import time
-from pathlib import Path
+from typing import Any
 
-import duckdb
-
-from sdd.infra.paths import event_store_file
+from sdd.infra.paths import is_production_event_store
 
 _LOCK_RETRY_INTERVAL = 0.25  # seconds between retries
 _LOCK_ERROR_MARKER = "Could not set lock"
@@ -64,29 +62,29 @@ def open_sdd_connection(
     db_path: str,
     timeout_secs: float = 10.0,
     read_only: bool = False,
-) -> duckdb.DuckDBPyConnection:
-    """Open (or create) a DuckDB connection and ensure the v2 schema is present.
+) -> Any:
+    """Open (or create) a DB connection and ensure schema is present.
 
-    Idempotent: N calls on the same path all succeed with identical schema (I-PK-1).
-    Restarts the sequence on every call so seq is strictly increasing across
-    reconnections (I-EL-5b). See CLAUDE.md §0.12 SDD-SEQ-1.
+    Routes PG URLs to sdd.db.connection.open_db_connection (BC-43-B).
+    For DuckDB paths: idempotent schema setup, sequence restart, lock retry.
 
-    read_only=True: skips _restart_sequence for callers that never INSERT.  The
-    sequence state is left unchanged; the next write connection will restart it.
-    This is safe because sequence restarts are idempotent and only matter before
-    the first nextval() call on a connection.
+    read_only=True: skips _restart_sequence for callers that never INSERT.
 
     Retries up to timeout_secs if the file lock is held by another process,
     sleeping _LOCK_RETRY_INTERVAL between attempts. Non-lock errors raise immediately.
     """
     if not db_path:
         raise ValueError("I-DB-1 violated")
+    from sdd.db.connection import is_postgres_url, open_db_connection
+    if is_postgres_url(db_path):
+        return open_db_connection(db_path)
     if os.environ.get("PYTEST_CURRENT_TEST"):
         timeout_secs = 0.0
-        if Path(db_path).resolve() == event_store_file().resolve():
+        if is_production_event_store(db_path):
             raise RuntimeError(
                 f"I-DB-TEST-1 violated: test must not open production DB '{db_path}'"
             )
+    import duckdb  # lazy — only reached in DuckDB branch (I-LAZY-DUCK-1)
     # In-memory connections have no file lock — skip retry entirely (I-LOCK-2)
     if db_path == ":memory:":
         conn = duckdb.connect(db_path)
@@ -115,7 +113,7 @@ def open_sdd_connection(
     raise AssertionError("unreachable")  # noqa: unreachable
 
 
-def _restart_sequence(conn: duckdb.DuckDBPyConnection) -> None:
+def _restart_sequence(conn: Any) -> None:
     """Recreate sdd_event_seq starting at max(SDD_SEQ_CHECKPOINT, current_max + 1)."""
     row = conn.execute("SELECT COALESCE(MAX(seq), 0) FROM events").fetchone()
     current_max: int = row[0] if row and row[0] is not None else 0
@@ -123,7 +121,7 @@ def _restart_sequence(conn: duckdb.DuckDBPyConnection) -> None:
     conn.execute(f"CREATE OR REPLACE SEQUENCE sdd_event_seq START {next_seq}")
 
 
-def ensure_sdd_schema(conn: duckdb.DuckDBPyConnection) -> None:
+def ensure_sdd_schema(conn: Any) -> None:
     """Create the events table + sequence if absent, then run pending migrations.
 
     Schema version is persisted in sdd_schema_meta so migrations run at most once

@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  unit:
+    name: lint + mypy + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check src tests
+
+      - name: Type check
+        run: mypy src
+
+      - name: Unit tests
+        run: pytest tests/ -m "not pg" --cov=sdd --cov-report=term-missing
+
+  pg-integration:
+    name: pg-integration (Python ${{ matrix.python-version }} / PG ${{ matrix.pg-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+        pg-version: ["15", "16"]
+
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg-version }}-alpine
+        env:
+          POSTGRES_USER: sdd
+          POSTGRES_PASSWORD: sdd
+          POSTGRES_DB: sdd
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sdd -d sdd"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 5s
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev,postgres]"
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -U sdd -d sdd && break
+            echo "Waiting for postgres... attempt $i"
+            sleep 2
+          done
+          pg_isready -h localhost -U sdd -d sdd
+
+      - name: Run pg integration tests
+        env:
+          SDD_DATABASE_URL: postgresql://sdd:sdd@localhost:5432/sdd
+        run: pytest tests/integration/ -m pg -v

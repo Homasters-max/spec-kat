@@ -12,6 +12,7 @@ import dataclasses
 import hashlib
 import json
 import logging
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -61,7 +62,7 @@ from sdd.domain.guards.task_guard import make_task_guard
 from sdd.domain.norms.catalog import load_catalog
 from sdd.domain.state.reducer import SDDState
 from sdd.domain.tasks.parser import Task, parse_taskset
-from sdd.infra.event_log import EventLog, EventLogError
+from sdd.infra.event_log import EventLog, EventLogError, EventLogKernelProtocol
 from sdd.infra.paths import (
     audit_log_file,
     event_store_file,
@@ -572,6 +573,42 @@ def _default_build_guards(spec: CommandSpec, cmd: Any) -> list[Any]:
 
 
 # ---------------------------------------------------------------------------
+# Projector helpers (BC-43-F)
+# ---------------------------------------------------------------------------
+
+def _build_projector_if_configured() -> Any:  # Projector | None
+    """Construct Projector from SDD_DATABASE_URL if set (BC-43-F, I-PROJ-SAFE-1)."""
+    pg_url = os.environ.get("SDD_DATABASE_URL")
+    if not pg_url:
+        return None
+    try:
+        from sdd.infra.projector import Projector  # lazy: avoid circular at module level
+        return Projector(pg_url)
+    except Exception as exc:
+        _log.warning("_build_projector_if_configured: cannot build Projector: %s", exc)
+        return None
+
+
+def _apply_projector_safe(projector: Any, events: list[DomainEvent]) -> None:
+    """Apply events to Projector; swallow exceptions (I-PROJ-SAFE-1, I-FAIL-1).
+
+    Projector failure MUST NOT propagate — TX1 (event_log INSERT) is already committed.
+    YAML rebuild (step 3 of execute_and_project) runs regardless of failure here.
+    """
+    if projector is None or not events:
+        return
+    for event in events:
+        try:
+            projector.apply(event)
+        except Exception as exc:
+            _log.warning(
+                "Projector failed for %s: %s — Run sdd rebuild-state to recover (I-PROJ-SAFE-1)",
+                event.event_type,
+                exc,
+            )
+
+
+# ---------------------------------------------------------------------------
 # Write Kernel: execute_command
 # ---------------------------------------------------------------------------
 
@@ -582,22 +619,25 @@ def execute_command(
     state_path: str | None = None,
     taskset_path: str | None = None,
     norm_path: str | None = None,
+    event_log: EventLogKernelProtocol | None = None,
 ) -> list[DomainEvent]:
     """Write Kernel: build GuardContext → guard pipeline → handler (pure) → EventLog.append.
 
     Implements Spec_v15 §2 BC-15-REGISTRY steps 0–5 (A-7..A-22).
+    event_log: injected EventLog implementation (I-ELK-PROTO-1); defaults to EventLog(db_path).
     """
     with kernel_context("execute_command"):
         _db  = db_path    or str(event_store_file())
         _st  = state_path or str(state_file())
         _ts_override = taskset_path   # A-18: deferred — resolved from state.phase_current after step 1
         _nrm = norm_path  or str(norm_catalog_file())
+        _el: EventLogKernelProtocol = event_log if event_log is not None else EventLog(_db)
 
         # Step 0: stable idempotency key + per-execution trace correlation (A-7, A-9)
         command_id = compute_command_id(cmd)          # A-7: payload-only, stable across all retries
         context_hash: str = "FAIL:UNKNOWN"            # A-10: overwritten on success or exc type known
         try:
-            head_seq: int | None = EventLog(_db).max_seq()
+            head_seq: int | None = _el.max_seq()
         except Exception:
             head_seq = None                            # A-9: trace_id fallback path
         trace_id = compute_trace_id(cmd, head_seq)    # A-9: None-safe; diagnostic per-execution ID
@@ -664,7 +704,7 @@ def execute_command(
                 trace_id=trace_id, context_hash=context_hash, error_code=7,
             )
             try:
-                EventLog(_db).append([error_event], source="kernel_invariant_check")
+                _el.append([error_event], source="kernel_invariant_check")
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise KernelInvariantError("I-GUARD-REASON-1: DENY result must populate reason")
@@ -680,7 +720,7 @@ def execute_command(
                 trace_id=trace_id, context_hash=context_hash, error_code=1,
             )
             try:
-                EventLog(_db).append(audit_events + [error_event], source="guards")
+                _el.append(audit_events + [error_event], source="guards")
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise GuardViolationError(guard_result.message)
@@ -700,7 +740,7 @@ def execute_command(
                 trace_id=trace_id, context_hash=context_hash, error_code=error_code,
             )
             try:
-                EventLog(_db).append(error_events + [error_event], source="error_boundary")
+                _el.append(error_events + [error_event], source="error_boundary")
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise
@@ -713,7 +753,7 @@ def execute_command(
         if handler_events:
             effective_command_id = command_id if spec.idempotent else str(uuid.uuid4())
             try:
-                EventLog(_db).append(
+                _el.append(
                     handler_events,
                     source=spec.handler_class.__module__,
                     command_id=effective_command_id,
@@ -728,7 +768,7 @@ def execute_command(
                     trace_id=trace_id, context_hash=context_hash, error_code=6,
                 )
                 try:
-                    EventLog(_db).append([error_event], source="optimistic_lock")
+                    _el.append([error_event], source="optimistic_lock")
                 except Exception:
                     _write_error_to_audit_log(error_event)
                 raise
@@ -781,12 +821,26 @@ def execute_and_project(
     state_path: str | None = None,
     taskset_path: str | None = None,
     norm_path: str | None = None,
+    projector: Any = None,  # Projector | None
 ) -> list[DomainEvent]:
-    """CLI convenience: execute_command → project_all(spec.projection).
+    """CLI convenience: execute_command → _apply_projector_safe → project_all(spec.projection).
 
+    Pipeline (BC-43-F):
+      TX1: execute_command (event_log INSERT)
+      TX2: _apply_projector_safe (p_* UPDATE, swallows exceptions — I-PROJ-SAFE-1)
+      TX3: project_all → YAML rebuild (conditional on spec.projection)
     PROJECT-stage failures emit ErrorEvent to audit_log.jsonl (A-16, I-ERROR-1).
     """
     events = execute_command(spec, cmd, db_path, state_path, taskset_path, norm_path)
+
+    # Step 2: TX2 — apply to p_* tables via Projector (BC-43-F, I-PROJ-SAFE-1)
+    _proj = projector if projector is not None else _build_projector_if_configured()
+    try:
+        _apply_projector_safe(_proj, events)
+    finally:
+        if _proj is not None and projector is None:
+            _proj.close()
+
     if spec.projection == ProjectionType.NONE:
         return events
 

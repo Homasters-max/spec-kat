@@ -1,62 +1,85 @@
 # Plan_v35 — Phase 35: Test Harness Elevation
 
 Status: DRAFT
-Spec: — (spec не утверждён; план — черновик до формального DRAFT_SPEC сессии)
+Spec: specs/Spec_v35_TestHarnessElevation.md
 
 ---
 
-## Контекст
+## Logical Context
 
-Источник: grilling-сессия /improve-codebase-architecture, кандидат №5.
-Суть: два точечных анти-паттерна в тестах поведения команд:
-- `patch.object(handler, "_check_idempotent", ...)` — патчит приватный метод, хрупок при переименовании
-- `conn.execute("SELECT event_type FROM events")` — читает строки таблицы вместо публичного state-интерфейса
-
-Принятые исключения (не трогаем):
-- `test_db.py` — корректные unit-тесты DB-модуля через его собственный интерфейс
-- `patch("subprocess.Popen")` — внешняя граница (процесс ОС), документируем как `# subprocess boundary — intentional`
+```
+type: none
+rationale: "Стандартная фаза улучшения качества тестов. Устраняет хрупкие анти-паттерны
+            в тестах поведения команд без изменений src/."
+```
 
 ---
 
 ## Milestones
 
-### M1: Идемпотентные тесты переходят на execute_sequence
+### M1: BC-35-1 — Заменить patch.object → execute_sequence в крупных файлах
 
 ```text
-Затронуто:  tests/unit/commands/test_validate_invariants.py (класс TestIdempotency)
-            tests/unit/commands/ — любые другие файлы с patch.object(handler, "_check_idempotent")
-Подход:     execute_sequence([(spec, cmd)], db_path) вызвать дважды с одним command_id;
-            проверить, что второй вызов вернул [] (нет новых events) — через replay()
-            или прямо по длине результата.
-Leverage:   тест проверяет реальный механизм idempotency (EventStore dedup),
-            а не внутренний guard метода handler.
+Spec:       §2 BC-35-1, §5 I-TEST-IDEM-1
+BCs:        BC-35-1
+Invariants: I-TEST-IDEM-1
+Файлы:      tests/unit/commands/test_validate_invariants.py (~20 вхождений)
+            tests/unit/commands/test_check_dod.py (6 вхождений)
+Подход:     Для каждого теста с patch.object(handler, "_check_idempotent"):
+            1. cmd_id = uuid4(); cmd = Command(command_id=cmd_id, ...)
+            2. events1, _ = execute_sequence([(spec, cmd)], db_path=db_path)
+            3. assert len(events1) > 0
+            4. cmd2 = Command(command_id=cmd_id, ...); тот же command_id
+            5. events2, _ = execute_sequence([(spec, cmd2)], db_path=db_path)
+            6. assert events2 == []
+            spec = REGISTRY["<name>"].spec — не конструировать вручную
 Depends:    — (harness/api.py::execute_sequence уже работает)
-Risks:      Нужен CommandSpec для ValidateInvariants в тесте — брать из registry,
-            не конструировать руками, чтобы не сломаться при изменении полей.
+Risks:      R-1: command_id ДОЛЖЕН быть одинаковым в обоих вызовах
 ```
 
-### M2: Прямые SELECT для проверки state заменяются на get_current_state / replay
+### M2: BC-35-1 — Заменить patch.object → execute_sequence в малых файлах
 
 ```text
-Затронуто:  tests/unit/infra/test_metrics.py (test_record_metric_batch_with_task_completed,
-            test_i_m_1_enforced — та часть где conn.execute("SELECT event_type FROM events"))
-            tests/unit/ — любые другие файлы с open_sdd_connection + SELECT для state assertion
-Подход:     вместо conn.execute("SELECT event_type FROM events").fetchall() →
-            state = get_current_state(db_path) или events_list = EventLogQuerier(...).query(...)
-            через публичный интерфейс.
-            Для test_i_m_1_enforced — исключение: патч _FailingConn тестирует атомарность
-            транзакции (не state inspection), оставить as-is.
-Leverage:   рефакторинг схемы events-таблицы не ломает тесты поведения.
-Depends:    M1 (порядок произвольный, но M1 проще — делать первым)
-Risks:      get_current_state читает projection через DuckDB; если projection не включает
-            нужное поле — тест потребует EventLogQuerier вместо get_current_state.
-            Проверить заранее какие поля доступны в SDDState.
+Spec:       §2 BC-35-1, §5 I-TEST-IDEM-1
+BCs:        BC-35-1
+Invariants: I-TEST-IDEM-1
+Файлы:      tests/unit/commands/test_validate_timeout.py (2 вхождения)
+            tests/unit/commands/test_amend_plan.py (1 вхождение)
+            tests/unit/commands/test_validate_invariants_v31.py (1 вхождение)
+            tests/unit/commands/test_sync_state.py (1 вхождение, R-3 — добавлен после обнаружения)
+Подход:     Тот же double-call паттерн, что в M1.
+            Добавить комментарий # subprocess boundary — intentional
+            там где patch("subprocess.Popen") оставляется нетронутым.
+Depends:    M1 (паттерн отработан)
+Risks:      Проверить что REGISTRY содержит нужные команды для test_amend_plan
+            и test_validate_invariants_v31.
+```
+
+### M3: BC-35-2 — Заменить raw SQL state assertions → EventLogQuerier
+
+```text
+Spec:       §2 BC-35-2, §5 I-TEST-STATE-1
+BCs:        BC-35-2
+Invariants: I-TEST-STATE-1
+Файлы:      tests/unit/infra/test_metrics.py (строки 22-34 и 72-73)
+Подход:     test_record_metric_batch_with_task_completed (строки 22-34):
+              conn.execute("SELECT event_type, level FROM events ...") →
+              from sdd.infra.event_query import EventLogQuerier
+              EventLogQuerier(tmp_db_path).query() → проверить по event_type атрибуту
+            test_i_m_1_enforced (строка 72-73):
+              conn.execute("SELECT event_type FROM events") →
+              EventLogQuerier(tmp_db_path).query()
+              Добавить # atomicity test — intentional internal patch к _FailingConn
+              (_FailingConn класс оставить нетронутым)
+Depends:    M1, M2 (порядок произвольный)
+Risks:      R-2: если нужное поле отсутствует в SDDState — EventLogQuerier,
+            не get_current_state; проверить заранее
 ```
 
 ---
 
 ## Risk Notes
 
-- R-1: CommandSpec в тестах — не конструировать `ValidateInvariantsCommand` с `command_id=uuid4()` руками для idempotency-теста. Использовать один и тот же `command_id` в обоих вызовах `execute_sequence`, иначе idempotency-check не сработает.
-- R-2: `test_i_m_1_enforced` — `_FailingConn` патчит `commit()` для проверки атомарности. Это не state inspection anti-pattern — это тест транзакционной семантики. Оставить, добавить комментарий `# atomicity test — intentional internal patch`.
-- R-3: Масштаб небольшой. Если при поиске других `patch.object(handler, "_check_idempotent")` найдётся больше 5 файлов — остановиться и сообщить человеку перед продолжением.
+- R-1: `command_id` ДОЛЖЕН быть одинаковым в обоих вызовах `execute_sequence`. Разные `uuid4()` — idempotency-check не сработает (EventStore deduplication по `command_id`).
+- R-2: `_FailingConn` в `test_i_m_1_enforced` — тест атомарности транзакции, не state inspection. Оставить. Добавить `# atomicity test — intentional internal patch`.
+- R-3: Итого 6 файлов с `patch.object(handler, "_check_idempotent")` — порог >5 сработал, человек уведомлён, `test_sync_state.py` добавлен в scope явно. R-3 закрыт.

@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from sdd.infra.db import open_sdd_connection
+from sdd.infra.event_query import EventLogQuerier, QueryFilters
 from sdd.infra.metrics import get_phase_metrics, record_metric
 
 
@@ -19,19 +20,15 @@ def test_record_metric_batch_with_task_completed(tmp_db_path: str) -> None:
         db_path=tmp_db_path,
     )
 
-    conn = open_sdd_connection(tmp_db_path)
-    rows = conn.execute(
-        "SELECT event_type, level FROM events ORDER BY seq ASC"
-    ).fetchall()
-    conn.close()
+    records = EventLogQuerier(tmp_db_path).query(QueryFilters())
 
-    event_types = [r[0] for r in rows]
+    event_types = [r.event_type for r in records]
     assert len(event_types) == 2
     assert "TaskCompleted" in event_types
     assert "MetricRecorded" in event_types
     # MetricRecorded is always L2
-    metric_row = next(r for r in rows if r[0] == "MetricRecorded")
-    assert metric_row[1] == "L2"
+    metric_row = next(r for r in records if r.event_type == "MetricRecorded")
+    assert metric_row.level == "L2"
 
 
 def test_i_m_1_enforced(tmp_db_path: str) -> None:
@@ -69,10 +66,8 @@ def test_i_m_1_enforced(tmp_db_path: str) -> None:
             record_metric("latency", 1.0, task_id="T-001", db_path=tmp_db_path)
 
     # Both events must be absent — the transaction was rolled back
-    conn = real_open(tmp_db_path)
-    rows = conn.execute("SELECT event_type FROM events").fetchall()
-    conn.close()
-    assert rows == [], (
+    records = EventLogQuerier(tmp_db_path).query(QueryFilters())
+    assert records == (), (
         "Neither TaskCompleted nor MetricRecorded should be present after failed batch"
     )
 

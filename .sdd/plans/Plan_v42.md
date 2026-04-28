@@ -1,7 +1,7 @@
 # Plan_v42 — Phase 42: Docker CI Infrastructure for PostgreSQL
 
 Status: DRAFT
-Spec: specs/Spec_v40_DockerCIInfrastructure.md
+Spec: specs/Spec_v42_DockerCIInfrastructure.md
 
 ---
 

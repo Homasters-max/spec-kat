@@ -274,8 +274,7 @@ class TestHandlerPurity:
         handler = ValidateInvariantsHandler(db_path=tmp_db_path)
         cmd = _command(cwd="/project")
 
-        with patch.object(handler, "_check_idempotent", return_value=False):
-            events = handler.handle(cmd)
+        events = handler.handle(cmd)
 
         # Handler is a pure emitter — DB must be empty after handle()
         conn = open_sdd_connection(tmp_db_path, read_only=True)

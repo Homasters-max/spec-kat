@@ -174,6 +174,25 @@ def test_idx_event_type_exists_after_ensure_schema(tmp_path: pathlib.Path) -> No
     conn.close()
 
 
+def test_open_sdd_connection_no_top_level_duckdb_import() -> None:
+    """I-LAZY-DUCK-1: import of sdd.infra.db must succeed without duckdb installed."""
+    import sys
+
+    code = (
+        "import sys\n"
+        "sys.modules['duckdb'] = None\n"  # block duckdb
+        "import sdd.infra.db\n"  # must not raise
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, (
+        f"I-LAZY-DUCK-1 violated: sdd.infra.db import failed without duckdb:\n{result.stderr}"
+    )
+
+
 def test_dep_audit_no_sdd_db_in_src() -> None:
     """I-DEP-AUDIT-1: no live src/ code references legacy sdd_db or sdd_event_log modules."""
     result = subprocess.run(
