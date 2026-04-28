@@ -13,7 +13,7 @@ from typing import Any
 
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.events import DomainEvent, EventLevel
-from sdd.db.connection import open_sdd_connection
+from sdd.db import open_db_connection
 
 # Explicit column maps — SELECT * forbidden (I-DB-SCHEMA-1)
 _ALL_EVENTS_VIEW = (
@@ -71,7 +71,7 @@ class AnalyticsRefreshHandler(CommandHandlerBase):
 
         db_schema = f"p_{name}"
 
-        conn = open_sdd_connection(db_url=db_url)
+        conn = open_db_connection(db_url=db_url)
         try:
             cur = conn.cursor()
             cur.execute("CREATE SCHEMA IF NOT EXISTS analytics")

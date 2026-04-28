@@ -12,7 +12,7 @@ from typing import Any
 
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.events import DomainEvent, EventLevel
-from sdd.db.connection import open_sdd_connection
+from sdd.db import open_db_connection
 
 _VALID_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -58,7 +58,7 @@ class InitProjectHandler(CommandHandlerBase):
         db_schema = f"p_{name}"
         project_id = str(uuid.uuid4())
 
-        conn = open_sdd_connection(db_url=db_url)
+        conn = open_db_connection(db_url=db_url)
         try:
             cur = conn.cursor()
             # BC-32-0: shared schema + projects table
