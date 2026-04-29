@@ -6,7 +6,7 @@ Tests 6–7: command and guard parity (T-1309)
 Tests 8–9: state sync and sys.modules (T-1310)
 Tests 10–11: projection and CLI consistency (T-1311)
 
-All tests use tmp_path-isolated DuckDB — never touches sdd_events.duckdb (I-EXEC-ISOL-1).
+All tests use tmp_db_path (PostgreSQL) — never touches production DB (I-EXEC-ISOL-1).
 """
 from __future__ import annotations
 
@@ -24,13 +24,12 @@ from sdd.infra.event_log import EventInput, sdd_append, sdd_append_batch, sdd_re
 # ---------------------------------------------------------------------------
 
 _EXPECTED_COLUMNS = {
-    "seq",
-    "partition_key",
+    "sequence_id",
     "event_id",
     "event_type",
     "payload",
-    "schema_version",
-    "appended_at",
+    "metadata",
+    "created_at",
     "level",
     "event_source",
     "caused_by_meta_seq",
@@ -39,14 +38,13 @@ _EXPECTED_COLUMNS = {
 }
 
 
-def test_db_schema_parity(tmp_path):
-    """I-RUNTIME-1: open_sdd_connection creates events table with the full v2 schema."""
-    db = str(tmp_path / "schema_test.duckdb")
-    conn = open_sdd_connection(db)
+def test_db_schema_parity(tmp_db_path: str):
+    """I-RUNTIME-1: open_sdd_connection creates event_log table with the full schema."""
+    conn = open_sdd_connection(tmp_db_path)
     try:
         rows = conn.execute(
             "SELECT column_name FROM information_schema.columns "
-            "WHERE table_name = 'events' ORDER BY column_name"
+            "WHERE table_name = 'event_log' ORDER BY column_name"
         ).fetchall()
     finally:
         conn.close()
@@ -61,24 +59,23 @@ def test_db_schema_parity(tmp_path):
 # Test 2: event append parity (I-RUNTIME-1)
 # ---------------------------------------------------------------------------
 
-def test_event_append_parity(tmp_path):
+def test_event_append_parity(tmp_db_path: str):
     """I-RUNTIME-1: sdd_append writes an event readable back with correct fields."""
-    db = str(tmp_path / "append_test.duckdb")
     payload = {"phase_id": 1, "task_id": "T-001", "actor": "llm"}
 
     sdd_append(
         "TaskImplemented",
         payload,
-        db_path=db,
+        db_path=tmp_db_path,
         level="L1",
         event_source="runtime",
     )
 
-    conn = open_sdd_connection(db)
+    conn = open_sdd_connection(tmp_db_path)
     try:
         rows = conn.execute(
             "SELECT event_type, level, event_source, expired "
-            "FROM events WHERE event_type = 'TaskImplemented'"
+            "FROM event_log WHERE event_type = 'TaskImplemented'"
         ).fetchall()
     finally:
         conn.close()
@@ -203,22 +200,18 @@ def test_state_yaml_roundtrip(tmp_path):
 # Test 5: event order determinism (I-BEHAVIOR-SEQ-1)
 # ---------------------------------------------------------------------------
 
-def test_event_order_determinism(tmp_path):
-    """I-BEHAVIOR-SEQ-1: same input trace → identical EventLog sequence."""
-    db1 = str(tmp_path / "run1.duckdb")
-    db2 = str(tmp_path / "run2.duckdb")
+def test_event_order_determinism(tmp_db_path: str):
+    """I-BEHAVIOR-SEQ-1: sdd_replay() is stable across multiple calls on the same DB."""
+    _append_task_trace(tmp_db_path)
 
-    _append_task_trace(db1)
-    _append_task_trace(db2)
-
-    events1 = sdd_replay(db_path=db1)
-    events2 = sdd_replay(db_path=db2)
+    events1 = sdd_replay(db_path=tmp_db_path)
+    events2 = sdd_replay(db_path=tmp_db_path)
 
     seq1 = [(e["event_type"], i) for i, e in enumerate(events1)]
     seq2 = [(e["event_type"], i) for i, e in enumerate(events2)]
 
     assert seq1 == seq2, (
-        f"Event sequences differ.\n  run1: {seq1}\n  run2: {seq2}"
+        f"Event sequences differ.\n  call1: {seq1}\n  call2: {seq2}"
     )
 
 
@@ -261,13 +254,12 @@ _TASKSET_TODO = textwrap.dedent("""\
 """)
 
 
-def test_command_event_equivalence(tmp_path):
+def test_command_event_equivalence(tmp_path, tmp_db_path: str):
     """I-RUNTIME-1 + I-STATE-SYNC-1: execute_and_project emits TaskImplemented and syncs state."""
     from sdd.commands.registry import REGISTRY, execute_and_project
     from sdd.core.payloads import build_command
     from sdd.domain.state.yaml_state import read_state
 
-    db = str(tmp_path / "events.duckdb")
     state_path = str(tmp_path / "State_index.yaml")
     taskset_path = str(tmp_path / "TaskSet_v1.md")
 
@@ -278,19 +270,19 @@ def test_command_event_equivalence(tmp_path):
         "PhaseInitialized",
         {"phase_id": 1, "tasks_total": 1, "plan_version": 1,
          "actor": "test-seed", "timestamp": "2026-01-01T00:00:00Z"},
-        db_path=db, level="L1", event_source="runtime",
+        db_path=tmp_db_path, level="L1", event_source="runtime",
     )
 
     execute_and_project(
         REGISTRY["complete"],
         build_command("CompleteTask", task_id="T-001", phase_id=1,
                       taskset_path=taskset_path, state_path=state_path),
-        db_path=db,
+        db_path=tmp_db_path,
         state_path=state_path,
         taskset_path=taskset_path,
     )
 
-    events = sdd_replay(db_path=db)
+    events = sdd_replay(db_path=tmp_db_path)
     ti_events = [e for e in events if e["event_type"] == "TaskImplemented"]
     assert len(ti_events) == 1, f"Expected 1 TaskImplemented event, got {len(ti_events)}"
     assert ti_events[0]["payload"]["task_id"] == "T-001"
@@ -384,7 +376,7 @@ _MINIMAL_STATE_YAML = textwrap.dedent("""\
 """)
 
 
-def test_state_always_synced_after_command(tmp_path):
+def test_state_always_synced_after_command(tmp_path, tmp_db_path: str):
     """I-STATE-SYNC-1: State_index.yaml updated before sdd complete process exits."""
     import subprocess
 
@@ -392,7 +384,6 @@ def test_state_always_synced_after_command(tmp_path):
 
     taskset_path = tmp_path / "TaskSet_v1.md"
     state_path = tmp_path / "State_index.yaml"
-    db_path = tmp_path / "events.duckdb"
 
     taskset_path.write_text(_TASKSET_TODO, encoding="utf-8")
     state_path.write_text(_MINIMAL_STATE_YAML, encoding="utf-8")
@@ -402,7 +393,7 @@ def test_state_always_synced_after_command(tmp_path):
         "PhaseInitialized",
         {"phase_id": 1, "tasks_total": 1, "plan_version": 1,
          "actor": "test-seed", "timestamp": "2026-01-01T00:00:00Z"},
-        db_path=str(db_path), level="L1", event_source="runtime",
+        db_path=tmp_db_path, level="L1", event_source="runtime",
     )
 
     result = subprocess.run(
@@ -411,7 +402,7 @@ def test_state_always_synced_after_command(tmp_path):
             "--phase", "1",
             "--taskset", str(taskset_path),
             "--state", str(state_path),
-            "--db", str(db_path),
+            "--db", tmp_db_path,
         ],
         capture_output=True,
         text=True,
@@ -451,15 +442,12 @@ def test_no_runtime_import_of_sdd_tools(tmp_path):
 # Test 10: projection equivalence (I-RUNTIME-1, I-BEHAVIOR-SEQ-1)
 # ---------------------------------------------------------------------------
 
-def test_projection_equivalence(tmp_path):
+def test_projection_equivalence(tmp_path, tmp_db_path: str):
     """I-RUNTIME-1, I-BEHAVIOR-SEQ-1: rebuild_state produces same counts as EventReducer.reduce()."""
-    import json as _json
-
     from sdd.domain.state.reducer import EventReducer, SDDState
     from sdd.domain.state.yaml_state import read_state, write_state
     from sdd.infra.projections import rebuild_state
 
-    db_path = str(tmp_path / "events.duckdb")
     state_path = str(tmp_path / "State_index.yaml")
 
     initial = SDDState(
@@ -472,34 +460,35 @@ def test_projection_equivalence(tmp_path):
     write_state(initial, state_path)
 
     sdd_append("TaskImplemented", {"task_id": "T-001", "phase_id": 1},
-               db_path=db_path, level="L1", event_source="runtime")
+               db_path=tmp_db_path, level="L1", event_source="runtime")
     sdd_append("TaskImplemented", {"task_id": "T-002", "phase_id": 1},
-               db_path=db_path, level="L1", event_source="runtime")
+               db_path=tmp_db_path, level="L1", event_source="runtime")
 
     # Path 1: projections.py rebuild_state
-    rebuild_state(db_path, state_path)
+    rebuild_state(tmp_db_path, state_path)
     proj_state = read_state(state_path)
 
     # Path 2: EventReducer directly on raw DB events (mirrors projections._replay_all exactly)
-    conn = open_sdd_connection(db_path)
+    conn = open_sdd_connection(tmp_db_path)
     try:
         rows = conn.execute(
             "SELECT event_type, payload, level, event_source, caused_by_meta_seq "
-            "FROM events ORDER BY seq ASC"
+            "FROM event_log ORDER BY sequence_id ASC"
         ).fetchall()
     finally:
         conn.close()
 
     raw_events: list[dict] = []
-    for event_type, payload_str, level, event_source, caused_by_meta_seq in rows:
-        payload: dict = _json.loads(payload_str) if payload_str else {}
+    for event_type, payload, level, event_source, caused_by_meta_seq in rows:
+        # psycopg3 returns JSONB as dict already
+        payload_dict: dict = payload if isinstance(payload, dict) else {}
         event: dict = {
             "event_type": event_type,
             "level": level,
             "event_source": event_source,
             "caused_by_meta_seq": caused_by_meta_seq,
         }
-        event.update(payload)
+        event.update(payload_dict)
         raw_events.append(event)
     # Filter to phase 1 — mirrors projections.rebuild_state phase filter
     phase_events = [e for e in raw_events if e.get("phase_id") is None or e.get("phase_id") == 1]
@@ -519,7 +508,7 @@ def test_projection_equivalence(tmp_path):
 # Test 11: CLI projection consistency (I-RUNTIME-1)
 # ---------------------------------------------------------------------------
 
-def test_cli_projection_consistency(tmp_path):
+def test_cli_projection_consistency(tmp_path, tmp_db_path: str):
     """I-RUNTIME-1: sdd show-state output is consistent with projections.py (not stale cache)."""
     import shutil
     import subprocess
@@ -527,7 +516,6 @@ def test_cli_projection_consistency(tmp_path):
     from sdd.domain.state.yaml_state import read_state
     from sdd.infra.projections import rebuild_state
 
-    db_path = tmp_path / "events.duckdb"
     state_path = tmp_path / "State_index.yaml"
     taskset_path = tmp_path / "TaskSet_v1.md"
 
@@ -539,7 +527,7 @@ def test_cli_projection_consistency(tmp_path):
         "PhaseInitialized",
         {"phase_id": 1, "tasks_total": 1, "plan_version": 1,
          "actor": "test-seed", "timestamp": "2026-01-01T00:00:00Z"},
-        db_path=str(db_path), level="L1", event_source="runtime",
+        db_path=tmp_db_path, level="L1", event_source="runtime",
     )
 
     result = subprocess.run(
@@ -548,7 +536,7 @@ def test_cli_projection_consistency(tmp_path):
             "--phase", "1",
             "--taskset", str(taskset_path),
             "--state", str(state_path),
-            "--db", str(db_path),
+            "--db", tmp_db_path,
         ],
         capture_output=True,
         text=True,
@@ -564,7 +552,7 @@ def test_cli_projection_consistency(tmp_path):
     # What projections.py derives from EventLog (idempotent rebuild)
     proj_state_path = str(tmp_path / "proj_state.yaml")
     shutil.copy(str(state_path), proj_state_path)
-    rebuild_state(str(db_path), proj_state_path)
+    rebuild_state(tmp_db_path, proj_state_path)
     proj_state = read_state(proj_state_path)
 
     assert cmd_state.tasks_completed == proj_state.tasks_completed, (

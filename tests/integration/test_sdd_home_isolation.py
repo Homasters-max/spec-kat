@@ -22,7 +22,6 @@ def test_sdd_home_redirects_all_paths(tmp_path: Path, monkeypatch: pytest.Monkey
     from sdd.infra.paths import (
         audit_log_file,
         config_file,
-        event_store_file,
         norm_catalog_file,
         phases_index_file,
         plan_file,
@@ -38,7 +37,6 @@ def test_sdd_home_redirects_all_paths(tmp_path: Path, monkeypatch: pytest.Monkey
 
     root = tmp_path.resolve()
 
-    assert event_store_file().is_relative_to(root), f"{event_store_file()} not under {root}"
     assert state_file().is_relative_to(root)
     assert audit_log_file().is_relative_to(root)
     assert norm_catalog_file().is_relative_to(root)

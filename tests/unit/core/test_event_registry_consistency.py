@@ -25,3 +25,20 @@ def test_i_ereg_1_known_no_handler_is_derived():
         f"_KNOWN_NO_HANDLER is not derived from V1_L1_EVENT_TYPES - _EVENT_SCHEMA.keys(). "
         f"Diff: {EventReducer._KNOWN_NO_HANDLER.symmetric_difference(expected)}"
     )
+
+
+def test_i_st_10_missing_event_is_detectable():
+    """I-ST-10: adding a type to V1_L1_EVENT_TYPES without classifying it is detectable.
+
+    Simulates the defect that BC-39-2 prevents: a new event type present in V1_L1_EVENT_TYPES
+    but absent from both _EVENT_SCHEMA and _KNOWN_NO_HANDLER would be caught by
+    test_i_st_10_all_event_types_classified.
+    """
+    fake_type = "_SimulatedUnclassifiedEvent_v39"
+    extended_v1 = V1_L1_EVENT_TYPES | frozenset({fake_type})
+    classified = EventReducer._KNOWN_NO_HANDLER | frozenset(EventReducer._EVENT_SCHEMA.keys())
+    missing = extended_v1 - classified
+    assert fake_type in missing, (
+        "Simulation failed: a new unclassified type was not detected as missing. "
+        "I-ST-10 guard is ineffective."
+    )

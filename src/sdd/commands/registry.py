@@ -54,6 +54,7 @@ from sdd.domain.guards.context import (
     PhaseState,
     load_dag,
 )
+from sdd.domain.session.policy import SessionDedupPolicy
 from sdd.domain.guards.dependency_guard import DependencyGuard
 from sdd.domain.guards.norm_guard import make_norm_guard
 from sdd.domain.guards.phase_guard import make_phase_guard
@@ -106,6 +107,7 @@ class CommandSpec:
     description:           str = ""
     idempotent:            bool = True                        # False for navigation cmds (I-CMD-IDEM-1)
     guard_factory: Callable[[Any], list[Any]] | None = field(default=None, hash=False, compare=False)
+    dedup_policy:          SessionDedupPolicy | None = field(default=None, hash=False, compare=False)
 
     def __post_init__(self) -> None:
         if not self.action or not self.action.strip():
@@ -336,6 +338,7 @@ REGISTRY: dict[str, CommandSpec] = {
         preconditions=("session_type is a valid SDD session type",),
         postconditions=("SessionDeclaredEvent in EventLog",),
         description="Declare session type for audit trail (I-SESSION-DECLARED-1, I-SESSION-VISIBLE-1)",
+        dedup_policy=SessionDedupPolicy(),  # BC-48-D: I-SESSION-DEDUP-2
     ),
     "approve-spec": CommandSpec(
         name="approve-spec",
@@ -633,6 +636,20 @@ def execute_command(
         _nrm = norm_path  or str(norm_catalog_file())
         _el: EventLogKernelProtocol = event_log if event_log is not None else open_event_log(_db)
 
+        # Pre-Step: session dedup view — built iff spec.dedup_policy is set (I-SESSIONS-VIEW-LOCAL-1, I-PROJECTION-FRESH-1)
+        sessions_view = None
+        if spec.dedup_policy is not None:
+            _pg_url = os.environ.get("SDD_DATABASE_URL")
+            if _pg_url:
+                from sdd.db.connection import open_db_connection as _open_db_conn  # noqa: PLC0415
+                from sdd.infra.projector import _sync_p_sessions, build_sessions_view  # noqa: PLC0415
+                _dedup_conn = _open_db_conn(_pg_url)
+                try:
+                    _sync_p_sessions(_dedup_conn)
+                    sessions_view = build_sessions_view(_dedup_conn)
+                finally:
+                    _dedup_conn.close()
+
         # Step 0: stable idempotency key + per-execution trace correlation (A-7, A-9)
         command_id = compute_command_id(cmd)          # A-7: payload-only, stable across all retries
         context_hash: str = "FAIL:UNKNOWN"            # A-10: overwritten on success or exc type known
@@ -724,6 +741,23 @@ def execute_command(
             except Exception:
                 _write_error_to_audit_log(error_event)
             raise GuardViolationError(guard_result.message)
+
+        # Step 2.5: session dedup policy check — only if spec.dedup_policy is set
+        # (I-COMMAND-NOOP-1, I-COMMAND-NOOP-2, I-COMMAND-OBSERVABILITY-1, I-DEDUP-NOT-STRONG-1)
+        if spec.dedup_policy is not None and sessions_view is not None:
+            _s_type = getattr(cmd, "session_type", None)
+            _s_phase = getattr(cmd, "phase_id", None)
+            if not spec.dedup_policy.should_emit(sessions_view, cmd):
+                _log.info("Session deduplicated: type=%s phase=%s", _s_type, _s_phase)
+                from sdd.infra.metrics import record_metric as _record_metric  # noqa: PLC0415
+                _record_metric(
+                    "session_dedup_skipped_total",
+                    value=1,
+                    phase_id=_s_phase,
+                    context={"session_type": _s_type, "phase_id": _s_phase},
+                    db_path=_db,
+                )
+                return []
 
         # Step 4: call handler (pure: no I/O inside handle())
         try:

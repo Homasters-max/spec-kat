@@ -33,6 +33,7 @@
 | 36 | Graph Navigation (upgrade) | .sdd/specs_draft/Spec_v36_GraphNavigation.md | — | PLANNED |
 | 37 | Temporal Navigation | .sdd/specs_draft/Spec_v37_TemporalNavigation.md | — | PLANNED |
 | 38 | Mutation Governance | .sdd/specs_draft/Spec_v38_MutationGovernance.md | — | PLANNED |
+| 39 | Event–Reducer Consistency (SSOT Fix) | .sdd/specs/Spec_v39_EventRegistrySSot.md | .sdd/plans/Plan_v39.md | PLANNED |
 | 40 | Docker CI Infrastructure for PostgreSQL (archived) | .sdd/specs/Spec_v42_DockerCIInfrastructure.md | .sdd/plans/Plan_v40.md | ARCHIVED — superseded by Phase 42 |
 | 41 | Phase Navigation Guards | .sdd/specs/Spec_v41_PhaseNavigationGuards.md | .sdd/plans/Plan_v41.md | COMPLETE |
 | 42 | Docker CI Infrastructure for PostgreSQL | .sdd/specs/Spec_v42_DockerCIInfrastructure.md | .sdd/plans/Plan_v42.md | PLANNED |
@@ -41,3 +42,5 @@
 | 45 | Enforce PostgreSQL (BREAKING) | .sdd/specs/Spec_v45_EnforcePostgres.md | .sdd/plans/Plan_v45.md | PLANNED |
 | 46 | Remove DuckDB (DESTRUCTIVE) | .sdd/specs/Spec_v46_RemoveDuckDB.md | .sdd/plans/Plan_v46.md | PLANNED |
 | 47 | EventLog Kernel Extraction & Post-DuckDB Cleanup | .sdd/specs/Spec_v47_EventLogKernelExtraction.md | .sdd/plans/Plan_v47.md | PLANNED |
+| 48 | Session Dedup (Domain-Level, Safe) | .sdd/specs/Spec_v48_SessionDedup.md | .sdd/plans/Plan_v48.md | PLANNED |
+| 49 | Session Dedup Fixes | .sdd/specs/Spec_v49_SessionDedupFixes.md | .sdd/plans/Plan_v49.md | PLANNED |

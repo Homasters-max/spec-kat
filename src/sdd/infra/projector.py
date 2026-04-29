@@ -7,12 +7,44 @@ from __future__ import annotations
 import logging
 import os
 import types
+from dataclasses import dataclass
 from typing import Any, Callable
 
 from sdd.core.events import DomainEvent
 from sdd.db.connection import open_db_connection
 
 _log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class SessionRecord:
+    """Immutable snapshot of a single non-invalidated session from p_sessions."""
+
+    session_type: str
+    phase_id: int | None
+    task_id: str | None
+    seq: int
+    timestamp: str
+
+
+@dataclass(frozen=True)
+class SessionsView:
+    """Immutable snapshot of non-invalidated sessions indexed for O(1) access.
+
+    I-SESSIONSVIEW-O1-1: get_last is O(1) via _index keyed by (session_type, phase_id).
+    I-GUARD-PURE-1: built before guard pipeline; guards do not receive it.
+    """
+
+    _index: dict[tuple[str, int | None], SessionRecord]
+
+    def get_last(
+        self,
+        session_type: str,
+        phase_id: int | None,
+    ) -> SessionRecord | None:
+        """O(1) lookup. Returns None if no non-invalidated session exists for key."""
+        return self._index.get((session_type, phase_id))
+
 
 # DDL for projection tables (I-PROJ-1: p_* = f(event_log))
 _P_TASKS_DDL = """
@@ -38,9 +70,16 @@ CREATE TABLE IF NOT EXISTS p_sessions (
     session_type TEXT    NOT NULL,
     phase_id     INTEGER,
     task_id      TEXT,
+    seq          BIGINT  NOT NULL DEFAULT 0,
     timestamp    TEXT
 )
 """
+
+_P_SESSIONS_MIGRATION: list[str] = [
+    "ALTER TABLE p_sessions ADD COLUMN IF NOT EXISTS seq BIGINT",
+    "UPDATE p_sessions SET seq = 0 WHERE seq IS NULL",
+    "ALTER TABLE p_sessions ALTER COLUMN seq SET NOT NULL",
+]
 
 _P_DECISIONS_DDL = """
 CREATE TABLE IF NOT EXISTS p_decisions (
@@ -110,6 +149,8 @@ class Projector:
             cur.execute("CREATE SCHEMA IF NOT EXISTS shared")
         for ddl in _P_DDL_STATEMENTS:
             cur.execute(ddl)
+        for stmt in _P_SESSIONS_MIGRATION:
+            cur.execute(stmt)
         self._commit()
         cur.close()
 
@@ -265,12 +306,13 @@ class Projector:
     def _handle_session_declared(self, event: DomainEvent) -> None:
         cur = self._conn.cursor()
         cur.execute(
-            "INSERT INTO p_sessions (session_type, phase_id, task_id, timestamp)"
-            " VALUES (%s, %s, %s, %s)",
+            "INSERT INTO p_sessions (session_type, phase_id, task_id, seq, timestamp)"
+            " VALUES (%s, %s, %s, %s, %s)",
             (
                 getattr(event, "session_type", None),
                 getattr(event, "phase_id", None),
                 getattr(event, "task_id", None),
+                getattr(event, "seq", 0),
                 getattr(event, "timestamp", None),
             ),
         )
@@ -316,6 +358,76 @@ class Projector:
         )
         self._commit()
         cur.close()
+
+
+def _sync_p_sessions(conn: Any) -> None:
+    """Apply to p_sessions any SessionDeclared events not yet projected.
+
+    Finds MAX(seq) already in p_sessions, then applies SessionDeclared events
+    from event_log with sequence_id > MAX(seq), in sequence_id ASC order.
+    I-PROJECTION-FRESH-1: must be called before build_sessions_view().
+    """
+    import json as _json
+
+    cur = conn.cursor()
+    cur.execute("SELECT COALESCE(MAX(seq), 0) FROM p_sessions")
+    max_seq: int = cur.fetchone()[0]
+    cur.execute(
+        "SELECT sequence_id, payload FROM event_log"
+        " WHERE event_type = 'SessionDeclared' AND sequence_id > %s"
+        " ORDER BY sequence_id ASC",
+        (max_seq,),
+    )
+    rows = cur.fetchall()
+    for seq_id, raw_payload in rows:
+        p: dict = raw_payload if isinstance(raw_payload, dict) else (_json.loads(raw_payload) if raw_payload else {})
+        cur.execute(
+            "INSERT INTO p_sessions (session_type, phase_id, task_id, seq, timestamp)"
+            " VALUES (%s, %s, %s, %s, %s)",
+            (
+                p.get("session_type"),
+                p.get("phase_id"),
+                p.get("task_id"),
+                seq_id,
+                p.get("timestamp"),
+            ),
+        )
+    conn.commit()
+    cur.close()
+
+
+def build_sessions_view(conn: Any) -> SessionsView:
+    """Query p_sessions (post-sync) and return an immutable O(1)-indexed snapshot.
+
+    Filters out entries whose seq appears in EventInvalidated target_seq values
+    (I-INVALIDATION-FINAL-1, I-PROJECTION-SESSIONS-1).
+    Processes rows ORDER BY seq ASC; last seq per (session_type, phase_id) wins
+    (I-PROJECTION-ORDER-1).
+    I-DEDUP-PROJECTION-CONSISTENCY-1: _sync_p_sessions() MUST be called before this.
+    """
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT session_type, phase_id, task_id, seq, timestamp"
+        " FROM p_sessions"
+        " WHERE seq NOT IN ("
+        "   SELECT DISTINCT (payload->>'target_seq')::BIGINT"
+        "   FROM event_log"
+        "   WHERE event_type = 'EventInvalidated'"
+        " )"
+        " ORDER BY seq ASC"
+    )
+    rows = cur.fetchall()
+    cur.close()
+    index: dict[tuple[str, int | None], SessionRecord] = {}
+    for session_type, phase_id, task_id, seq, timestamp in rows:
+        index[(session_type, phase_id)] = SessionRecord(
+            session_type=session_type,
+            phase_id=phase_id,
+            task_id=task_id,
+            seq=seq,
+            timestamp=timestamp or "",
+        )
+    return SessionsView(_index=index)
 
 
 # Module-level dispatch map — defined after class so references are valid (I-PROJ-NOOP-1)

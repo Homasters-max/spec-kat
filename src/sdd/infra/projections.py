@@ -221,7 +221,7 @@ def _replay_from_event_log(db_url: str) -> SDDState:
     events: list[dict] = []
     for seq, event_type, row_payload, level, event_source, caused_by_meta_seq in rows:
         if seq in invalidated_seqs:
-            _log.info("replay: skipping invalidated seq=%d (I-INVALID-2)", seq)
+            _log.debug("replay: skipping invalidated seq=%d (I-INVALID-2)", seq)
             continue
         try:
             payload: dict = (

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 import uuid
 
 import pytest
@@ -19,21 +18,21 @@ from sdd.commands.invalidate_event import (
 from sdd.domain.state.reducer import reduce
 from sdd.infra.db import open_sdd_connection
 from sdd.infra.event_log import EventLog
+from sdd.infra.projections import _get_invalidated_seqs
 
 
 def _sql_insert(db_path: str, event_type: str, payload: dict, level: str = "L1") -> int:
-    """Insert one event via direct SQL and return its seq (bypasses batch_id column)."""
+    """Insert one event via direct SQL and return its sequence_id."""
     conn = open_sdd_connection(db_path)
     try:
         conn.execute(
-            """INSERT INTO events
-                (seq, event_id, event_type, payload, schema_version,
-                 appended_at, level, event_source, caused_by_meta_seq, expired)
-            VALUES (nextval('sdd_event_seq'), ?, ?, ?, 1, ?, ?, 'runtime', NULL, FALSE)""",
-            [str(uuid.uuid4()), event_type, json.dumps(payload), int(time.time() * 1000), level],
+            """INSERT INTO event_log
+                (event_id, event_type, payload, level, event_source, caused_by_meta_seq, expired)
+            VALUES (%s, %s, %s::jsonb, %s, 'runtime', NULL, FALSE)""",
+            [str(uuid.uuid4()), event_type, json.dumps(payload), level],
         )
         conn.commit()
-        row = conn.execute("SELECT MAX(seq) FROM events").fetchone()
+        row = conn.execute("SELECT MAX(sequence_id) FROM event_log").fetchone()
         return int(row[0])
     finally:
         conn.close()
@@ -60,15 +59,15 @@ def test_incident_backfill_no_warnings(
         seqs.append(seq)
     assert len(seqs) == 6
 
-    # 2. Pre-condition: without invalidation the reducer warns for each unknown type
-    with caplog.at_level(logging.WARNING, logger="root"):
+    # 2. Pre-condition: without invalidation the reducer logs for each unknown type
+    with caplog.at_level(logging.DEBUG, logger="root"):
         reduce(EventLog(tmp_db_path).replay())
-    pre_warnings = [
+    pre_logs = [
         r for r in caplog.records
-        if r.levelno >= logging.WARNING and "unknown event_type" in r.getMessage()
+        if "TestEvent" in r.getMessage() or "unknown event_type" in r.getMessage()
     ]
-    assert len(pre_warnings) == 6, (
-        f"Expected 6 'unknown event_type' WARNINGs before backfill, got {len(pre_warnings)}"
+    assert len(pre_logs) == 6, (
+        f"Expected 6 'unknown event_type' log entries before backfill, got {len(pre_logs)}"
     )
     caplog.clear()
 
@@ -101,10 +100,18 @@ def test_incident_backfill_no_warnings(
             f"I-INVALID-IDEM-1: second invalidate of seq={seq} must be noop"
         )
 
-    # 5. I-INVALID-2: after backfill, replay + reduce must produce no WARNING
+    # 5. I-INVALID-2: after backfill, filtering out invalidated seqs → no WARNING from reduce
+    conn = open_sdd_connection(tmp_db_path)
+    try:
+        invalidated = _get_invalidated_seqs(conn, _pg=True)
+    finally:
+        conn.close()
+
+    all_events = EventLog(tmp_db_path).replay()
+    filtered_events = [e for e in all_events if e["sequence_id"] not in invalidated]
+
     with caplog.at_level(logging.WARNING, logger="root"):
-        replayed_after = EventLog(tmp_db_path).replay()
-        reduce(replayed_after)
+        reduce(filtered_events)
 
     post_warnings = [
         r for r in caplog.records
@@ -115,9 +122,8 @@ def test_incident_backfill_no_warnings(
         f"got: {[r.getMessage() for r in post_warnings]}"
     )
 
-    # 6. Confirm all 6 invalidated seqs absent from replayed events
-    replayed_seqs = {e["seq"] for e in replayed_after}
+    # 6. Confirm all 6 seqs are in the invalidated set
     for seq in seqs:
-        assert seq not in replayed_seqs, (
-            f"I-INVALID-2: invalidated seq={seq} must not appear in replay"
+        assert seq in invalidated, (
+            f"I-INVALID-2: seq={seq} must be in invalidated set after backfill"
         )

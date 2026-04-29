@@ -1,5 +1,4 @@
 import os
-import warnings
 from pathlib import Path
 
 _sdd_root: Path | None = None
@@ -20,16 +19,6 @@ def reset_sdd_root() -> None:
     global _sdd_root
     _sdd_root = None
 
-
-def event_store_file() -> Path:
-    """Deprecated: DuckDB removed in Phase 46. Use event_store_url() instead."""
-    warnings.warn(
-        "event_store_file() is deprecated. DuckDB removed in Phase 46. "
-        "Use event_store_url() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return get_sdd_root() / "state" / "sdd_events.duckdb"
 
 
 def event_store_url() -> str:

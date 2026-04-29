@@ -1,4 +1,7 @@
-"""record-session — emits SessionDeclaredEvent (I-SESSION-DECLARED-1, I-SESSION-VISIBLE-1)."""
+"""record-session — emits SessionDeclaredEvent (I-SESSION-DECLARED-1, I-SESSION-VISIBLE-1).
+
+BC-48-D: dedup_policy wire-up lives here; REGISTRY["record-session"] picks it up.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -10,7 +13,11 @@ from typing import Any
 
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.events import DomainEvent, EventLevel, SessionDeclaredEvent
+from sdd.domain.session.policy import SessionDedupPolicy
 from sdd.infra.db import open_sdd_connection
+
+# BC-48-D: canonical dedup policy for record-session; imported by REGISTRY.
+DEDUP_POLICY: SessionDedupPolicy = SessionDedupPolicy()
 
 
 def _utc_date_str() -> str:

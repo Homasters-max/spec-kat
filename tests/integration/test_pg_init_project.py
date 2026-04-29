@@ -7,30 +7,55 @@ from __future__ import annotations
 
 import pytest
 
+import uuid
+from dataclasses import dataclass, field
+
 from sdd.commands.init_project import InitProjectHandler
 from sdd.db.connection import open_db_connection
 
 
+@dataclass
 class _Cmd:
-    def __init__(self, payload: dict) -> None:
-        self.payload = payload
+    payload: dict
+    command_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+
+
+def _drop_schemas(pg_url: str, schemas: list[str]) -> None:
+    """Drop schemas and shared.projects rows; tolerates missing table."""
+    conn = open_db_connection(pg_url)
+    try:
+        cur = conn.cursor()
+        for schema in schemas:
+            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+            cur.execute(
+                "DELETE FROM shared.projects WHERE db_schema = %s",
+                (schema,),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+class _PgCleanup(list):
+    """List that pre-cleans schemas on append so each test starts fresh."""
+    def __init__(self, pg_url: str) -> None:
+        super().__init__()
+        self._pg_url = pg_url
+
+    def append(self, schema: str) -> None:
+        _drop_schemas(self._pg_url, [schema])
+        super().append(schema)
 
 
 @pytest.fixture()
 def _pg_cleanup(pg_url: str):
-    """Drop project schemas created during a test."""
-    to_drop: list[str] = []
-    yield to_drop
-    if not to_drop:
-        return
-    conn = open_db_connection(pg_url)
-    try:
-        cur = conn.cursor()
-        for schema in to_drop:
-            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
-        conn.commit()
-    finally:
-        conn.close()
+    """Drop project schemas and shared.projects rows — before AND after each test."""
+    tracker = _PgCleanup(pg_url)
+    yield tracker
+    if tracker:
+        _drop_schemas(pg_url, list(tracker))
 
 
 @pytest.mark.pg

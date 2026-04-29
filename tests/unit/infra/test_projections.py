@@ -465,8 +465,8 @@ def test_rebuild_state_recovers_after_partial_crash(
 # ---------------------------------------------------------------------------
 
 
-def test_reducer_info_for_invalidated_seq(tmp_db_path: str) -> None:
-    """_replay_from_event_log logs at INFO when skipping an invalidated seq (I-INVALIDATED-LOG-1)."""
+def test_reducer_debug_for_invalidated_seq_projections(tmp_db_path: str) -> None:
+    """_replay_from_event_log logs at DEBUG when skipping an invalidated seq (I-INVALIDATE-PG-1)."""
     from unittest.mock import MagicMock, patch
 
     from sdd.infra.projections import _pg_max_seq, _replay_from_event_log
@@ -490,7 +490,7 @@ def test_reducer_info_for_invalidated_seq(tmp_db_path: str) -> None:
     with patch("sdd.infra.projections._log", mock_log):
         _replay_from_event_log(tmp_db_path)
 
-    call_messages = [str(args) for args, _ in mock_log.info.call_args_list]
+    call_messages = [str(args) for args, _ in mock_log.debug.call_args_list]
     assert any("invalidat" in m.lower() for m in call_messages), (
-        f"Expected _log.info with 'invalidat' — got: {call_messages}"
+        f"Expected _log.debug with 'invalidat' — got: {call_messages}"
     )

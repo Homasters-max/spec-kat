@@ -98,7 +98,7 @@ def test_state_identical_with_without_meta() -> None:
 def test_misclassified_l1_event_type_warns(caplog: pytest.LogCaptureFixture) -> None:
     """An event that passes the pre-filter but has an unregistered event_type emits a warning."""
     unknown_event = _runtime_l1("UnknownFutureEvent")
-    with caplog.at_level(logging.WARNING, logger="root"):
+    with caplog.at_level(logging.DEBUG, logger="root"):
         state, diag = reduce_with_diagnostics([unknown_event])
     assert diag.events_unknown_type == 1
     assert diag.events_processed == 0

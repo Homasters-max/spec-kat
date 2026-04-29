@@ -68,4 +68,5 @@ DoD MUST include:
   - test_i_st_10_all_event_types_classified PASS
   - test_i_ereg_1_known_no_handler_is_derived PASS
 
-NOTE: reducer.py НЕ нужен в Outputs для no-handler событий (Spec_v39).
+NOTE: reducer.py НЕ нужен в Outputs для no-handler событий.
+Это основной эффект Spec_v39.

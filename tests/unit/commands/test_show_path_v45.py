@@ -16,14 +16,15 @@ class TestShowEventStorePath:
         assert "supersecret" not in result
         assert "localhost:5432/sdd" in result
 
-    def test_show_path_no_env_returns_duckdb_path(self, monkeypatch) -> None:
-        """BC-45-F: SDD_DATABASE_URL not set → falls back to DuckDB file path."""
+    def test_show_path_no_env_raises(self, monkeypatch) -> None:
+        """BC-45-F: SDD_DATABASE_URL not set → exits with error (no DuckDB fallback)."""
+        import pytest
         monkeypatch.delenv("SDD_DATABASE_URL", raising=False)
 
-        result = _show_event_store_path()
+        with pytest.raises(SystemExit) as exc_info:
+            _show_event_store_path()
 
-        assert "[PG]" not in result
-        assert "sdd_events.duckdb" in result
+        assert exc_info.value.code == 1
 
     def test_show_path_pg_url_without_password(self, monkeypatch) -> None:
         """BC-45-F: PG URL without password → shown safely with [PG] prefix."""

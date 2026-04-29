@@ -223,7 +223,7 @@ def test_unknown_event_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
     import logging
 
     unknown = _runtime_l1("UnknownFutureEvent", task_id="T-999")
-    with caplog.at_level(logging.WARNING, logger="sdd.domain.state.reducer"):
+    with caplog.at_level(logging.DEBUG):
         reduce([unknown])
     assert any("UnknownFutureEvent" in m for m in caplog.messages)
 
