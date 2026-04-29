@@ -458,3 +458,39 @@ def test_rebuild_state_recovers_after_partial_crash(
 
     recovered = read_state(str(state_path))
     assert "T-001" in recovered.tasks_done_ids
+
+
+# ---------------------------------------------------------------------------
+# I-INVALIDATED-LOG-1 — T-4702
+# ---------------------------------------------------------------------------
+
+
+def test_reducer_info_for_invalidated_seq(tmp_db_path: str) -> None:
+    """_replay_from_event_log logs at INFO when skipping an invalidated seq (I-INVALIDATED-LOG-1)."""
+    from unittest.mock import MagicMock, patch
+
+    from sdd.infra.projections import _pg_max_seq, _replay_from_event_log
+
+    sdd_append(
+        "TaskImplemented",
+        {"task_id": "T-001", "phase_id": 1},
+        db_path=tmp_db_path,
+        level="L1",
+    )
+    target_seq = _pg_max_seq(tmp_db_path)
+
+    sdd_append(
+        "EventInvalidated",
+        {"target_seq": target_seq},
+        db_path=tmp_db_path,
+        level="L2",
+    )
+
+    mock_log = MagicMock()
+    with patch("sdd.infra.projections._log", mock_log):
+        _replay_from_event_log(tmp_db_path)
+
+    call_messages = [str(args) for args, _ in mock_log.info.call_args_list]
+    assert any("invalidat" in m.lower() for m in call_messages), (
+        f"Expected _log.info with 'invalidat' — got: {call_messages}"
+    )

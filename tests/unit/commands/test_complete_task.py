@@ -40,8 +40,8 @@ def _task(task_id: str = "T-401", status: str = "TODO") -> MagicMock:
 
 
 @pytest.fixture
-def handler(tmp_path):
-    return CompleteTaskHandler(db_path=str(tmp_path / "test.duckdb"))
+def handler(pg_test_db: str):
+    return CompleteTaskHandler(db_path=pg_test_db)
 
 
 def _seed_active_phase(db_path: str, phase_id: int, tasks_total: int) -> None:
@@ -213,7 +213,7 @@ class TestNoDirectFileWrite:
 # ---------------------------------------------------------------------------
 
 class TestStatusSignal:
-    def test_complete_new_task_emits_done_signal(self, tmp_path, capsys):
+    def test_complete_new_task_emits_done_signal(self, tmp_path, pg_test_db, capsys):
         """main() prints {"status": "done", "task_id": ...} when task transitions TODO → DONE."""
         import yaml
 
@@ -231,7 +231,7 @@ class TestStatusSignal:
                      "snapshot_event_id": None},
         }))
 
-        db = str(tmp_path / "events.duckdb")
+        db = pg_test_db
         _seed_active_phase(db, phase_id=4, tasks_total=1)
 
         rc = main([
@@ -247,7 +247,7 @@ class TestStatusSignal:
         assert out["status"] == "done"
         assert out["task_id"] == "T-401"
 
-    def test_complete_already_done_emits_noop_signal(self, tmp_path, capsys):
+    def test_complete_already_done_emits_noop_signal(self, tmp_path, pg_test_db, capsys):
         """main() prints {"status": "noop", "task_id": ...} when task is already DONE."""
         import yaml
 
@@ -266,7 +266,7 @@ class TestStatusSignal:
                      "snapshot_event_id": None},
         }))
 
-        db = str(tmp_path / "events.duckdb")
+        db = pg_test_db
         rc = main([
             "complete", "T-401",
             "--phase", "4",
@@ -280,7 +280,7 @@ class TestStatusSignal:
         assert out["status"] == "noop"
         assert out["task_id"] == "T-401"
 
-    def test_complete_exits_zero_for_done(self, tmp_path, capsys):
+    def test_complete_exits_zero_for_done(self, tmp_path, pg_test_db, capsys):
         """exit code 0 for new task (done path)."""
         import yaml
 
@@ -296,7 +296,7 @@ class TestStatusSignal:
             "meta": {"last_updated": "2026-01-01T00:00:00Z", "schema_version": 1,
                      "snapshot_event_id": None},
         }))
-        db = str(tmp_path / "events.duckdb")
+        db = pg_test_db
         _seed_active_phase(db, phase_id=4, tasks_total=1)
 
         rc = main([
@@ -306,7 +306,7 @@ class TestStatusSignal:
         ])
         assert rc == 0
 
-    def test_complete_exits_zero_for_noop(self, tmp_path, capsys):
+    def test_complete_exits_zero_for_noop(self, tmp_path, pg_test_db, capsys):
         """exit code 0 for already-done task (noop path, idempotent)."""
         import yaml
 
@@ -323,7 +323,7 @@ class TestStatusSignal:
             "meta": {"last_updated": "2026-01-01T00:00:00Z", "schema_version": 1,
                      "snapshot_event_id": None},
         }))
-        db = str(tmp_path / "events.duckdb")
+        db = pg_test_db
         rc = main([
             "complete", "T-401",
             "--phase", "4", "--taskset", str(taskset),

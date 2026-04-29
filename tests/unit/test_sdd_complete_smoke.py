@@ -49,14 +49,13 @@ _MINIMAL_STATE = textwrap.dedent("""\
 
 
 @pytest.fixture()
-def isolated_sdd_env(tmp_path: Path):
-    """Isolated tmp dir with a real TaskSet, state, and seeded DuckDB."""
+def isolated_sdd_env(tmp_path: Path, pg_test_db: str):
+    """Isolated tmp dir with a real TaskSet, state, and seeded PG DB."""
     from datetime import UTC, datetime
     from sdd.infra.event_log import sdd_append
 
     taskset = tmp_path / "TaskSet_v1.md"
     state = tmp_path / "state.yaml"
-    db = tmp_path / "events.duckdb"
 
     taskset.write_text(_MINIMAL_TASKSET, encoding="utf-8")
     state.write_text(_MINIMAL_STATE, encoding="utf-8")
@@ -67,10 +66,10 @@ def isolated_sdd_env(tmp_path: Path):
         {"phase_id": 1, "tasks_total": 1, "plan_version": 1,
          "actor": "test-seed",
          "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")},
-        db_path=str(db), level="L1", event_source="runtime",
+        db_path=pg_test_db, level="L1", event_source="runtime",
     )
 
-    return {"taskset": str(taskset), "state": str(state), "db": str(db)}
+    return {"taskset": str(taskset), "state": str(state), "db": pg_test_db}
 
 
 def test_sdd_complete_exits_zero(isolated_sdd_env) -> None:

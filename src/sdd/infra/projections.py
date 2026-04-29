@@ -28,6 +28,8 @@ from sdd.infra.paths import state_file
 _TASK_HEADER_RE = re.compile(r"^(T-\d+[a-z]*):\s")  # I-TASK-ID-1: suffix support
 _STATUS_LINE_RE = re.compile(r"^(Status:\s+)(TODO|DONE)(.*)$")
 
+_log = logging.getLogger(__name__)
+
 
 class RebuildMode(Enum):
     STRICT    = "strict"     # YAML ignored entirely (default, always correct post-Phase 15)
@@ -168,6 +170,19 @@ def _read_yaml() -> SDDState | None:
         return None
 
 
+def _get_invalidated_seqs(conn: object, _pg: bool) -> frozenset[int]:
+    """Query EventLog for all invalidated sequence_ids (I-INVALID-2).
+
+    Called from within an open connection context — does not open/close connections.
+    """
+    if _pg:
+        sql = "SELECT payload->>'target_seq' FROM event_log WHERE event_type = 'EventInvalidated'"
+    else:
+        sql = "SELECT payload->>'target_seq' FROM events WHERE event_type = 'EventInvalidated'"
+    rows = conn.execute(sql).fetchall()  # type: ignore[union-attr]
+    return frozenset(int(r[0]) for r in rows if r[0] is not None)
+
+
 def _replay_from_event_log(db_url: str) -> SDDState:
     """Full EventLog replay from seq=0 — authoritative read path (I-PROJECTION-READ-1).
 
@@ -184,17 +199,11 @@ def _replay_from_event_log(db_url: str) -> SDDState:
     _pg = is_postgres_url(db_url)
 
     if _pg:
-        _inv_sql = (
-            "SELECT payload->>'target_seq' FROM event_log WHERE event_type = 'EventInvalidated'"
-        )
         _rows_sql = (
             "SELECT sequence_id, event_type, payload, level, event_source, caused_by_meta_seq "
             "FROM event_log ORDER BY sequence_id ASC"
         )
     else:
-        _inv_sql = (
-            "SELECT payload->>'target_seq' FROM events WHERE event_type = 'EventInvalidated'"
-        )
         _rows_sql = (
             "SELECT seq, event_type, payload, level, event_source, caused_by_meta_seq "
             "FROM events ORDER BY seq ASC"
@@ -202,10 +211,7 @@ def _replay_from_event_log(db_url: str) -> SDDState:
 
     conn = open_sdd_connection(db_url, read_only=True)
     try:
-        inv_rows = conn.execute(_inv_sql).fetchall()
-        invalidated_seqs: frozenset[int] = frozenset(
-            int(r[0]) for r in inv_rows if r[0] is not None
-        )
+        invalidated_seqs: frozenset[int] = _get_invalidated_seqs(conn, _pg)
         rows = conn.execute(_rows_sql).fetchall()
     finally:
         conn.close()
@@ -215,6 +221,7 @@ def _replay_from_event_log(db_url: str) -> SDDState:
     events: list[dict] = []
     for seq, event_type, row_payload, level, event_source, caused_by_meta_seq in rows:
         if seq in invalidated_seqs:
+            _log.info("replay: skipping invalidated seq=%d (I-INVALID-2)", seq)
             continue
         try:
             payload: dict = (
@@ -250,10 +257,12 @@ def get_current_state(db_url: str, full_replay: bool = False) -> SDDState:
         yaml_state = _read_yaml()
         if yaml_state is not None and yaml_state.snapshot_event_id is not None:
             max_seq = _pg_max_seq(db_url)
-            if yaml_state.snapshot_event_id >= max_seq:
+            # I-STATE-FRESH-1: use YAML only when it exactly matches the DB's max_seq.
+            # snapshot_event_id > max_seq indicates a mismatched DB (e.g. test schema) — replay.
+            if yaml_state.snapshot_event_id == max_seq:
                 return yaml_state
             logging.warning(
-                "State_index.yaml is stale (snapshot_event_id=%d < el_max=%d). Replaying.",
+                "State_index.yaml is stale (snapshot_event_id=%d, el_max=%d). Replaying.",
                 yaml_state.snapshot_event_id,
                 max_seq,
             )

@@ -157,11 +157,12 @@ def test_execute_command_calls_build_guards() -> None:
         patch("sdd.commands.registry.compute_trace_id", return_value="cafebabe"),
         patch("sdd.commands.registry.get_current_state", return_value=fake_state),
         patch("sdd.commands.registry.EventLog"),
+        patch("sdd.commands.registry.open_event_log"),
         patch("sdd.commands.registry.load_catalog"),
         patch("sdd.commands.registry._run_domain_pipeline", return_value=(fake_guard_result, [])),
         patch("sdd.commands.registry.GuardContext"),
     ):
-        execute_command(spec, cmd, db_path="/fake/db.duckdb")
+        execute_command(spec, cmd, db_path="postgresql://localhost/fake")
 
     spec.build_guards.assert_called_once_with(cmd)
 

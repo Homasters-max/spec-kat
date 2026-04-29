@@ -54,20 +54,21 @@ def _insert(
         payload = {}
     ts = int(time.time() * 1000)
     raw = (event_type + json.dumps(payload, sort_keys=True) + str(ts)).encode()
-    event_id = hashlib.sha256(raw).hexdigest()
+    h = hashlib.sha256(raw).hexdigest()
+    event_id = f"{h[0:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:32]}"
     conn = open_sdd_connection(db_path)
     try:
         conn.execute(
             """
-            INSERT INTO events
-                (seq, event_id, event_type, payload, schema_version,
-                 appended_at, level, event_source, caused_by_meta_seq, expired)
+            INSERT INTO event_log
+                (event_id, event_type, payload, level, event_source, caused_by_meta_seq, expired)
             VALUES
-                (nextval('sdd_event_seq'), ?, ?, ?, 3, ?, NULL, ?, NULL, ?)
+                (%s, %s, %s::jsonb, NULL, %s, NULL, %s)
             ON CONFLICT (event_id) DO NOTHING
             """,
-            [event_id, event_type, json.dumps(payload, sort_keys=True), ts, event_source, expired],
+            [event_id, event_type, json.dumps(payload, sort_keys=True), event_source, expired],
         )
+        conn.commit()
     finally:
         conn.close()
 
@@ -98,7 +99,7 @@ def test_no_db_write_on_query(tmp_db_path: str) -> None:
     def _count(db_path: str) -> int:
         conn = open_sdd_connection(db_path)
         try:
-            return conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+            return conn.execute("SELECT COUNT(*) FROM event_log").fetchone()[0]
         finally:
             conn.close()
 

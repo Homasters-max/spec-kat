@@ -13,7 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import duckdb
+import psycopg
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -26,32 +26,25 @@ _CANONICAL_HOOK = _REPO_ROOT / "src" / "sdd" / "hooks" / "log_tool.py"
 # ---------------------------------------------------------------------------
 
 
-def _make_constrained_db(db_path: str) -> None:
-    """Create a DB that rejects ToolUseStarted/ToolUseCompleted; allows HookError.
-
-    seq has no DEFAULT so open_sdd_connection can CREATE OR REPLACE SEQUENCE freely.
-    """
-    conn = duckdb.connect(db_path)
-    conn.execute("CREATE SEQUENCE IF NOT EXISTS sdd_event_seq START 1")
+def _make_constrained_db(db_url: str) -> None:
+    """Add CHECK constraint that rejects ToolUseStarted/ToolUseCompleted."""
+    conn = psycopg.connect(db_url)
     conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS events (
-            seq                BIGINT   NOT NULL PRIMARY KEY,
-            partition_key      VARCHAR  NOT NULL DEFAULT 'sdd',
-            event_id           VARCHAR  NOT NULL UNIQUE,
-            event_type         VARCHAR  NOT NULL
-                               CHECK (event_type NOT IN ('ToolUseStarted', 'ToolUseCompleted')),
-            payload            VARCHAR  NOT NULL,
-            schema_version     INTEGER  NOT NULL DEFAULT 1,
-            appended_at        BIGINT   NOT NULL,
-            level              VARCHAR  DEFAULT NULL,
-            event_source       VARCHAR  NOT NULL DEFAULT 'runtime',
-            caused_by_meta_seq BIGINT   DEFAULT NULL,
-            expired            BOOLEAN  NOT NULL DEFAULT FALSE
-        )
-        """
+        "ALTER TABLE event_log ADD CONSTRAINT no_tool_events "
+        "CHECK (event_type NOT IN ('ToolUseStarted', 'ToolUseCompleted'))"
     )
+    conn.commit()
     conn.close()
+
+
+def _drop_constraint(db_url: str) -> None:
+    try:
+        conn = psycopg.connect(db_url)
+        conn.execute("ALTER TABLE event_log DROP CONSTRAINT IF EXISTS no_tool_events")
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 
 def _run_hook(payload: dict, db_path: str) -> subprocess.CompletedProcess[str]:
@@ -68,21 +61,24 @@ def _run_hook(payload: dict, db_path: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _query_rows(db_path: str) -> list[dict]:
+def _query_rows(db_url: str) -> list[dict]:
     """Return all event rows with payload timestamp_ms stripped for comparison."""
-    conn = duckdb.connect(db_path)
     try:
-        rows = conn.execute(
-            "SELECT event_type, event_source, level, payload FROM events ORDER BY seq"
-        ).fetchall()
+        conn = psycopg.connect(db_url)
+        try:
+            rows = conn.execute(
+                "SELECT event_type, event_source, level, payload FROM event_log ORDER BY sequence_id"
+            ).fetchall()
+        except Exception:
+            return []
+        finally:
+            conn.close()
     except Exception:
         return []
-    finally:
-        conn.close()
 
     result = []
-    for event_type, event_source, level, payload_json in rows:
-        payload = json.loads(payload_json) if payload_json else {}
+    for event_type, event_source, level, payload_data in rows:
+        payload = payload_data if isinstance(payload_data, dict) else (json.loads(payload_data) if payload_data else {})
         payload.pop("timestamp_ms", None)
         result.append(
             {
@@ -100,21 +96,20 @@ def _query_rows(db_path: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def test_pre_bash_emits_tool_use_started(tmp_path: Path) -> None:
+def test_pre_bash_emits_tool_use_started(pg_test_db: str) -> None:
     """I-HOOK-WIRE-1: PreToolUse + Bash emits ToolUseStarted."""
     payload = {
         "hook_event_name": "PreToolUse",
         "tool_name": "Bash",
         "tool_input": {"command": "echo hello", "description": "test cmd"},
     }
-    db_path = str(tmp_path / "hook.duckdb")
-    _run_hook(payload, db_path)
-    rows = _query_rows(db_path)
+    _run_hook(payload, pg_test_db)
+    rows = _query_rows(pg_test_db)
     assert len(rows) >= 1
     assert rows[0]["event_type"] == "ToolUseStarted"
 
 
-def test_post_bash_emits_tool_use_completed(tmp_path: Path) -> None:
+def test_post_bash_emits_tool_use_completed(pg_test_db: str) -> None:
     """PostToolUse + Bash emits ToolUseCompleted."""
     payload = {
         "hook_event_name": "PostToolUse",
@@ -122,51 +117,50 @@ def test_post_bash_emits_tool_use_completed(tmp_path: Path) -> None:
         "tool_input": {"command": "echo hello", "description": "test cmd"},
         "tool_response": {"output": "hello\n", "interrupted": False},
     }
-    db_path = str(tmp_path / "hook.duckdb")
-    _run_hook(payload, db_path)
-    rows = _query_rows(db_path)
+    _run_hook(payload, pg_test_db)
+    rows = _query_rows(pg_test_db)
     assert len(rows) >= 1
     assert rows[0]["event_type"] == "ToolUseCompleted"
 
 
-def test_pre_read_emits_tool_use_started(tmp_path: Path) -> None:
+def test_pre_read_emits_tool_use_started(pg_test_db: str) -> None:
     """PreToolUse + Read emits ToolUseStarted."""
     payload = {
         "hook_event_name": "PreToolUse",
         "tool_name": "Read",
         "tool_input": {"file_path": "/tmp/test.txt", "offset": 10, "limit": 50},
     }
-    db_path = str(tmp_path / "hook.duckdb")
-    _run_hook(payload, db_path)
-    rows = _query_rows(db_path)
+    _run_hook(payload, pg_test_db)
+    rows = _query_rows(pg_test_db)
     assert len(rows) >= 1
     assert rows[0]["event_type"] == "ToolUseStarted"
 
 
-def test_pre_write_emits_tool_use_started(tmp_path: Path) -> None:
+def test_pre_write_emits_tool_use_started(pg_test_db: str) -> None:
     """PreToolUse + Write emits ToolUseStarted."""
     payload = {
         "hook_event_name": "PreToolUse",
         "tool_name": "Write",
         "tool_input": {"file_path": "/tmp/out.txt", "content": "hello world"},
     }
-    db_path = str(tmp_path / "hook.duckdb")
-    _run_hook(payload, db_path)
-    rows = _query_rows(db_path)
+    _run_hook(payload, pg_test_db)
+    rows = _query_rows(pg_test_db)
     assert len(rows) >= 1
     assert rows[0]["event_type"] == "ToolUseStarted"
 
 
-def test_failure_path_emits_hook_error(tmp_path: Path) -> None:
+def test_failure_path_emits_hook_error(pg_test_db: str) -> None:
     """On sdd_append failure, hook emits HookError with hook_name field."""
     payload = {
         "hook_event_name": "PreToolUse",
         "tool_name": "Bash",
         "tool_input": {"command": "echo fail", "description": "trigger failure"},
     }
-    db_path = str(tmp_path / "fail.duckdb")
-    _make_constrained_db(db_path)
-    _run_hook(payload, db_path)
-    rows = [r for r in _query_rows(db_path) if r["event_type"] == "HookError"]
-    assert len(rows) >= 1
-    assert rows[0]["payload"].get("hook_error") is not None
+    _make_constrained_db(pg_test_db)
+    try:
+        _run_hook(payload, pg_test_db)
+        rows = [r for r in _query_rows(pg_test_db) if r["event_type"] == "HookError"]
+        assert len(rows) >= 1
+        assert rows[0]["payload"].get("hook_error") is not None
+    finally:
+        _drop_constraint(pg_test_db)

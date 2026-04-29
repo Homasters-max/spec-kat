@@ -13,7 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import duckdb
+import psycopg
 import pytest
 
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent
@@ -51,62 +51,57 @@ def _run(script: Path, payload: dict, db_path: str) -> subprocess.CompletedProce
     )
 
 
-def _query(db_path: str, event_type: str | None = None) -> list[dict[str, object]]:
-    """Query events table; returns [] if DB file absent or table not yet created."""
-    if not os.path.exists(db_path):
-        return []
-    conn = duckdb.connect(db_path)
+def _query(db_url: str, event_type: str | None = None) -> list[dict[str, object]]:
+    """Query event_log table via PG; returns [] on any error."""
     try:
-        if event_type:
-            rows = conn.execute(
-                "SELECT event_type, level, event_source FROM events WHERE event_type = ?",
-                [event_type],
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT event_type, level, event_source FROM events"
-            ).fetchall()
+        conn = psycopg.connect(db_url)
+        try:
+            if event_type:
+                rows = conn.execute(
+                    "SELECT event_type, level, event_source FROM event_log WHERE event_type = %s",
+                    [event_type],
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT event_type, level, event_source FROM event_log"
+                ).fetchall()
+        except Exception:
+            rows = []
+        finally:
+            conn.close()
     except Exception:
         rows = []
-    finally:
-        conn.close()
     return [{"event_type": r[0], "level": r[1], "event_source": r[2]} for r in rows]
 
 
-def _make_constrained_db(db_path: str) -> None:
-    """Create a DB that rejects ToolUseStarted/ToolUseCompleted via CHECK constraint.
+def _make_constrained_db(db_url: str) -> None:
+    """Add a CHECK constraint that rejects ToolUseStarted/ToolUseCompleted.
 
     Used to force the main sdd_append to fail while allowing HookError writes through.
-    seq has no DEFAULT so open_sdd_connection can CREATE OR REPLACE SEQUENCE freely.
     """
-    conn = duckdb.connect(db_path)
-    conn.execute("CREATE SEQUENCE IF NOT EXISTS sdd_event_seq START 1")
+    conn = psycopg.connect(db_url)
     conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS events (
-            seq                BIGINT   NOT NULL PRIMARY KEY,
-            partition_key      VARCHAR  NOT NULL DEFAULT 'sdd',
-            event_id           VARCHAR  NOT NULL UNIQUE,
-            event_type         VARCHAR  NOT NULL
-                               CHECK (event_type NOT IN ('ToolUseStarted', 'ToolUseCompleted')),
-            payload            VARCHAR  NOT NULL,
-            schema_version     INTEGER  NOT NULL DEFAULT 1,
-            appended_at        BIGINT   NOT NULL,
-            level              VARCHAR  DEFAULT NULL,
-            event_source       VARCHAR  NOT NULL DEFAULT 'runtime',
-            caused_by_meta_seq BIGINT   DEFAULT NULL,
-            expired            BOOLEAN  NOT NULL DEFAULT FALSE
-        )
-        """
+        "ALTER TABLE event_log ADD CONSTRAINT no_tool_events "
+        "CHECK (event_type NOT IN ('ToolUseStarted', 'ToolUseCompleted'))"
     )
+    conn.commit()
     conn.close()
 
 
+def _drop_constraint(db_url: str) -> None:
+    """Remove the test constraint added by _make_constrained_db."""
+    try:
+        conn = psycopg.connect(db_url)
+        conn.execute("ALTER TABLE event_log DROP CONSTRAINT IF EXISTS no_tool_events")
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 def _bad_db(tmp_path: Path) -> str:
-    """Return path to a file that is not a valid DuckDB database."""
-    p = tmp_path / "garbage.duckdb"
-    p.write_bytes(b"this is not a duckdb file")
-    return str(p)
+    """Return an invalid PG URL that will fail to connect."""
+    return "postgresql://localhost:1/nonexistent_test_db_garbage"
 
 
 # ---------------------------------------------------------------------------
@@ -114,11 +109,10 @@ def _bad_db(tmp_path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_rejects_argv(tmp_path: Path) -> None:
+def test_hook_rejects_argv(pg_test_db: str) -> None:
     """Hook ignores positional CLI args; exits 0 but writes no events (I-HOOK-API-1, I-HOOK-2)."""
-    db = str(tmp_path / "events.duckdb")
     env = os.environ.copy()
-    env["SDD_DB_PATH"] = db
+    env["SDD_DB_PATH"] = pg_test_db
     env["PYTHONPATH"] = _SRC
     result = subprocess.run(
         [sys.executable, str(_LOG_TOOL), "pre", "TestTool"],
@@ -127,7 +121,7 @@ def test_hook_rejects_argv(tmp_path: Path) -> None:
         env=env,
     )
     assert result.returncode == 0  # I-HOOK-2: always exit 0
-    assert _query(db) == []        # I-HOOK-API-1: no events for argv-only invocation
+    assert _query(pg_test_db) == []  # I-HOOK-API-1: no events for argv-only invocation
 
 
 # ---------------------------------------------------------------------------
@@ -135,19 +129,20 @@ def test_hook_rejects_argv(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_exits_zero_on_success(tmp_path: Path) -> None:
+def test_hook_exits_zero_on_success(pg_test_db: str) -> None:
     """log_tool.py exits 0 when DB write succeeds (I-HOOK-2)."""
-    db = str(tmp_path / "events.duckdb")
-    result = _run(_LOG_TOOL, _PRE, db_path=db)
+    result = _run(_LOG_TOOL, _PRE, db_path=pg_test_db)
     assert result.returncode == 0
 
 
-def test_hook_exits_zero_on_exception(tmp_path: Path) -> None:
+def test_hook_exits_zero_on_exception(pg_test_db: str) -> None:
     """log_tool.py exits 0 when main write fails but HookError write succeeds (I-HOOK-2)."""
-    db = str(tmp_path / "constrained.duckdb")
-    _make_constrained_db(db)
-    result = _run(_LOG_TOOL, _PRE, db_path=db)
-    assert result.returncode == 0
+    _make_constrained_db(pg_test_db)
+    try:
+        result = _run(_LOG_TOOL, _PRE, db_path=pg_test_db)
+        assert result.returncode == 0
+    finally:
+        _drop_constraint(pg_test_db)
 
 
 def test_hook_exits_zero_on_double_failure(tmp_path: Path) -> None:
@@ -161,11 +156,10 @@ def test_hook_exits_zero_on_double_failure(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_uses_meta_source(tmp_path: Path) -> None:
+def test_hook_uses_meta_source(pg_test_db: str) -> None:
     """ToolUseStarted is written with event_source='meta' (I-HOOK-1)."""
-    db = str(tmp_path / "events.duckdb")
-    _run(_LOG_TOOL, _PRE, db_path=db)
-    events = _query(db, "ToolUseStarted")
+    _run(_LOG_TOOL, _PRE, db_path=pg_test_db)
+    events = _query(pg_test_db, "ToolUseStarted")
     assert len(events) == 1
     assert events[0]["event_source"] == "meta"
 
@@ -175,13 +169,12 @@ def test_hook_uses_meta_source(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_event_level_l2(tmp_path: Path) -> None:
+def test_hook_event_level_l2(pg_test_db: str) -> None:
     """ToolUseStarted and ToolUseCompleted are written with level='L2' (I-HOOK-3)."""
-    db = str(tmp_path / "events.duckdb")
-    _run(_LOG_TOOL, _PRE, db_path=db)
-    _run(_LOG_TOOL, _POST, db_path=db)
-    assert _query(db, "ToolUseStarted")[0]["level"] == "L2"
-    assert _query(db, "ToolUseCompleted")[0]["level"] == "L2"
+    _run(_LOG_TOOL, _PRE, db_path=pg_test_db)
+    _run(_LOG_TOOL, _POST, db_path=pg_test_db)
+    assert _query(pg_test_db, "ToolUseStarted")[0]["level"] == "L2"
+    assert _query(pg_test_db, "ToolUseCompleted")[0]["level"] == "L2"
 
 
 # ---------------------------------------------------------------------------
@@ -189,14 +182,16 @@ def test_hook_event_level_l2(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_error_event_level_l3(tmp_path: Path) -> None:
+def test_hook_error_event_level_l3(pg_test_db: str) -> None:
     """HookError events are written with level='L3' (I-HOOK-3)."""
-    db = str(tmp_path / "constrained.duckdb")
-    _make_constrained_db(db)
-    _run(_LOG_TOOL, _PRE, db_path=db)
-    errors = _query(db, "HookError")
-    assert len(errors) == 1
-    assert errors[0]["level"] == "L3"
+    _make_constrained_db(pg_test_db)
+    try:
+        _run(_LOG_TOOL, _PRE, db_path=pg_test_db)
+        errors = _query(pg_test_db, "HookError")
+        assert len(errors) == 1
+        assert errors[0]["level"] == "L3"
+    finally:
+        _drop_constraint(pg_test_db)
 
 
 # ---------------------------------------------------------------------------
@@ -204,18 +199,16 @@ def test_hook_error_event_level_l3(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_pre_emits_tool_use_started(tmp_path: Path) -> None:
+def test_hook_pre_emits_tool_use_started(pg_test_db: str) -> None:
     """'PreToolUse' hook event emits ToolUseStarted event."""
-    db = str(tmp_path / "events.duckdb")
-    _run(_LOG_TOOL, _PRE, db_path=db)
-    assert len(_query(db, "ToolUseStarted")) == 1
+    _run(_LOG_TOOL, _PRE, db_path=pg_test_db)
+    assert len(_query(pg_test_db, "ToolUseStarted")) == 1
 
 
-def test_hook_post_emits_tool_use_completed(tmp_path: Path) -> None:
+def test_hook_post_emits_tool_use_completed(pg_test_db: str) -> None:
     """'PostToolUse' hook event emits ToolUseCompleted event."""
-    db = str(tmp_path / "events.duckdb")
-    _run(_LOG_TOOL, _POST, db_path=db)
-    assert len(_query(db, "ToolUseCompleted")) == 1
+    _run(_LOG_TOOL, _POST, db_path=pg_test_db)
+    assert len(_query(pg_test_db, "ToolUseCompleted")) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -223,14 +216,16 @@ def test_hook_post_emits_tool_use_completed(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_emits_error_event_on_failure(tmp_path: Path) -> None:
+def test_hook_emits_error_event_on_failure(pg_test_db: str) -> None:
     """On sdd_append failure, HookError event is written to DB (I-HOOK-4)."""
-    db = str(tmp_path / "constrained.duckdb")
-    _make_constrained_db(db)
-    _run(_LOG_TOOL, _PRE, db_path=db)
-    errors = _query(db, "HookError")
-    assert len(errors) == 1
-    assert errors[0]["event_source"] == "meta"
+    _make_constrained_db(pg_test_db)
+    try:
+        _run(_LOG_TOOL, _PRE, db_path=pg_test_db)
+        errors = _query(pg_test_db, "HookError")
+        assert len(errors) == 1
+        assert errors[0]["event_source"] == "meta"
+    finally:
+        _drop_constraint(pg_test_db)
 
 
 def test_hook_logs_stderr_on_double_failure(tmp_path: Path) -> None:

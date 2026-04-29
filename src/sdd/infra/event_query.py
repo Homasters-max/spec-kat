@@ -49,31 +49,29 @@ class EventLogQuerier:
         conditions: list[str] = []
         params: list[object] = []
 
+        import json as _json
+
         if not filters.include_expired:
             conditions.append("expired = FALSE")
 
         if filters.event_source is not None:
-            conditions.append("event_source = ?")
+            conditions.append("event_source = %s")
             params.append(filters.event_source)
 
         if filters.event_type is not None:
-            conditions.append("event_type = ?")
+            conditions.append("event_type = %s")
             params.append(filters.event_type)
 
         if filters.phase_id is not None:
-            conditions.append(
-                "CAST(json_extract_string(payload, '$.phase_id') AS INTEGER) = ?"
-            )
+            conditions.append("(payload->>'phase_id')::integer = %s")
             params.append(filters.phase_id)
 
         if filters.task_id is not None:
-            conditions.append(
-                "json_extract_string(payload, '$.task_id') = ?"
-            )
+            conditions.append("payload->>'task_id' = %s")
             params.append(filters.task_id)
 
         if filters.batch_id is not None:
-            conditions.append("batch_id = ?")
+            conditions.append("batch_id = %s::uuid")
             params.append(filters.batch_id)
         elif filters.is_batched is True:
             conditions.append("batch_id IS NOT NULL")
@@ -85,9 +83,9 @@ class EventLogQuerier:
         limit_clause = f"LIMIT {filters.limit}" if filters.limit is not None else ""
 
         sql = (
-            f"SELECT seq, event_type, payload, event_source, level, expired,"
+            f"SELECT sequence_id, event_type, payload, event_source, level, expired,"
             f" caused_by_meta_seq"
-            f" FROM events {where} ORDER BY seq {order} {limit_clause}"
+            f" FROM event_log {where} ORDER BY sequence_id {order} {limit_clause}"
         )
 
         conn = open_sdd_connection(self._db_path)
@@ -100,7 +98,7 @@ class EventLogQuerier:
             EventRecord(
                 seq=row[0],
                 event_type=row[1],
-                payload=row[2],
+                payload=_json.dumps(row[2]) if isinstance(row[2], dict) else (row[2] or "{}"),
                 event_source=row[3],
                 level=row[4],
                 expired=row[5],

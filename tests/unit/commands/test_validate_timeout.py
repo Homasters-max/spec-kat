@@ -54,8 +54,8 @@ def _popen_mock(returncode: int = 0) -> MagicMock:
 
 
 @pytest.fixture
-def handler(tmp_path):
-    return ValidateInvariantsHandler(db_path=str(tmp_path / "test.duckdb"))
+def handler(pg_test_db: str):
+    return ValidateInvariantsHandler(db_path=pg_test_db)
 
 
 @patch("sdd.commands.validate_invariants.os.getpgid", return_value=12345)

@@ -20,8 +20,8 @@ from sdd.infra.db import open_sdd_connection
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def handler(tmp_path):
-    return SyncStateHandler(db_path=str(tmp_path / "test.duckdb"))
+def handler(pg_test_db: str):
+    return SyncStateHandler(db_path=pg_test_db)
 
 
 def _command(
@@ -99,14 +99,14 @@ class TestIdempotency:
         conn = open_sdd_connection(handler._db_path)
         try:
             conn.execute(
-                "INSERT INTO events (seq, event_id, event_type, payload, appended_at) "
-                "VALUES (nextval('sdd_event_seq'), ?, 'StateSynced', ?, ?)",
+                "INSERT INTO event_log (event_id, event_type, payload) "
+                "VALUES (%s, 'StateSynced', %s::jsonb)",
                 [
                     str(uuid.uuid4()),
                     json.dumps({"command_id": cmd.command_id, "_source": "test"}),
-                    int(time.time() * 1000),
                 ],
             )
+            conn.commit()
         finally:
             conn.close()
 

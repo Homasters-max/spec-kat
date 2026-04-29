@@ -37,7 +37,7 @@ def _make_event() -> _TestEvent:
 def _event_count(db: str) -> int:
     conn = open_sdd_connection(db)
     try:
-        return conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+        return conn.execute("SELECT COUNT(*) FROM event_log").fetchone()[0]
     finally:
         conn.close()
 
@@ -46,7 +46,7 @@ def _event_count(db: str) -> int:
 # Tests
 # ---------------------------------------------------------------------------
 
-def test_switch_phase_non_idempotent(tmp_path: pathlib.Path) -> None:
+def test_switch_phase_non_idempotent(pg_test_db: str) -> None:
     """Two switch-phase calls (A→B) produce two distinct events in EventLog.
 
     switch-phase has idempotent=False → execute_command passes uuid4() as
@@ -57,7 +57,7 @@ def test_switch_phase_non_idempotent(tmp_path: pathlib.Path) -> None:
         "switch-phase must have idempotent=False (I-CMD-IDEM-1)"
     )
 
-    db = str(tmp_path / "test_sdd_events.duckdb")
+    db = pg_test_db
     store = EventLog(db)
 
     # Simulate two switch-phase calls: each gets a fresh uuid4() command_id
@@ -69,7 +69,7 @@ def test_switch_phase_non_idempotent(tmp_path: pathlib.Path) -> None:
     )
 
 
-def test_complete_still_idempotent(tmp_path: pathlib.Path) -> None:
+def test_complete_still_idempotent(pg_test_db: str) -> None:
     """Two complete calls with identical payload store only one event.
 
     complete has idempotent=True → execute_command passes payload hash as
@@ -80,7 +80,7 @@ def test_complete_still_idempotent(tmp_path: pathlib.Path) -> None:
         "complete must have idempotent=True (I-IDEM-SCHEMA-1)"
     )
 
-    db = str(tmp_path / "test_sdd_events.duckdb")
+    db = pg_test_db
     store = EventLog(db)
 
     # Simulate two complete calls with the same payload hash command_id
@@ -93,13 +93,13 @@ def test_complete_still_idempotent(tmp_path: pathlib.Path) -> None:
     )
 
 
-def test_switch_phase_optlock_preserved(tmp_path: pathlib.Path) -> None:
+def test_switch_phase_optlock_preserved(pg_test_db: str) -> None:
     """Optimistic lock (expected_head) is active even when idempotent=False.
 
     I-OPTLOCK-1: execute_command always passes expected_head to EventLog.append,
     regardless of spec.idempotent. StaleStateError raised when head has advanced.
     """
-    db = str(tmp_path / "test_sdd_events.duckdb")
+    db = pg_test_db
     store = EventLog(db)
 
     # Append first event and capture head

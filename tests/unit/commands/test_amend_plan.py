@@ -118,20 +118,20 @@ class TestAmendPlanHandler:
     (command_id not yet seen), so the handler body runs without patching internals.
     """
 
-    def _handler(self, tmp_path: Path) -> AmendPlanHandler:
-        return AmendPlanHandler(db_path=str(tmp_path / "sdd_test.duckdb"))
+    def _handler(self, pg_test_db: str) -> AmendPlanHandler:
+        return AmendPlanHandler(db_path=pg_test_db)
 
     def _run(self, handler: AmendPlanHandler, cmd: Any, plan_path: Path) -> list:
         with patch("sdd.commands.amend_plan.plan_file", return_value=plan_path):
             return handler.handle(cmd)
 
-    def test_returns_plan_amended_event(self, tmp_path: Path) -> None:
+    def test_returns_plan_amended_event(self, tmp_path: Path, pg_test_db: str) -> None:
         """§9 #3: handler returns [PlanAmended] — I-HANDLER-PURE-1."""
         plan_path = tmp_path / "Plan_v31.md"
         plan_path.write_text("# Plan v31\n")
         expected_hash = hashlib.sha256(plan_path.read_bytes()).hexdigest()[:16]
 
-        handler = self._handler(tmp_path)
+        handler = self._handler(pg_test_db)
         events = self._run(handler, _mock_cmd(phase_id=31, reason="post-fix"), plan_path)
 
         assert len(events) == 1
@@ -142,38 +142,38 @@ class TestAmendPlanHandler:
         assert evt.reason == "post-fix"
         assert evt.actor == "human"
 
-    def test_handle_returns_list_only(self, tmp_path: Path) -> None:
+    def test_handle_returns_list_only(self, tmp_path: Path, pg_test_db: str) -> None:
         """I-HANDLER-PURE-1: handle() returns list[DomainEvent] with no side effects."""
         plan_path = tmp_path / "Plan_v5.md"
         plan_path.write_bytes(b"content")
-        handler = self._handler(tmp_path)
+        handler = self._handler(pg_test_db)
         result = self._run(handler, _mock_cmd(phase_id=5), plan_path)
         assert isinstance(result, list)
         assert len(result) == 1
 
-    def test_raises_missing_context_when_plan_absent(self, tmp_path: Path) -> None:
+    def test_raises_missing_context_when_plan_absent(self, tmp_path: Path, pg_test_db: str) -> None:
         """Handler raises MissingContext when Plan_vN.md does not exist."""
         missing = tmp_path / "Plan_v99.md"
-        handler = self._handler(tmp_path)
+        handler = self._handler(pg_test_db)
         with pytest.raises(MissingContext):
             self._run(handler, _mock_cmd(phase_id=99), missing)
 
-    def test_hash_is_content_dependent(self, tmp_path: Path) -> None:
+    def test_hash_is_content_dependent(self, tmp_path: Path, pg_test_db: str) -> None:
         """plan_hash is derived from file content — deterministic."""
         plan_path = tmp_path / "Plan_v10.md"
         content = b"# Specific content for hash test\n"
         plan_path.write_bytes(content)
         expected_hash = hashlib.sha256(content).hexdigest()[:16]
 
-        handler = self._handler(tmp_path)
+        handler = self._handler(pg_test_db)
         events = self._run(handler, _mock_cmd(phase_id=10), plan_path)
         assert events[0].new_plan_hash == expected_hash
 
-    def test_actor_passed_through(self, tmp_path: Path) -> None:
+    def test_actor_passed_through(self, tmp_path: Path, pg_test_db: str) -> None:
         """actor field from cmd is preserved in PlanAmended event."""
         plan_path = tmp_path / "Plan_v1.md"
         plan_path.write_text("x")
-        handler = self._handler(tmp_path)
+        handler = self._handler(pg_test_db)
         events = self._run(handler, _mock_cmd(phase_id=1, actor="operator"), plan_path)
         assert events[0].actor == "operator"
 

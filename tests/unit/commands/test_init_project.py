@@ -47,13 +47,9 @@ def _make_mock_conn() -> MagicMock:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def db_path(tmp_path):
-    """Isolated DuckDB for idempotency checks (I-DB-TEST-1)."""
-    import duckdb
-    p = tmp_path / "test.duckdb"
-    con = duckdb.connect(str(p))
-    con.close()
-    return str(p)
+def db_path(pg_test_db: str) -> str:
+    """Isolated PG URL for idempotency checks (I-DB-TEST-1)."""
+    return pg_test_db
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 """BC-VR-1: VR test fixtures — db_factory, event_factory, state_builder, make_minimal_event.
 
-Invariants: I-VR-HARNESS-4 (tmp_path-isolated DuckDB per test call).
+Invariants: I-VR-HARNESS-4 (PG-schema-isolated DB per test call).
 """
 from __future__ import annotations
 
@@ -8,12 +8,14 @@ import time
 import uuid
 from dataclasses import dataclass
 
+import psycopg
 import pytest
 
 from sdd.core.events import DomainEvent, EventLevel
 from sdd.domain.state.reducer import SDDState
 from sdd.infra.event_log import EventLog
 from sdd.infra.projections import get_current_state
+from tests.conftest import _apply_sdd_ddl, _require_sdd_database_url  # noqa: F401 — re-export fixture
 
 
 @dataclass(frozen=True)
@@ -37,18 +39,31 @@ def make_minimal_event(
 
 
 @pytest.fixture
-def db_factory(tmp_path):
-    """Provide a factory of tmp_path-isolated DuckDB paths (I-VR-HARNESS-4).
+def db_factory(_require_sdd_database_url: str):
+    """Provide a factory of isolated PostgreSQL schemas (I-VR-HARNESS-4, BC-46-E).
 
-    Usage: db = db_factory()  — fresh isolated path per call.
+    Usage: db_url = db_factory()  — fresh isolated PG schema per call.
+    Skip-safe: skipped when SDD_DATABASE_URL is not set.
     """
-    _n = [0]
+    base_url = _require_sdd_database_url
+    created: list[str] = []
 
     def _make() -> str:
-        _n[0] += 1
-        return str(tmp_path / f"vr_{_n[0]}.duckdb")
+        schema = f"harness_{uuid.uuid4().hex[:8]}"
+        with psycopg.connect(base_url) as conn:
+            conn.execute(f"CREATE SCHEMA {schema}")
+            _apply_sdd_ddl(conn, schema)
+            conn.commit()
+        created.append(schema)
+        return f"{base_url}?options=-csearch_path%3D{schema}"
 
-    return _make
+    yield _make
+
+    if created:
+        schemas_sql = ", ".join(created)
+        with psycopg.connect(base_url) as conn:
+            conn.execute(f"DROP SCHEMA IF EXISTS {schemas_sql} CASCADE")
+            conn.commit()
 
 
 @pytest.fixture

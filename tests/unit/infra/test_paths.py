@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 
-from sdd.infra.paths import event_store_file, event_store_url, is_production_event_store
+from sdd.infra.paths import event_store_url, is_production_event_store
 
 
 class TestEventStoreUrl:
@@ -32,22 +32,25 @@ class TestIsProductionEventStore:
 
 
 def test_no_event_store_file_calls_in_cli() -> None:
-    """I-CLI-DB-RESOLUTION-1: CLI modules MUST NOT call event_store_file().
-
-    Exception: show_path.py (diagnostic output), paths.py (definition), and tests/.
-    """
+    """I-CLI-DB-RESOLUTION-1: CLI modules MUST NOT call event_store_file()."""
     result = subprocess.run(
         [
             "grep", "-r", "event_store_file()", "src/sdd/",
             "--include=*.py",
-            "--exclude=show_path.py",
-            "--exclude=paths.py",
         ],
         capture_output=True,
         text=True,
     )
     assert result.stdout == "", (
         f"I-CLI-DB-RESOLUTION-1 violated. Files calling event_store_file():\n{result.stdout}"
+    )
+
+
+def test_event_store_file_removed() -> None:
+    """I-EVENT-STORE-FILE-REMOVED-1: event_store_file() MUST NOT exist in sdd.infra.paths."""
+    import sdd.infra.paths as paths_module
+    assert not hasattr(paths_module, "event_store_file"), (
+        "I-EVENT-STORE-FILE-REMOVED-1 violated: event_store_file() still exists in sdd.infra.paths"
     )
 
 

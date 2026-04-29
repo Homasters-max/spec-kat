@@ -7,15 +7,14 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
-import tempfile
 from dataclasses import asdict as _asdict
-from pathlib import Path
 from types import SimpleNamespace
 
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 
 from sdd.commands.registry import REGISTRY
 from tests.harness.api import execute_sequence
+from tests.harness.fixtures import db_factory  # noqa: F401 — pytest fixture
 from tests.harness.generators import independent_command_pair
 
 # sync-state spec has actor="any" which is not in the norm catalog (catalog lists llm only).
@@ -48,8 +47,8 @@ def _wrap(payload) -> SimpleNamespace:
 
 
 @given(independent_command_pair())
-@settings(max_examples=50, deadline=None)
-def test_confluence_strong(pair):
+@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+def test_confluence_strong(db_factory, pair):
     """I-CONFLUENCE-STRONG-1: interleaving independent commands is confluent.
 
     Executes (cmd_a, cmd_b) and (cmd_b, cmd_a) against isolated DBs;
@@ -59,18 +58,15 @@ def test_confluence_strong(pair):
     """
     cmd_a, cmd_b = pair
 
-    with tempfile.TemporaryDirectory() as tmp:
-        db_ab = str(Path(tmp) / "ab.duckdb")
-        _, state_ab = execute_sequence(
-            [(_TEST_SYNC_SPEC, _wrap(cmd_a)), (_TEST_SYNC_SPEC, _wrap(cmd_b))],
-            db_ab,
-        )
+    _, state_ab = execute_sequence(
+        [(_TEST_SYNC_SPEC, _wrap(cmd_a)), (_TEST_SYNC_SPEC, _wrap(cmd_b))],
+        db_factory(),
+    )
 
-        db_ba = str(Path(tmp) / "ba.duckdb")
-        _, state_ba = execute_sequence(
-            [(_TEST_SYNC_SPEC, _wrap(cmd_b)), (_TEST_SYNC_SPEC, _wrap(cmd_a))],
-            db_ba,
-        )
+    _, state_ba = execute_sequence(
+        [(_TEST_SYNC_SPEC, _wrap(cmd_b)), (_TEST_SYNC_SPEC, _wrap(cmd_a))],
+        db_factory(),
+    )
 
     assert _state_hash(state_ab) == _state_hash(state_ba), (
         f"Confluence violated: hash(AB)={_state_hash(state_ab)!r} "

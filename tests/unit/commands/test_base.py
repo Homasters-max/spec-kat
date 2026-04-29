@@ -79,7 +79,7 @@ class _NoIdempotencyErrorHandler(CommandHandlerBase):
 def _event_count(db_path: str) -> int:
     conn = open_sdd_connection(db_path)
     try:
-        row = conn.execute("SELECT COUNT(*) FROM events").fetchone()
+        row = conn.execute("SELECT COUNT(*) FROM event_log").fetchone()
         return int(row[0]) if row else 0
     finally:
         conn.close()

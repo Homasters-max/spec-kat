@@ -42,8 +42,8 @@ def _popen_mock() -> MagicMock:
 
 
 @pytest.fixture
-def handler(tmp_path):
-    return ValidateInvariantsHandler(db_path=str(tmp_path / "test.duckdb"))
+def handler(pg_test_db: str):
+    return ValidateInvariantsHandler(db_path=pg_test_db)
 
 
 class TestAlwaysPassthrough:

@@ -199,28 +199,19 @@ class TestEventLogAppendOnly:
 # ---------------------------------------------------------------------------
 
 class TestDbFactoryIsolation:
-    """I-VR-HARNESS-4: db_factory returns unique, tmp_path-scoped paths per call."""
+    """I-VR-HARNESS-4: db_factory returns unique, PG-schema-isolated URLs per call."""
 
     def test_each_call_returns_unique_path(self, db_factory):
-        """Two calls to db_factory() produce distinct paths."""
+        """Two calls to db_factory() produce distinct URLs."""
         path_a = db_factory()
         path_b = db_factory()
         assert path_a != path_b
 
-    def test_paths_are_under_tmp_path(self, tmp_path, db_factory):
-        """db_factory paths are scoped to pytest tmp_path (not shared)."""
-        path = db_factory()
-        assert str(tmp_path) in path
-
     def test_multiple_calls_are_unique(self, db_factory):
-        """N calls to db_factory() all return distinct paths."""
+        """N calls to db_factory() all return distinct URLs."""
         n = 5
         paths = [db_factory() for _ in range(n)]
         assert len(set(paths)) == n
-
-    def test_db_paths_end_with_duckdb(self, db_factory):
-        """db_factory paths have .duckdb extension."""
-        assert db_factory().endswith(".duckdb")
 
     def test_separate_fixture_invocations_are_independent(self, db_factory, event_factory):
         """db_factory and event_factory fixtures are independent (no shared state)."""

@@ -39,3 +39,5 @@
 | 43 | Unified PostgreSQL EventLog | .sdd/specs/Spec_v43_UnifiedPostgresEventLog.md | .sdd/plans/Plan_v43.md | PLANNED |
 | 44 | Routing Switch | .sdd/specs/Spec_v44_RoutingSwitch.md | .sdd/plans/Plan_v44.md | PLANNED |
 | 45 | Enforce PostgreSQL (BREAKING) | .sdd/specs/Spec_v45_EnforcePostgres.md | .sdd/plans/Plan_v45.md | PLANNED |
+| 46 | Remove DuckDB (DESTRUCTIVE) | .sdd/specs/Spec_v46_RemoveDuckDB.md | .sdd/plans/Plan_v46.md | PLANNED |
+| 47 | EventLog Kernel Extraction & Post-DuckDB Cleanup | .sdd/specs/Spec_v47_EventLogKernelExtraction.md | .sdd/plans/Plan_v47.md | PLANNED |

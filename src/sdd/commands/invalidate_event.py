@@ -17,8 +17,11 @@ from sdd.core.errors import InvariantViolationError
 from sdd.core.events import DomainEvent, EventLevel
 from sdd.core.types import Command
 from sdd.infra.db import open_sdd_connection
+from sdd.infra.paths import event_store_url, is_production_event_store
 
 _log = logging.getLogger(__name__)
+
+EVENT_LOG_TABLE = "event_log"
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,7 @@ class InvalidateEventCommand:
     target_seq:   int
     reason:       str
     phase_id:     int
+    force:        bool = False
 
 
 class InvalidateEventHandler(CommandHandlerBase):
@@ -45,14 +49,23 @@ class InvalidateEventHandler(CommandHandlerBase):
     @error_event_boundary(source=__name__)
     def handle(self, cmd: Command) -> list[DomainEvent]:  # type: ignore[override]
         _cmd = cmd  # type: ignore[assignment]
+
+        # I-INVALIDATE-PG-1: --force guard (production safety)
+        if is_production_event_store(self._db_path) and not _cmd.force:
+            raise ValueError(
+                "invalidate-event targets production event store. "
+                "Pass --force to confirm. This action is irreversible."
+            )
+
         conn = open_sdd_connection(self._db_path)
         try:
             row = conn.execute(
-                "SELECT event_type FROM events WHERE seq = ?", [_cmd.target_seq]
+                f"SELECT event_type FROM {EVENT_LOG_TABLE} WHERE sequence_id = %s",
+                [_cmd.target_seq],
             ).fetchone()
             existing = conn.execute(
-                "SELECT 1 FROM events WHERE event_type = 'EventInvalidated' "
-                "AND CAST(payload->>'target_seq' AS INTEGER) = ?",
+                f"SELECT 1 FROM {EVENT_LOG_TABLE} WHERE event_type = 'EventInvalidated' "
+                "AND (payload->>'target_seq')::INTEGER = %s",
                 [_cmd.target_seq],
             ).fetchone()
         finally:
@@ -102,12 +115,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seq", type=int, required=True, help="Target event seq to invalidate")
     parser.add_argument("--reason", required=True, help="Reason for invalidation (≤200 chars)")
     parser.add_argument("--db", default=None, help="Override DB path")
+    parser.add_argument("--force", action="store_true", help="Confirm irreversible operation on production store")
     args = parser.parse_args(argv)
 
     import json
 
     from sdd.commands.registry import REGISTRY, execute_and_project
-    from sdd.infra.paths import event_store_url
     from sdd.infra.projections import get_current_state
 
     _db = args.db or event_store_url()
@@ -120,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         target_seq=args.seq,
         reason=args.reason,
         phase_id=state.phase_current,
+        force=args.force,
     )
     try:
         execute_and_project(REGISTRY["invalidate-event"], cmd, db_path=_db)

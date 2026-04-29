@@ -75,8 +75,8 @@ def _popen_mock(returncode: int = 0, stdout: bytes = b"ok\n", stderr: bytes = b"
 
 
 @pytest.fixture
-def handler(tmp_path):
-    return ValidateInvariantsHandler(db_path=str(tmp_path / "test.duckdb"))
+def handler(pg_test_db: str):
+    return ValidateInvariantsHandler(db_path=pg_test_db)
 
 
 # ---------------------------------------------------------------------------

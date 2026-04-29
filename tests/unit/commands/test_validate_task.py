@@ -10,7 +10,6 @@ import pytest
 
 from sdd.commands.update_state import ValidateTaskCommand, ValidateTaskHandler
 from sdd.domain.state.yaml_state import read_state
-from sdd.infra.db import open_sdd_connection
 
 _TASKSET_CONTENT = """\
 T-412: SomeTask
@@ -60,11 +59,8 @@ senar:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def db_path(tmp_path) -> str:
-    path = str(tmp_path / "test_sdd.duckdb")
-    conn = open_sdd_connection(path)
-    conn.close()
-    return path
+def db_path(pg_test_db: str) -> str:
+    return pg_test_db
 
 
 @pytest.fixture

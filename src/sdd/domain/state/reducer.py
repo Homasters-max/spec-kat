@@ -280,7 +280,7 @@ class EventReducer:
 
             if event_type not in self._EVENT_SCHEMA:
                 events_unknown_type += 1
-                logging.warning("EventReducer: unknown event_type=%r — skipping (NO-OP)", event_type)
+                logging.debug("EventReducer: unknown event_type=%r — skipping (NO-OP)", event_type)
                 if strict_mode:
                     raise UnknownEventType(event_type)
                 continue

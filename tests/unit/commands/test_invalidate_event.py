@@ -36,22 +36,22 @@ def _cmd(
 
 
 def _seed_raw(db_path: str, event_type: str, payload: dict, level: str = "L1") -> int:
-    """Insert event directly via SQL — bypasses sdd_append_batch which requires batch_id column."""
+    """Insert event directly via SQL."""
     conn = open_sdd_connection(db_path)
     try:
-        payload_str = json.dumps(payload, sort_keys=True)
+        import json as _json
+        payload_json = _json.dumps(payload, sort_keys=True)
         event_id_val = str(uuid.uuid4())
         ts = int(time.time() * 1000)
         conn.execute(
-            """INSERT INTO events
-                (seq, event_id, event_type, payload, schema_version,
-                 appended_at, level, event_source, caused_by_meta_seq, expired)
-            VALUES (nextval('sdd_event_seq'), ?, ?, ?, 1, ?, ?, 'runtime', NULL, FALSE)""",
-            [event_id_val, event_type, payload_str, ts, level],
+            """INSERT INTO event_log
+                (event_id, event_type, payload, level, event_source, caused_by_meta_seq, expired)
+            VALUES (%s, %s, %s::jsonb, %s, 'runtime', NULL, FALSE)""",
+            [event_id_val, event_type, payload_json, level],
         )
         conn.commit()
-        row = conn.execute("SELECT MAX(seq) FROM events").fetchone()
-        return int(row[0])
+        row = conn.execute("SELECT MAX(sequence_id) FROM event_log").fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
     finally:
         conn.close()
 

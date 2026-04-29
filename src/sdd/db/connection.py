@@ -31,16 +31,12 @@ def open_db_connection(
     project: str | None = None,
     schema: str | None = None,
 ) -> Any:
-    """Open DB connection routing by URL scheme.
+    """Open a PostgreSQL DB connection (I-NO-DUCKDB-1).
 
     URL resolution (I-DB-1):
       1. db_url argument (explicit non-empty)
       2. SDD_DATABASE_URL environment variable
       → ValueError if neither is set
-
-    Routing:
-      postgresql:// | postgres:// → psycopg3
-      :memory: | file path        → DuckDB
 
     I-DB-TEST-2: postgres connections use timeout_secs=0.0 in test context.
     """
@@ -49,7 +45,9 @@ def open_db_connection(
         # I-DB-TEST-2: fail-fast in test context
         timeout_secs: float | None = 0.0 if os.environ.get("PYTEST_CURRENT_TEST") else None
         return _open_postgres(resolved, project, schema, timeout_secs=timeout_secs)
-    return _open_duckdb(resolved)
+    raise ValueError(
+        f"I-NO-DUCKDB-1 violated: only PostgreSQL URLs are supported, got '{resolved}'"
+    )
 
 
 def _open_postgres(
@@ -68,7 +66,11 @@ def _open_postgres(
         ) from exc
 
     resolved_project = project or os.environ.get("SDD_PROJECT", "")
-    db_schema = schema or (f"p_{resolved_project}" if resolved_project else None)
+    # If the URL already embeds search_path via options (e.g. pg_test_db fixture), respect it.
+    _url_has_schema = "search_path" in db_url
+    db_schema = schema or (
+        None if _url_has_schema else (f"p_{resolved_project}" if resolved_project else None)
+    )
     connect_timeout = int(timeout_secs) if timeout_secs is not None else None
 
     kwargs: dict[str, Any] = {}
@@ -79,13 +81,6 @@ def _open_postgres(
         conn.execute(f"SET search_path = {db_schema}, shared")
         conn.commit()
     return conn
-
-
-def _open_duckdb(db_url: str) -> Any:
-    """Connect to DuckDB (file path or :memory:)."""
-    import duckdb
-
-    return duckdb.connect(db_url)
 
 
 # Deprecated — callers migrated to open_db_connection in T-4203

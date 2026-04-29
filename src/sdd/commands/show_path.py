@@ -16,7 +16,6 @@ import yaml
 
 from sdd.infra.paths import (
     config_file,
-    event_store_file,
     plan_file,
     state_file,
     taskset_file,
@@ -24,16 +23,17 @@ from sdd.infra.paths import (
 
 
 def _show_event_store_path() -> str:
-    """Return event store path/URL for diagnostic output.
+    """Return event store URL for diagnostic output.
 
-    BC-45-F: In PG mode, shows masked URL (no password). Fallback: DuckDB path.
+    BC-45-F: Shows masked PG URL (no password).
     """
     pg_url = os.environ.get("SDD_DATABASE_URL")
     if pg_url:
         parsed = urlparse(pg_url)
         safe = parsed._replace(netloc=parsed.netloc.rsplit("@", 1)[-1])
         return f"[PG] {urlunparse(safe)}"
-    return str(event_store_file())
+    _fail("DatabaseNotConfigured", "SDD_DATABASE_URL is not set")
+    return ""  # unreachable; satisfies type checker
 
 
 def _read_phase_from_state() -> int:

@@ -386,6 +386,10 @@ def test_18_no_direct_mutations() -> None:
         # projector.py is the ONLY allowed writer of p_* projection tables
         if py_file.name == "projector.py":
             continue
+        # event_log.py: archive_expired_l3() issues UPDATE event_log SET expired=TRUE
+        # under I-EL-7 (authorized soft-delete for L3 events); exempt from I-EVENT-1
+        if py_file.name == "event_log.py":
+            continue
 
         source = py_file.read_text(encoding="utf-8")
         try:

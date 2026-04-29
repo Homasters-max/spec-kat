@@ -5,11 +5,12 @@ import pathlib
 import shutil
 import tempfile
 from collections.abc import Generator
+from typing import Any
 
+import psycopg
 import pytest
 
 from sdd.db.connection import open_db_connection
-from sdd.infra.db import open_sdd_connection
 from sdd.infra.paths import reset_sdd_root
 
 # Read-only subdirs to symlink from project .sdd/ so tests can still find
@@ -66,13 +67,12 @@ def _isolate_sdd_home(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, 
 
 
 @pytest.fixture(autouse=True)
-def _guard_production_db() -> Generator[None, None, None]:
-    prod_db = pathlib.Path(".sdd/state/sdd_events.duckdb").resolve()
-    mtime_before = prod_db.stat().st_mtime_ns if prod_db.exists() else None
-    yield
-    if prod_db.exists() and mtime_before is not None:
-        mtime_after = prod_db.stat().st_mtime_ns
-        assert mtime_after == mtime_before, f"Test modified production DB: {prod_db}"
+def _test_postgres_schema(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Acceptance (I-DB-TEST-1): PostgreSQL schema in tests MUST match p_test_*.
+
+    Sets SDD_PROJECT=test_default so open_sdd_connection resolves schema=p_test_default.
+    """
+    monkeypatch.setenv("SDD_PROJECT", "test_default")
 
 
 @pytest.fixture()
@@ -82,27 +82,6 @@ def sdd_home(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> Generat
     monkeypatch.setenv("SDD_HOME", str(sdd_dir))
     reset_sdd_root()
     yield sdd_dir
-
-
-@pytest.fixture()
-def in_memory_db() -> Generator[object, None, None]:
-    conn = open_sdd_connection(":memory:")
-    yield conn
-    conn.close()
-
-
-@pytest.fixture()
-def tmp_db_path(tmp_path: pathlib.Path) -> str:
-    return str(tmp_path / "test_sdd_events.duckdb")
-
-
-@pytest.fixture(autouse=True)
-def _test_postgres_schema(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Acceptance (I-DB-TEST-1): PostgreSQL schema in tests MUST match p_test_*.
-
-    Sets SDD_PROJECT=test_default so open_sdd_connection resolves schema=p_test_default.
-    """
-    monkeypatch.setenv("SDD_PROJECT", "test_default")
 
 
 @pytest.fixture()
@@ -123,12 +102,147 @@ def pg_conn(pg_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[object, N
     conn.close()
 
 
-@pytest.fixture(autouse=True)
-def _duckdb_fail_fast(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
-    """I-DB-TEST-2: In test context (PYTEST_CURRENT_TEST), timeout_secs=0.0 (fail-fast).
+@pytest.fixture(scope="session")
+def _require_sdd_database_url() -> str:
+    """Fail-fast guard: skip PG tests if SDD_DATABASE_URL not set.
 
-    Signals fail-fast intent via SDD_DB_TIMEOUT_SECS=0.0.  The production layer
-    may read this env var to configure DuckDB busy/lock timeout accordingly.
+    FakeEventLog unit tests work without PG — only PG fixtures call this.
     """
-    monkeypatch.setenv("SDD_DB_TIMEOUT_SECS", "0.0")
-    yield
+    url = os.environ.get("SDD_DATABASE_URL")
+    if not url:
+        pytest.skip("SDD_DATABASE_URL not set — skipping PG integration tests")
+    return url
+
+
+def _apply_sdd_ddl(conn: Any, schema: str) -> None:
+    """Apply event_log DDL to an existing schema (I-PG-DDL-1)."""
+    from sdd.infra.event_log import _PG_DDL
+    conn.execute(f"SET search_path = {schema}, public")
+    for stmt in _PG_DDL:
+        conn.execute(stmt)
+
+
+@pytest.fixture(scope="session")
+def _pg_shared_schema(_require_sdd_database_url: str) -> Generator[dict[str, str], None, None]:
+    """Session-scoped schema: DDL applied once per test session (BC-47-D, I-TEST-TRUNCATE-1).
+
+    Schema name includes PID so parallel workers (pytest-xdist) get distinct schemas.
+    """
+    schema = f"test_sdd_{os.getpid()}"
+    base_url = _require_sdd_database_url
+    test_url = f"{base_url}?options=-csearch_path%3D{schema}"
+
+    conn = psycopg.connect(base_url)
+    conn.execute(f"CREATE SCHEMA {schema}")
+    _apply_sdd_ddl(conn, schema)
+    conn.commit()
+    conn.close()
+
+    yield {"base_url": base_url, "schema": schema, "test_url": test_url}
+
+    conn = psycopg.connect(base_url)
+    conn.execute(f"DROP SCHEMA {schema} CASCADE")
+    conn.commit()
+    conn.close()
+
+
+@pytest.fixture()
+def pg_test_db(_pg_shared_schema: dict[str, str]) -> Generator[str, None, None]:
+    """TRUNCATE-based per-test isolation (BC-47-D, I-TEST-TRUNCATE-1).
+
+    Resets event_log and p_meta before each test — faster than per-test schema creation.
+    Skip-safe: skipped when SDD_DATABASE_URL is not set (via _pg_shared_schema dependency).
+    """
+    base_url = _pg_shared_schema["base_url"]
+    schema = _pg_shared_schema["schema"]
+    test_url = _pg_shared_schema["test_url"]
+
+    conn = psycopg.connect(base_url)
+    conn.execute(f"SET search_path = {schema}, public")
+    conn.execute("TRUNCATE event_log RESTART IDENTITY")
+    conn.execute("DELETE FROM p_meta")
+    conn.execute("INSERT INTO p_meta DEFAULT VALUES")
+    conn.commit()
+    conn.close()
+
+    yield test_url
+
+
+@pytest.fixture()
+def tmp_db_path(pg_test_db: str) -> str:
+    """PostgreSQL test schema URL (replaces DuckDB tmp_db_path — BC-46-E).
+
+    Skip-safe: skipped when SDD_DATABASE_URL is not set.
+    """
+    return pg_test_db
+
+
+@pytest.fixture()
+def in_memory_db(pg_test_db: str) -> Generator[object, None, None]:
+    """PostgreSQL test connection (replaces DuckDB in_memory_db — BC-46-E).
+
+    Skip-safe: skipped when SDD_DATABASE_URL is not set.
+    """
+    conn = psycopg.connect(pg_test_db)
+    yield conn
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Enforcement tests (BC-46-F, BC-46-E)
+# ---------------------------------------------------------------------------
+
+def test_duckdb_not_in_dependencies() -> None:
+    """I-NO-DUCKDB-1: duckdb must not appear in pyproject.toml."""
+    pyproject = pathlib.Path("pyproject.toml").read_text()
+    assert "duckdb" not in pyproject.lower(), "duckdb found in pyproject.toml"
+
+
+@pytest.mark.pg
+def test_pg_test_db_fixture_isolated(pg_test_db: str) -> None:
+    """BC-46-E: pg_test_db uses a test schema (search_path contains test_ prefix)."""
+    assert "test_" in pg_test_db
+    with psycopg.connect(pg_test_db) as conn:
+        row = conn.execute("SELECT current_schema()").fetchone()
+        assert row is not None
+        assert row[0].startswith("test_")
+
+
+@pytest.mark.pg
+def test_pg_test_db_truncate_isolation(pg_test_db: str) -> None:
+    """BC-47-D: event_log is empty at the start of each test (TRUNCATE isolation)."""
+    with psycopg.connect(pg_test_db) as conn:
+        row = conn.execute("SELECT COUNT(*) FROM event_log").fetchone()
+        assert row is not None
+        assert row[0] == 0, "event_log must be empty after TRUNCATE (I-TEST-TRUNCATE-1)"
+
+
+@pytest.mark.pg
+def test_postgres_event_log_append_via_kernel(pg_test_db: str) -> None:
+    """BC-47-D: PostgresEventLog.append stores an event using the pg_test_db fixture."""
+    import time
+    import uuid
+    from dataclasses import dataclass
+
+    from sdd.core.events import DomainEvent, EventLevel
+    from sdd.infra.event_log import EventLog
+
+    @dataclass(frozen=True)
+    class _ConfTestMinimalEvent(DomainEvent):
+        """Stub event; unknown to reducer (EV-4 skip)."""
+
+    event = _ConfTestMinimalEvent(
+        event_type="_conftest_minimal",
+        event_id=str(uuid.uuid4()),
+        appended_at=int(time.time() * 1000),
+        level=EventLevel.L2,
+        event_source="test",
+        caused_by_meta_seq=None,
+    )
+    el = EventLog(pg_test_db)
+    el.append([event], source="test", allow_outside_kernel="test")
+
+    with psycopg.connect(pg_test_db) as conn:
+        row = conn.execute("SELECT COUNT(*) FROM event_log").fetchone()
+        assert row is not None
+        assert row[0] == 1, "expected 1 event in event_log after append"

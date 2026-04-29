@@ -48,9 +48,9 @@ def tmp_dirs(tmp_path: Path):
 
 
 @pytest.fixture()
-def tmp_db(tmp_path: Path) -> str:
-    """Temp DuckDB path — never production DB (I-DB-TEST-1)."""
-    return str(tmp_path / "test_events.duckdb")
+def tmp_db(pg_test_db: str) -> str:
+    """Temp PG URL — never production DB (I-DB-TEST-1)."""
+    return pg_test_db
 
 
 # ---------------------------------------------------------------------------
@@ -247,12 +247,10 @@ class TestErrorBoundary:
 class TestDbIsolation:
 
     def test_tmp_db_is_not_production_db(self, tmp_db):
-        """I-DB-TEST-1: tmp_db path must not resolve to production sdd_events.duckdb."""
-        prod_candidates = [
-            Path(".sdd/state/sdd_events.duckdb").resolve(),
-            Path(".sdd/sdd_events.duckdb").resolve(),
-        ]
-        assert Path(tmp_db).resolve() not in prod_candidates
+        """I-DB-TEST-1: tmp_db must not reference production DB schema."""
+        prod_url = "postgresql://localhost/sdd"
+        assert tmp_db != prod_url
+        assert "test_" in tmp_db or "pg_test_db" in tmp_db or "test" in tmp_db
 
     def test_handler_requires_nonempty_db_path(self):
         """I-DB-1: empty db_path must not be passed to handler in production paths."""

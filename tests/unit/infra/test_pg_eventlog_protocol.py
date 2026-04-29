@@ -94,14 +94,13 @@ def test_event_store_url_returns_pg_url_when_env_set(monkeypatch: pytest.MonkeyP
     assert event_store_url() == "postgresql://host/sdd_prod"
 
 
-def test_event_store_url_falls_back_to_duckdb_path(monkeypatch: pytest.MonkeyPatch) -> None:
-    """event_store_url() returns DuckDB file path when SDD_DATABASE_URL absent (I-EVENT-STORE-URL-1)."""
+def test_event_store_url_raises_when_sdd_database_url_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """event_store_url() raises EnvironmentError when SDD_DATABASE_URL not set (I-NO-DUCKDB-1)."""
     from sdd.infra.paths import event_store_url
 
     monkeypatch.delenv("SDD_DATABASE_URL", raising=False)
-    url = event_store_url()
-    assert url.endswith(".duckdb")
-    assert "sdd_events" in url
+    with pytest.raises(EnvironmentError, match="SDD_DATABASE_URL"):
+        event_store_url()
 
 
 # ---------------------------------------------------------------------------
@@ -170,24 +169,12 @@ def test_apply_projector_safe_swallows_exception() -> None:
 # Test 9: lazy duckdb import (I-LAZY-DUCK-1)
 # ---------------------------------------------------------------------------
 
-def test_open_sdd_connection_pg_branch_no_duckdb_import() -> None:
-    """PG URL branch of open_sdd_connection must not import duckdb (I-LAZY-DUCK-1)."""
+def test_open_sdd_connection_rejects_non_pg_url() -> None:
+    """open_sdd_connection() must reject non-PostgreSQL URLs (I-NO-DUCKDB-1)."""
     from sdd.infra.db import open_sdd_connection
 
-    saved = sys.modules.pop("duckdb", None)
-    try:
-        with (
-            patch("sdd.db.connection.is_postgres_url", return_value=True),
-            patch("sdd.db.connection.open_db_connection", return_value=MagicMock()),
-        ):
-            open_sdd_connection("postgresql://fake/test")
-
-        assert "duckdb" not in sys.modules, (
-            "duckdb must not be imported in the PG URL branch (I-LAZY-DUCK-1)"
-        )
-    finally:
-        if saved is not None:
-            sys.modules["duckdb"] = saved
+    with pytest.raises(ValueError, match="I-NO-DUCKDB-1"):
+        open_sdd_connection("/tmp/test.duckdb")
 
 
 # ---------------------------------------------------------------------------
