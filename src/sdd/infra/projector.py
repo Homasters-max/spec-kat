@@ -381,7 +381,7 @@ def _sync_p_sessions(conn: Any) -> None:
     )
     rows = cur.fetchall()
     for seq_id, raw_payload in rows:
-        p: dict = raw_payload if isinstance(raw_payload, dict) else (_json.loads(raw_payload) if raw_payload else {})
+        p: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else (_json.loads(raw_payload) if raw_payload else {})
         cur.execute(
             "INSERT INTO p_sessions (session_type, phase_id, task_id, seq, timestamp)"
             " VALUES (%s, %s, %s, %s, %s)",

@@ -10,7 +10,7 @@ import sys
 import time
 import uuid
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Any, ClassVar, cast
 
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.errors import InvariantViolationError
@@ -36,7 +36,7 @@ class EventInvalidatedEvent(DomainEvent):
 class InvalidateEventCommand:
     command_id:   str
     command_type: str
-    payload:      dict
+    payload:      dict[str, Any]
     target_seq:   int
     reason:       str
     phase_id:     int
@@ -47,8 +47,8 @@ class InvalidateEventHandler(CommandHandlerBase):
     """Emits EventInvalidated to neutralize an invalid EventLog entry (BC-WG-5)."""
 
     @error_event_boundary(source=__name__)
-    def handle(self, cmd: Command) -> list[DomainEvent]:  # type: ignore[override]
-        _cmd = cmd  # type: ignore[assignment]
+    def handle(self, cmd: Command) -> list[DomainEvent]:
+        _cmd = cast(InvalidateEventCommand, cmd)
 
         # I-INVALIDATE-PG-1: --force guard (production safety)
         if is_production_event_store(self._db_path) and not _cmd.force:

@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import sys
+from typing import NoReturn
 from urllib.parse import urlparse, urlunparse
 
 import yaml
@@ -48,7 +49,7 @@ def _read_phase_from_state() -> int:
         _fail("MissingState", f"Cannot read phase from State_index.yaml: {e}")
 
 
-def _fail(error_type: str, message: str) -> None:
+def _fail(error_type: str, message: str) -> NoReturn:
     json.dump({"error_type": error_type, "message": message, "exit_code": 1}, sys.stderr)
     sys.stderr.write("\n")
     sys.exit(1)

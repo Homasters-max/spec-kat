@@ -377,7 +377,7 @@ def _read_phase(state_path: str) -> int:
     from pathlib import Path
 
     import yaml
-    return yaml.safe_load(Path(state_path).read_text(encoding="utf-8"))["phase"]["current"]
+    return int(yaml.safe_load(Path(state_path).read_text(encoding="utf-8"))["phase"]["current"])
 
 
 def main(args: list[str] | None = None) -> int:

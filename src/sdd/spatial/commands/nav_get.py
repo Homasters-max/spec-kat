@@ -52,7 +52,7 @@ def run(argv: list[str] | None = None) -> int:
     # I-NAV-SESSION-1: load session per call
     session = load_session(sdd_root)
 
-    intent = NavigationIntent(type=args.intent) if args.intent else None  # type: ignore[arg-type]
+    intent = NavigationIntent(type=args.intent) if args.intent else None
 
     nav = Navigator(index, session, project_root=sdd_root)
     result = nav.resolve(args.node_id, mode=args.mode, intent=intent)

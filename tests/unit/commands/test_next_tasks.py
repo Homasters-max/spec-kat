@@ -23,7 +23,7 @@ def _task(task_id: str) -> MagicMock:
 
 def _state(done_ids: list[str]) -> MagicMock:
     s = MagicMock()
-    s.done_ids = done_ids
+    s.tasks_done_ids = done_ids
     return s
 
 

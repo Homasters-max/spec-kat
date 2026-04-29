@@ -122,7 +122,7 @@ class ActivatePhaseHandler(CommandHandlerBase):
     AlreadyActivated guard: handled by guard pipeline before handle() is called.
     """
 
-    def handle(self, command: ActivatePhaseCommand) -> list[DomainEvent]:
+    def handle(self, command: ActivatePhaseCommand) -> list[DomainEvent]:  # type: ignore[override]
         if command.actor != "human":
             raise InvalidActor(
                 f"ActivatePhaseCommand requires actor='human', got {command.actor!r}"

@@ -46,3 +46,4 @@
 | 49 | Session Dedup Fixes | .sdd/specs/Spec_v49_SessionDedupFixes.md | .sdd/plans/Plan_v49.md | PLANNED |
 | 50 | Graph Subsystem Foundation | .sdd/specs/Spec_v50_GraphSubsystemFoundation.md | .sdd/plans/Plan_v50.md | PLANNED |
 | 51 | Context Kernel + Policy Layer | .sdd/specs/Spec_v51_ContextKernelPolicyLayer.md | .sdd/plans/Plan_v51.md | PLANNED |
+| 52 | CLI + LightRAG + Migration Window Close | .sdd/specs/Spec_v52_CLIMigrationLightRAG.md | .sdd/plans/Plan_v52.md | PLANNED |

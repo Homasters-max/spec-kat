@@ -50,7 +50,7 @@ def make_phase_guard(command_str: str, task_id: str | None) -> Guard:
             deny_result = GuardResult(
                 outcome=GuardOutcome.DENY,
                 guard_name="PhaseGuard",
-                message=deny_reason,
+                message=deny_reason or "",
                 reason=f"GUARD_DENY.PhaseGuard.{failed_check}",
                 norm_id=None,
                 task_id=task_id,
@@ -63,7 +63,7 @@ def make_phase_guard(command_str: str, task_id: str | None) -> Guard:
                 event_source="runtime",
                 caused_by_meta_seq=None,
                 command=command_str,
-                rejection_reason=deny_reason,
+                rejection_reason=deny_reason or "",
                 phase_id=str(s.phase_current),
                 failed_check=failed_check,
                 timestamp=ctx.now,

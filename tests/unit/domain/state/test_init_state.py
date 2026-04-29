@@ -45,6 +45,7 @@ def test_init_state_creates_yaml(tmp_path):
     with (
         patch("sdd.domain.state.init_state.parse_taskset", return_value=tasks),
         patch("sdd.domain.state.init_state.write_state") as mock_write,
+        pytest.warns(DeprecationWarning, match="deprecated"),
     ):
         result = init_state(
             phase_id=1,
@@ -84,6 +85,7 @@ def test_init_state_counts_match_taskset(tmp_path):
     with (
         patch("sdd.domain.state.init_state.parse_taskset", return_value=tasks),
         patch("sdd.domain.state.init_state.write_state"),
+        pytest.warns(DeprecationWarning, match="deprecated"),
     ):
         result = init_state(
             phase_id=1,
@@ -108,6 +110,7 @@ def test_init_state_emits_phase_initialized_then_derivation(tmp_path):
     with (
         patch("sdd.domain.state.init_state.parse_taskset", return_value=tasks),
         patch("sdd.domain.state.init_state.write_state"),
+        pytest.warns(DeprecationWarning, match="deprecated"),
     ):
         init_state(
             phase_id=2,

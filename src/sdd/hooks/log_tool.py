@@ -14,9 +14,10 @@ import json
 import os
 import sys
 import time
+from typing import Any
 
 
-def _extract_inputs(tool_name: str, tool_input: dict) -> dict:
+def _extract_inputs(tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
     """Extract compact, privacy-safe summary of tool inputs per CLAUDE.md §0.12 taxonomy."""
     if tool_name == "Bash":
         return {
@@ -24,7 +25,7 @@ def _extract_inputs(tool_name: str, tool_input: dict) -> dict:
             "description": tool_input.get("description", ""),
         }
     if tool_name == "Read":
-        d: dict = {"file_path": tool_input.get("file_path", "")}
+        d: dict[str, Any] = {"file_path": tool_input.get("file_path", "")}
         if tool_input.get("offset"):
             d["offset"] = tool_input["offset"]
         if tool_input.get("limit"):
@@ -64,11 +65,11 @@ def _extract_inputs(tool_name: str, tool_input: dict) -> dict:
     return {"keys": list(tool_input.keys())[:10]}
 
 
-def _extract_output(tool_name: str, tool_response: dict) -> dict:
+def _extract_output(tool_name: str, tool_response: dict[str, Any]) -> dict[str, Any]:
     """Extract compact summary of tool response for ToolUseCompleted payload."""
     output_raw = tool_response.get("output") or tool_response.get("error") or ""
     interrupted = bool(tool_response.get("interrupted", False))
-    base: dict = {
+    base: dict[str, Any] = {
         "output_len": len(str(output_raw)),
         "interrupted": interrupted,
     }
@@ -88,14 +89,14 @@ def main() -> None:
         sys.exit(0)  # I-HOOK-2
 
     hook_event_name: str = payload.get("hook_event_name", "")
-    tool_input: dict = payload.get("tool_input") or {}
+    tool_input: dict[str, Any] = payload.get("tool_input") or {}
     timestamp_ms = int(time.time() * 1000)
     from sdd.infra.paths import event_store_url  # noqa: PLC0415
     # SDD_DB_PATH — legacy override for subprocess context
     db = os.environ.get("SDD_DB_PATH") or event_store_url()
 
     event_type = ""
-    event_payload: dict = {}
+    event_payload: dict[str, Any] = {}
 
     try:
         from sdd.infra.event_log import sdd_append  # noqa: PLC0415
@@ -115,7 +116,7 @@ def main() -> None:
                 level="L2",           # I-HOOK-3
             )
         elif hook_event_name == "PostToolUse":
-            tool_response: dict = payload.get("tool_response") or {}
+            tool_response: dict[str, Any] = payload.get("tool_response") or {}
             event_type = "ToolUseCompleted"
             event_payload = {
                 "tool_name": tool_name,

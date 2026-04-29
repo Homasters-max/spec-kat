@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, cast
 
 from sdd.commands._base import CommandHandlerBase, NoOpHandler
 from sdd.core.execution_context import kernel_context
@@ -66,12 +66,12 @@ from sdd.domain.tasks.parser import Task, parse_taskset
 from sdd.infra.event_log import EventLog, EventLogError, EventLogKernelProtocol, open_event_log
 from sdd.infra.paths import (
     audit_log_file,
-    event_store_url,
+    event_store_url as event_store_url,
     norm_catalog_file,
     state_file,
     taskset_file,
 )
-from sdd.infra.projections import RebuildMode, get_current_state, rebuild_state, rebuild_taskset
+from sdd.infra.projections import RebuildMode, get_current_state as get_current_state, rebuild_state, rebuild_taskset
 
 _log = logging.getLogger(__name__)
 
@@ -527,9 +527,9 @@ def _write_error_to_audit_log(
 def _extract_task_id(cmd: Any) -> str | None:
     """Extract task_id from command payload or direct attribute."""
     if hasattr(cmd, "task_id"):
-        return cmd.task_id  # type: ignore[no-any-return]
+        return cast(str | None, cmd.task_id)
     payload = getattr(cmd, "payload", {})
-    return payload.get("task_id")  # type: ignore[return-value]
+    return cast(str | None, payload.get("task_id"))
 
 
 def _find_task(taskset_path: str, task_id: str) -> Task | None:

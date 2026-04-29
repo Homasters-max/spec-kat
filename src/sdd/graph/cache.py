@@ -4,6 +4,7 @@ import json
 import logging
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 from sdd.graph.types import DeterministicGraph, Edge, Node
 from sdd.infra.paths import get_sdd_root
@@ -17,7 +18,7 @@ def _default_cache_dir() -> Path:
     return get_sdd_root() / "runtime" / "graph_cache"
 
 
-def _graph_to_dict(graph: DeterministicGraph) -> dict:
+def _graph_to_dict(graph: DeterministicGraph) -> dict[str, Any]:
     return {
         "nodes": {k: asdict(v) for k, v in graph.nodes.items()},
         "edges_out": {k: [asdict(e) for e in edges] for k, edges in graph.edges_out.items()},
@@ -26,7 +27,7 @@ def _graph_to_dict(graph: DeterministicGraph) -> dict:
     }
 
 
-def _graph_from_dict(data: dict) -> DeterministicGraph:
+def _graph_from_dict(data: dict[str, Any]) -> DeterministicGraph:
     nodes = {k: Node(**v) for k, v in data["nodes"].items()}
     edges_out = {k: [Edge(**e) for e in edges] for k, edges in data["edges_out"].items()}
     edges_in = {k: [Edge(**e) for e in edges] for k, edges in data["edges_in"].items()}

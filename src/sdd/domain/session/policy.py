@@ -6,7 +6,7 @@ Invariants: I-SESSION-DEDUP-2, I-DEDUP-DOMAIN-1, I-SESSION-DEDUP-SCOPE-1,
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from sdd.infra.projector import SessionsView
 
@@ -29,4 +29,6 @@ class SessionDedupPolicy:
             return True
         session_type = getattr(cmd, "session_type", None)
         phase_id = getattr(cmd, "phase_id", None)
-        return sessions_view.get_last(session_type, phase_id) is None
+        if session_type is None:
+            return True
+        return sessions_view.get_last(cast(str, session_type), phase_id) is None

@@ -136,8 +136,10 @@ class ASTEdgeExtractor:
 
             # --- emits edges (I-GRAPH-EMITS-1) ---
             # Condition 2: skip the events definition file itself
+            # Condition 3: only command handler files emit events (I-GRAPH-EMITS-1 requires COMMAND src)
             is_events_file = path.endswith("core/events.py")
-            if not is_events_file and event_nodes:
+            is_command_handler = "commands/" in path and not path.endswith(("_base.py", "registry.py"))
+            if not is_events_file and is_command_handler and event_nodes:
                 called_names = _collect_called_names(tree)
                 for class_name, event_node_id in event_nodes.items():
                     # Condition 4: class name appears in direct Call context

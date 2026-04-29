@@ -9,6 +9,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any
 
 import yaml
 
@@ -22,7 +23,7 @@ class SpatialIndex:
     git_tree_hash: str | None
     snapshot_hash: str = ""
     version:       int = 1
-    meta:          dict = field(default_factory=dict)
+    meta:          dict[str, Any] = field(default_factory=dict)
     _content_map:  dict[str, str] = field(init=False, default_factory=dict)
 
     def read_content(self, node: SpatialNode) -> str:
@@ -334,10 +335,10 @@ class IndexBuilder:
     # Validation helpers
     # ------------------------------------------------------------------
 
-    def _validate_term_links(self, nodes: dict[str, SpatialNode]) -> dict:
+    def _validate_term_links(self, nodes: dict[str, SpatialNode]) -> dict[str, Any]:
         """I-TERM-2 + I-TERM-COVERAGE-1 post-build validation."""
-        meta: dict = {}
-        violations: list[dict] = []
+        meta: dict[str, Any] = {}
+        violations: list[dict[str, Any]] = []
         uncovered_commands: set[str] = {
             nid for nid in nodes if nid.startswith("COMMAND:")
         }
@@ -508,7 +509,7 @@ def load_index(path: str) -> SpatialIndex:
 
 
 def save_index(index: SpatialIndex, path: str) -> None:
-    nodes_dict: dict[str, dict] = {}
+    nodes_dict: dict[str, dict[str, Any]] = {}
     for node_id, node in index.nodes.items():
         nodes_dict[node_id] = {
             "node_id": node.node_id,

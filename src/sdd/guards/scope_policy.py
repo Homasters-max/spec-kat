@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -25,8 +26,8 @@ class ScopeDecision:
     file_path: str
     override: OverrideMetadata | None = None
 
-    def to_dict(self) -> dict:
-        d: dict = {
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "allowed": self.allowed,
             "reason": self.reason,
             "norm_id": self.norm_id,

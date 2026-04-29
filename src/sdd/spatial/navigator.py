@@ -11,7 +11,8 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 if TYPE_CHECKING:
     from sdd.spatial.index import SpatialIndex
@@ -183,7 +184,7 @@ def _nav_lock_path(sdd_root: str) -> Path:
 
 
 @contextlib.contextmanager
-def _session_lock(lock_path: str, timeout_secs: float = _LOCK_TIMEOUT_SECS):
+def _session_lock(lock_path: str, timeout_secs: float = _LOCK_TIMEOUT_SECS) -> Generator[None, None, None]:
     """Exclusive advisory lock for nav_session.json (I-SESSION-2).
 
     Uses non-blocking flock with retry loop; raises SessionLockTimeout after
@@ -207,7 +208,7 @@ def _session_lock(lock_path: str, timeout_secs: float = _LOCK_TIMEOUT_SECS):
             fcntl.flock(lf, fcntl.LOCK_UN)
 
 
-def _serialize_session(session: NavigationSession) -> dict:
+def _serialize_session(session: NavigationSession) -> dict[str, Any]:
     return {
         "session_id": str(uuid.uuid4()),
         "step_id": session.step_id,
@@ -222,10 +223,10 @@ def _serialize_session(session: NavigationSession) -> dict:
     }
 
 
-def _deserialize_session(data: dict) -> NavigationSession:
+def _deserialize_session(data: dict[str, Any]) -> NavigationSession:
     intent = None
     if data.get("intent"):
-        intent = NavigationIntent(type=data["intent"])  # type: ignore[arg-type]
+        intent = NavigationIntent(type=data["intent"])
     full_count = {
         int(k): v
         for k, v in data.get("full_load_count_per_step", {}).items()
@@ -346,7 +347,7 @@ class Navigator:
         node_id: str,
         mode: str = "SUMMARY",
         intent: NavigationIntent | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """I-SI-2: same id+index → same output. I-SI-3: no open() except FULL FILE."""
         if node_id not in self._index.nodes:
             return self.not_found_response(node_id)
@@ -371,8 +372,8 @@ class Navigator:
 
         return self._build_response(node, mode)
 
-    def _build_response(self, node: "SpatialNode", mode: str) -> dict:
-        response: dict = {
+    def _build_response(self, node: "SpatialNode", mode: str) -> dict[str, Any]:
+        response: dict[str, Any] = {
             "node_id": node.node_id,
             "kind": node.kind,
             "label": node.label,
@@ -412,7 +413,7 @@ class Navigator:
         query: str,
         kind: str | None = None,
         limit: int = 10,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """I-SEARCH-2: collect → sort → limit → render. I-FUZZY-1: search key based."""
         query_lower = query.lower()
 
@@ -445,7 +446,7 @@ class Navigator:
             })
         return results
 
-    def not_found_response(self, query: str) -> dict:
+    def not_found_response(self, query: str) -> dict[str, Any]:
         """Anti-hallucination response; did_you_mean always present (may be empty)."""
         query_lower = query.lower()
         scored: list[tuple[int, int, str]] = []

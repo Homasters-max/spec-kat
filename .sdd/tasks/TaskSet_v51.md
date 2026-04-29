@@ -7,7 +7,7 @@ Plan: plans/Plan_v51.md
 
 T-5101: Policy layer — types package
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §1 BC-36-P — Policy types
 Invariants Covered:   I-POLICY-LAYER-1, I-CONTEXT-BUDGET-VALID-1, I-RAG-GLOBAL-V1-DISABLED-1
 spec_refs:            [Spec_v51 §1, I-POLICY-LAYER-1, I-CONTEXT-BUDGET-VALID-1, I-RAG-GLOBAL-V1-DISABLED-1]
@@ -23,7 +23,7 @@ Depends on:           —
 
 T-5102: Policy layer — PolicyResolver
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §1 BC-36-P — PolicyResolver._DEFAULT, resolve()
 Invariants Covered:   I-POLICY-RESOLVER-1, I-POLICY-LAYER-PURE-1
 spec_refs:            [Spec_v51 §1, I-POLICY-RESOLVER-1, I-POLICY-LAYER-PURE-1]
@@ -39,7 +39,7 @@ Depends on:           T-5101
 
 T-5103: Policy layer — unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §1 BC-36-P — Verification
 Invariants Covered:   I-POLICY-RESOLVER-1, I-CONTEXT-BUDGET-VALID-1, I-RAG-GLOBAL-V1-DISABLED-1
 spec_refs:            [Spec_v51 §1, I-POLICY-RESOLVER-1, I-CONTEXT-BUDGET-VALID-1]
@@ -55,7 +55,7 @@ Depends on:           T-5101, T-5102
 
 T-5104: Context Kernel — package init
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2 BC-36-3 — Context Kernel package scaffold
 Invariants Covered:   I-PHASE-ISOLATION-1
 spec_refs:            [Spec_v51 §2, I-PHASE-ISOLATION-1]
@@ -70,7 +70,7 @@ Depends on:           T-5101
 
 T-5105: Context Kernel — QueryIntent & SearchCandidate
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.2 — QueryIntent, parse_query_intent(), SearchCandidate
 Invariants Covered:   I-INTENT-CANONICAL-1, I-INTENT-HEURISTIC-1, I-INTENT-SOURCE-OF-TRUTH-1, I-SEARCH-CANDIDATE-1, I-SEARCH-AUTO-EXACT-1, I-SEARCH-NO-EMBED-1
 spec_refs:            [Spec_v51 §2.2, I-INTENT-CANONICAL-1, I-INTENT-HEURISTIC-1, I-SEARCH-CANDIDATE-1]
@@ -85,7 +85,7 @@ Depends on:           T-5104
 
 T-5106: Context Kernel — intent unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.2 — Verification
 Invariants Covered:   I-INTENT-HEURISTIC-1, I-SEARCH-NO-EMBED-1, I-SEARCH-AUTO-EXACT-1
 spec_refs:            [Spec_v51 §2.2, I-INTENT-HEURISTIC-1, I-SEARCH-AUTO-EXACT-1]
@@ -100,7 +100,7 @@ Depends on:           T-5105
 
 T-5107: Context Kernel — Selection & BFS
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.3 — RankedNode, RankedEdge, Selection, _build_selection() BFS
 Invariants Covered:   I-RANKED-NODE-BP-1, I-BFS-BUDGET-1, I-CONTEXT-SELECT-1, I-CONTEXT-SELECT-2, I-SEARCH-MAX-EDGES-1
 spec_refs:            [Spec_v51 §2.3, I-RANKED-NODE-BP-1, I-BFS-BUDGET-1, I-CONTEXT-SELECT-1]
@@ -117,7 +117,7 @@ Depends on:           T-5104, T-5105, T-5101
 
 T-5108: Context Kernel — selection unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.3 — Verification
 Invariants Covered:   I-RANKED-NODE-BP-1, I-BFS-BUDGET-1, I-CONTEXT-SELECT-1
 spec_refs:            [Spec_v51 §2.3, I-RANKED-NODE-BP-1, I-BFS-BUDGET-1]
@@ -133,7 +133,7 @@ Depends on:           T-5107
 
 T-5109: Context Kernel — DocumentChunk & DocProvider
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.4 — DocumentChunk, ContentMapper (Protocol), DefaultContentMapper, DocProvider
 Invariants Covered:   I-DOC-CHUNK-BOUNDARY-1, I-DOC-REFS-1, I-DOC-SI-ONLY-1, I-DOC-FS-IO-1, I-DOC-NON-FILE-1, I-DOC-2
 spec_refs:            [Spec_v51 §2.4, I-DOC-FS-IO-1, I-DOC-NON-FILE-1, I-DOC-REFS-1]
@@ -149,7 +149,7 @@ Depends on:           T-5104, T-5107
 
 T-5110: Context Kernel — Context dataclass
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.4 — Context dataclass, migration shims
 Invariants Covered:   I-CONTEXT-EXHAUSTED-1, I-CTX-MIGRATION-1, I-CTX-MIGRATION-2, I-CTX-MIGRATION-3, I-CTX-MIGRATION-4, I-LEGACY-FS-EXCEPTION-1
 spec_refs:            [Spec_v51 §2.4, I-CONTEXT-EXHAUSTED-1, I-CTX-MIGRATION-1]
@@ -166,7 +166,7 @@ Depends on:           T-5109
 
 T-5111: Context Kernel — doc provider unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.4 — Verification
 Invariants Covered:   I-DOC-FS-IO-1, I-DOC-NON-FILE-1, I-DOC-REFS-1
 spec_refs:            [Spec_v51 §2.4, I-DOC-FS-IO-1, I-DOC-NON-FILE-1]
@@ -182,7 +182,7 @@ Depends on:           T-5109, T-5110
 
 T-5112: Context Kernel — RAG types
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.6 — LightRAGClient (Protocol), RAGResult, LightRAGProjection, NavigationResponse
 Invariants Covered:   I-RAG-CLIENT-ISOLATION-1, I-RAG-NO-PERSISTENCE-1, I-RAG-NONDETERMINISTIC-1, I-RAG-LLM-CONFIG-1, I-LIGHTRAG-CANONICAL-1, I-NAV-RESPONSE-1, I-SEARCH-RESPONSE-1
 spec_refs:            [Spec_v51 §2.6, I-RAG-CLIENT-ISOLATION-1, I-LIGHTRAG-CANONICAL-1, I-NAV-RESPONSE-1]
@@ -198,7 +198,7 @@ Depends on:           T-5110
 
 T-5113: Context Kernel — ContextAssembler
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.5 — ContextAssembler (deterministic truncation + document ordering)
 Invariants Covered:   I-CONTEXT-BUDGET-1, I-CONTEXT-BUDGET-VALID-1, I-CONTEXT-TRUNCATE-1, I-CONTEXT-SEED-1, I-CONTEXT-ORDER-1, I-CONTEXT-LINEAGE-1, I-CONTEXT-DETERMINISM-1, I-RAG-POLICY-1, I-RAG-GROUNDING-1, I-RAG-KG-DEPENDENCY-1, I-RAG-DETACH-1
 spec_refs:            [Spec_v51 §2.5, I-CONTEXT-TRUNCATE-1, I-CONTEXT-ORDER-1, I-CONTEXT-LINEAGE-1, I-CONTEXT-DETERMINISM-1]
@@ -217,7 +217,7 @@ Depends on:           T-5110, T-5112
 
 T-5114: Context Kernel — assembler unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.5 — Verification
 Invariants Covered:   I-CONTEXT-TRUNCATE-1, I-CONTEXT-ORDER-1, I-CONTEXT-LINEAGE-1, I-CONTEXT-DETERMINISM-1
 spec_refs:            [Spec_v51 §2.5, I-CONTEXT-TRUNCATE-1, I-CONTEXT-ORDER-1]
@@ -234,7 +234,7 @@ Depends on:           T-5113
 
 T-5115: Context Kernel — ContextEngine
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.7 — ContextEngine (pure pipeline)
 Invariants Covered:   I-ENGINE-PURE-1, I-ENGINE-INPUTS-1, I-ENGINE-POLICY-1, I-ARCH-MODEL-1, I-ARCH-MODEL-2
 spec_refs:            [Spec_v51 §2.7, I-ENGINE-PURE-1, I-ENGINE-INPUTS-1, I-ENGINE-POLICY-1]
@@ -252,7 +252,7 @@ Depends on:           T-5113
 
 T-5116: Context Kernel — ContextRuntime
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §2.8 — ContextRuntime (lifecycle orchestrator)
 Invariants Covered:   I-RUNTIME-BOUNDARY-1, I-RUNTIME-ORCHESTRATOR-1, I-CONTEXT-KERNEL-INPUT-1
 spec_refs:            [Spec_v51 §2.8, I-RUNTIME-BOUNDARY-1, I-RUNTIME-ORCHESTRATOR-1]
@@ -269,7 +269,7 @@ Depends on:           T-5115
 
 T-5117: spatial/adapter.py — to_navigation_intent
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §4 — spatial/adapter.py, BC-18 compat
 Invariants Covered:   I-INTENT-CANONICAL-1, I-PHASE-ISOLATION-1
 spec_refs:            [Spec_v51 §4, I-INTENT-CANONICAL-1]
@@ -285,7 +285,7 @@ Depends on:           T-5105
 
 T-5118: Context Kernel — engine & runtime INT-level tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §6 — INT-1, INT-2, INT-3
 Invariants Covered:   I-ENGINE-PURE-1, I-RUNTIME-BOUNDARY-1, I-CONTEXT-DETERMINISM-1
 spec_refs:            [Spec_v51 §6, I-ENGINE-PURE-1, I-RUNTIME-BOUNDARY-1]
@@ -303,7 +303,7 @@ Depends on:           T-5115, T-5116
 
 T-5119: spatial/adapter unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §6 — INT-6 Verification
 Invariants Covered:   I-INTENT-CANONICAL-1
 spec_refs:            [Spec_v51 §6, I-INTENT-CANONICAL-1]
@@ -319,7 +319,7 @@ Depends on:           T-5117
 
 T-5120: Import direction + mypy strict + DoD verification
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v51 §7 DoD Phase 51 + §6 INT-8, INT-10
 Invariants Covered:   I-PHASE-ISOLATION-1, I-ARCH-MODEL-1
 spec_refs:            [Spec_v51 §7, I-PHASE-ISOLATION-1, I-ARCH-MODEL-1]

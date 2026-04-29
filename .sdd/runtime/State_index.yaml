@@ -14,14 +14,14 @@
 # (deterministic: all tasks done + invariants PASS + tests PASS).
 
 phase:
-  current: 51
+  current: 52
   status: ACTIVE
 plan:
-  version: 51
+  version: 52
   status: ACTIVE
 tasks:
-  version: 51
-  total: 20
+  version: 52
+  total: 15
   completed: 0
   done_ids: []
 invariants:
@@ -29,9 +29,9 @@ invariants:
 tests:
   status: UNKNOWN
 meta:
-  last_updated: '2026-04-29T19:49:00Z'
+  last_updated: '2026-04-29T21:56:31Z'
   schema_version: 1
-  snapshot_event_id: 27743
+  snapshot_event_id: 27837
   reducer_version: 2
 phases_known:
 - 15
@@ -63,6 +63,7 @@ phases_known:
 - 49
 - 50
 - 51
+- 52
 phases_snapshots:
 - phase_id: 15
   phase_status: COMPLETE
@@ -661,14 +662,44 @@ phases_snapshots:
   invariants_status: PASS
   tests_status: PASS
 - phase_id: 51
-  phase_status: ACTIVE
-  plan_status: ACTIVE
+  phase_status: COMPLETE
+  plan_status: COMPLETE
   tasks_total: 20
-  tasks_completed: 0
-  tasks_done_ids: []
+  tasks_completed: 20
+  tasks_done_ids:
+  - T-5101
+  - T-5102
+  - T-5103
+  - T-5104
+  - T-5105
+  - T-5106
+  - T-5107
+  - T-5108
+  - T-5109
+  - T-5110
+  - T-5111
+  - T-5112
+  - T-5113
+  - T-5114
+  - T-5115
+  - T-5116
+  - T-5117
+  - T-5118
+  - T-5119
+  - T-5120
   plan_version: 51
   tasks_version: 51
+  invariants_status: PASS
+  tests_status: PASS
+- phase_id: 52
+  phase_status: ACTIVE
+  plan_status: ACTIVE
+  tasks_total: 15
+  tasks_completed: 0
+  tasks_done_ids: []
+  plan_version: 52
+  tasks_version: 52
   invariants_status: UNKNOWN
   tests_status: UNKNOWN
 
-# state_hash: 4fc50e528a4f81cf8100b81624801a16989c38b5e2ce883f25d307cf3baff0f3
+# state_hash: 9f582c76e0f3218a2c9f5b3a67bfea9402c141f67a67c1d48d0ff8d20bc8bc41

@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import sys
+from typing import Any
 
 from sdd.infra.paths import get_sdd_root, spatial_index_file
 from sdd.spatial.index import build_index, load_index, save_index
@@ -58,7 +59,7 @@ def run(argv: list[str] | None = None) -> int:
 
     terms_written = sum(1 for n in new_index.nodes.values() if n.kind == "TERM")
 
-    result: dict = {
+    result: dict[str, Any] = {
         "status": "ok",
         "nodes_written": len(new_index.nodes),
         "terms_written": terms_written,

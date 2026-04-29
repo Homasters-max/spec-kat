@@ -10,11 +10,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from types import MappingProxyType
-from typing import Any
+from typing import Any, cast
 
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.errors import AlreadyActivated, InvalidActor
 from sdd.core.events import DomainEvent, PlanActivatedEvent, classify_event_level
+from sdd.core.types import Command
 from sdd.domain.state.reducer import reduce
 from sdd.infra.event_log import sdd_replay
 
@@ -47,7 +48,7 @@ class ActivatePlanHandler(CommandHandlerBase):
 
     @error_event_boundary(source=__name__)
     def handle(self, command: ActivatePlanCommand) -> list[DomainEvent]:
-        if self._check_idempotent(command):
+        if self._check_idempotent(cast(Command, command)):
             return []
 
         if command.actor != "human":

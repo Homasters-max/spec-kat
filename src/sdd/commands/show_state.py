@@ -7,23 +7,24 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 from sdd.core.errors import Inconsistency, MissingState, SDDError
 from sdd.domain.phase_order import PhaseOrder
 from sdd.domain.state.reducer import FrozenPhaseSnapshot
-from sdd.infra.paths import state_file
+from sdd.infra.paths import event_store_url, state_file
 
 
-def _load(path: str) -> dict:
+def _load(path: str) -> dict[str, Any]:
     p = Path(path)
     if not p.exists():
         raise MissingState(f"State_index.yaml not found: {path}")
-    return yaml.safe_load(p.read_text(encoding="utf-8"))
+    return yaml.safe_load(p.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
 
 
-def _guard(s: dict) -> None:
+def _guard(s: dict[str, Any]) -> None:
     phase_current = s["phase"]["current"]
     plan_version = s["plan"]["version"]
     tasks_version = s["tasks"]["version"]
@@ -49,7 +50,7 @@ def _guard(s: dict) -> None:
         )
 
 
-def _parse_snapshots(s: dict) -> list[FrozenPhaseSnapshot]:
+def _parse_snapshots(s: dict[str, Any]) -> list[FrozenPhaseSnapshot]:
     raw = s.get("phases_snapshots") or []
     result = []
     for entry in raw:
@@ -76,7 +77,7 @@ def _latest_completed(snapshots: list[FrozenPhaseSnapshot]) -> int | None:
     return max(completed) if completed else None
 
 
-def _render(s: dict) -> str:
+def _render(s: dict[str, Any]) -> str:
     done_ids = s["tasks"].get("done_ids") or []
     done_str = ", ".join(sorted(str(d) for d in done_ids)) if done_ids else "—"
 
@@ -126,7 +127,7 @@ def main(args: list[str] | None = None) -> int:
     state_path = parsed.state or str(state_file())
     try:
         from sdd.infra.projections import rebuild_state  # noqa: PLC0415
-        rebuild_state(state_path=state_path)
+        rebuild_state(event_store_url(), state_path=state_path)
     except Exception:
         pass  # best-effort rebuild; State Guard will catch staleness below
     try:

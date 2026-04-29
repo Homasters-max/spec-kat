@@ -201,7 +201,7 @@ def sdd_replay(
 
         result = []
         for seq_id, event_id, event_type, row_payload, created_at, lv, ev_src, caused_by, expired in rows:
-            payload_dict: dict = (
+            payload_dict: dict[str, Any] = (
                 row_payload if isinstance(row_payload, dict)
                 else (json.loads(row_payload) if row_payload else {})
             )

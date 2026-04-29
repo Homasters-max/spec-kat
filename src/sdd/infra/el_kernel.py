@@ -40,17 +40,17 @@ class EventLogKernel:
 
     def filter_duplicates(
         self,
-        events: list[dict],
+        events: list[dict[str, Any]],
         existing_pairs: set[tuple[str, int]],
-    ) -> tuple[list[dict], list[dict]]:
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """I-IDEM-SCHEMA-1: split events into (to_insert, skipped) lists.
 
         existing_pairs: set of (command_id, event_index) already in event_log.
         An event without command_id is never considered a duplicate.
         Returns (to_insert, skipped) — order preserved, identity stable.
         """
-        to_insert: list[dict] = []
-        skipped: list[dict] = []
+        to_insert: list[dict[str, Any]] = []
+        skipped: list[dict[str, Any]] = []
         for event in events:
             cmd_id = event.get("command_id")
             if cmd_id is not None and (cmd_id, event.get("event_index", 0)) in existing_pairs:

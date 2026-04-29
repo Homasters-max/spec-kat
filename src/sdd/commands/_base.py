@@ -13,7 +13,7 @@ import time
 import uuid
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from sdd.core.errors import SDDError
 from sdd.core.events import DomainEvent, ErrorEvent, EventLevel, SpecApproved
@@ -41,7 +41,7 @@ def command_payload_hash(command: Command) -> str:
     return hashlib.sha256(canonical_json(d).encode()).hexdigest()
 
 
-def error_event_boundary(source: str) -> Callable:
+def error_event_boundary(source: str) -> Callable[..., Any]:
     """Decorator factory for CommandHandler.handle() methods (Spec_v5 §4.4).
 
     On any exception raised by the decorated method:
@@ -53,14 +53,14 @@ def error_event_boundary(source: str) -> Callable:
 
     Idempotency check runs BEFORE try/except (I-CMD-2b).
     """
-    def decorator(fn: Callable) -> Callable:
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fn)
         def wrapper(self: CommandHandlerBase, command: Command) -> list[DomainEvent]:
             # Idempotency runs BEFORE try/except — idempotent returns skip boundary (I-CMD-2b)
             if self._check_idempotent(command):
                 return []
             try:
-                return fn(self, command)
+                return cast(list[DomainEvent], fn(self, command))
             except Exception as exc:
                 try:
                     retry_count = open_event_log(self._db_path).get_error_count(command.command_id)
@@ -82,9 +82,9 @@ def error_event_boundary(source: str) -> Callable:
                     source=source,
                     recoverable=isinstance(exc, RecoverableError),
                     retry_count=retry_count,
-                    context={"message": str(exc)},
+                    context=(("message", str(exc)),),
                 )
-                exc._sdd_error_events = [error_event]
+                cast(Any, exc)._sdd_error_events = [error_event]
                 raise
         return wrapper
     return decorator
@@ -143,6 +143,9 @@ class CommandHandlerBase:
 
     def __init__(self, db_path: str) -> None:
         self._db_path = db_path
+
+    def handle(self, cmd: Command) -> list[DomainEvent]:
+        raise NotImplementedError
 
     def _check_idempotent(self, command: Command) -> bool:
         """Return True if command already processed (I-CMD-1, I-CMD-2b).

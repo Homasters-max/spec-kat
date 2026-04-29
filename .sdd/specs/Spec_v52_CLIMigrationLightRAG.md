@@ -331,7 +331,41 @@ src/sdd/context/build_context.py   → тонкий адаптер + deprecation
 | `imports` | 0.60 | FILE → FILE |
 | `means` | 0.50 | TERM → NODE |
 
-### 4.2 Правила работы агента
+### 4.2 Known Graph Gap — COMMAND ↔ FILE (R-COMMAND-FILE-GAP)
+
+**Проблема (обнаружена в Phase 51):** `COMMAND`-узлы в `SpatialIndex` указывают на `registry.py`
+как общий `path`, а не на индивидуальные handler-файлы. Из-за этого у узлов вида
+`COMMAND:activate-phase` нет исходящих рёбер в графе — BFS по такому seed даёт пустой контекст.
+
+Фактические handler-файлы (`FILE:src/sdd/commands/activate_phase.py`) существуют как FILE-узлы,
+но ребра `implements` (FILE → COMMAND) ещё не производятся ни одним extractor'ом.
+
+**Требование Phase 52:** Реализовать `ImplementsEdgeExtractor`, который связывает handler-файлы
+с соответствующими COMMAND-узлами через `implements`-рёбра (priority = 0.85):
+
+```python
+# src/sdd/graph/extractors/implements_edges.py
+class ImplementsEdgeExtractor:
+    """Emit FILE → COMMAND 'implements' edges by matching command name to handler filename.
+
+    Mapping rule: COMMAND:<name> → FILE:src/sdd/commands/<name_underscored>.py
+    Example: COMMAND:activate-phase → FILE:src/sdd/commands/activate_phase.py
+    """
+    EXTRACTOR_VERSION = "implements_v1"
+```
+
+**I-GRAPH-IMPLEMENTS-1**: После реализации `ImplementsEdgeExtractor` каждый COMMAND-узел,
+для которого существует соответствующий handler FILE-узел, MUST иметь ровно одно входящее
+`implements`-ребро. Отсутствие `implements`-ребра при наличии handler-файла = нарушение
+(проверяется `test_command_nodes_have_implements_edges`).
+
+**I-GRAPH-IMPLEMENTS-2**: `sdd explain COMMAND:<name>` MUST seed BFS от FILE-узла handler
+(через входящее `implements`-ребро), если прямой BFS от COMMAND-узла возвращает пустой контекст
+(`selection_exhausted=True` и `len(nodes)==1`). Это fallback, а не основной путь.
+
+---
+
+### 4.3 Правила работы агента
 
 **I-AGENT-1**: Агент MUST NOT читать файлы кодовой базы напрямую.
 **I-AGENT-2**: `effective_intent ≠ intent` → агент MUST сообщить о fallback.
@@ -346,6 +380,7 @@ src/sdd/context/build_context.py   → тонкий адаптер + deprecation
 ## 5. Новые файлы
 
 ```
+src/sdd/graph/extractors/implements_edges.py — ImplementsEdgeExtractor (R-COMMAND-FILE-GAP fix)
 src/sdd/graph_navigation/__init__.py
 src/sdd/graph_navigation/cli/resolve.py    — sdd resolve
 src/sdd/graph_navigation/cli/explain.py   — sdd explain
@@ -408,6 +443,8 @@ src/sdd/context/build_context.py        → src/sdd/context_legacy/build_context
 
 `test_migration_complete_returns_true` — migration gate.
 `test_import_direction_phase52` — `sdd.graph_navigation` не импортирует из `sdd.graph.cache` или `sdd.graph.builder` напрямую.
+`test_command_nodes_have_implements_edges` — I-GRAPH-IMPLEMENTS-1: каждый COMMAND-узел с соответствующим handler-файлом имеет ≥1 входящее `implements`-ребро (grep + graph build на реальном индексе).
+`test_explain_command_fallback_to_file_seed` — I-GRAPH-IMPLEMENTS-2: `sdd explain COMMAND:activate-phase` возвращает непустой контекст (≥2 узла, включая handler FILE-узел).
 `test_cli_handler_no_business_logic_beyond_pipeline` — I-RUNTIME-ORCHESTRATOR-1: CLI handler содержит только pipeline вызовы (IndexBuilder → GraphService → parse_query_intent → PolicyResolver → ContextRuntime → format); никаких BFS/selection/scoring логик.
 
 ### Integration tests
@@ -440,3 +477,4 @@ src/sdd/context/build_context.py        → src/sdd/context_legacy/build_context
 11. Tool definitions в `tool_definitions.py` соответствуют CLI — test 49
 12. `mypy --strict` проходит на `sdd.graph_navigation.*`
 13. Все Phase 50 и Phase 51 тесты не регрессируют
+14. `ImplementsEdgeExtractor` реализован; `COMMAND`-узлы с handler-файлами имеют входящее `implements`-ребро; `sdd explain COMMAND:<name>` возвращает непустой контекст (I-GRAPH-IMPLEMENTS-1/2)

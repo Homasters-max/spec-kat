@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from sdd.infra.paths import bootstrap_manifest_file
 
@@ -21,7 +21,7 @@ def _load(path: str | None = None) -> dict[str, Any]:
     if not p.exists():
         return {}
     with p.open(encoding="utf-8") as f:
-        return json.load(f)
+        return cast(dict[str, Any], json.load(f))
 
 
 def _save(data: dict[str, Any], path: str | None = None) -> None:

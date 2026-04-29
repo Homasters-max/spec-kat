@@ -58,7 +58,7 @@ def _open_postgres(
 ) -> Any:
     """Connect via psycopg3; apply search_path."""
     try:
-        import psycopg
+        import psycopg  # type: ignore[import-not-found]
     except ImportError as exc:
         raise ImportError(
             "psycopg3 is required for PostgreSQL support. "

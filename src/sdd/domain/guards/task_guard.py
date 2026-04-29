@@ -1,6 +1,8 @@
 """TaskGuard factory — Spec_v5 §4.5, I-GUARD-1, I-GRD-5."""
 from __future__ import annotations
 
+from typing import Any
+
 from sdd.core.errors import InvalidState, MissingContext
 from sdd.domain.guards.context import GuardContext, GuardOutcome, GuardResult
 from sdd.domain.guards.types import Guard
@@ -9,7 +11,7 @@ from sdd.domain.guards.types import Guard
 def make_task_guard(task_id: str) -> Guard:
     """Return an integrity Guard that raises when task is missing or already DONE."""
 
-    def task_guard(ctx: GuardContext) -> tuple[GuardResult, list]:
+    def task_guard(ctx: GuardContext) -> tuple[GuardResult, list[Any]]:
         task = ctx.task
         if task is None:
             raise MissingContext(f"Task {task_id!r} not found in taskset")

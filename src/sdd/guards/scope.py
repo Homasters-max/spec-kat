@@ -9,6 +9,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from sdd.guards.scope_policy import ScopeDecision, resolve_scope
 
@@ -50,7 +51,7 @@ def check_scope(
     file_path: str,
     task_inputs: list[str] | None = None,
     allowed_overrides: frozenset[str] | None = None,
-) -> dict:
+) -> dict[str, Any]:
     if allowed_overrides is None:
         allowed_overrides = _DEFAULT_OVERRIDABLE
 

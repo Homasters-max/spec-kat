@@ -125,7 +125,7 @@ def audit_cli(argv: list[str] | None = None) -> int:
 
     if cmd == "log":
         action = actor = result_str = None
-        ctx: dict = {}
+        ctx: dict[str, Any] = {}
         i = 1
         while i < len(args):
             a = args[i]

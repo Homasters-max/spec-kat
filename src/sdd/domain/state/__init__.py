@@ -2,12 +2,12 @@
 
 from sdd.core.events import StateDerivationCompletedEvent
 from sdd.domain.state.init_state import init_state
+from sdd.core.errors import UnknownEventType
 from sdd.domain.state.reducer import (
     EMPTY_STATE,
     EventReducer,
     ReducerDiagnostics,
     SDDState,
-    UnknownEventType,
     compute_state_hash,
     reduce,
     reduce_with_diagnostics,

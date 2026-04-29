@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -11,7 +12,7 @@ class SpatialNode:
     path:       str | None  # None for virtual nodes (INVARIANT, TERM)
     summary:    str         # ~80 tokens; I-SUMMARY-1: 1 line; I-SUMMARY-2: never empty
     signature:  str         # ~300 tokens; I-SIGNATURE-1: interface only (def/class/types)
-    meta:       dict
+    meta:       dict[str, Any]
     git_hash:   str | None  # blob SHA from git ls-files -s; None for TERM/INVARIANT
     indexed_at: str         # ISO-8601
 
@@ -34,4 +35,4 @@ class SpatialEdge:
     src:     str    # node_id of source
     dst:     str    # node_id of destination
     kind:    str    # imports|emits|defined_in|depends_on|tested_by|verified_by|means
-    meta:    dict
+    meta:    dict[str, Any]

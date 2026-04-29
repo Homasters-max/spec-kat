@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import ClassVar, Protocol
+from typing import Any, ClassVar, Protocol
 
 from sdd.spatial.nodes import SpatialNode
 
@@ -39,7 +39,7 @@ class Node:
     kind: str       # COMMAND|EVENT|TASK|TERM|INVARIANT|FILE|...
     label: str
     summary: str
-    meta: dict
+    meta: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,7 @@ class Edge:
     kind: str       # emits|guards|implements|depends_on|means|imports|...
     priority: float  # 0.0..1.0; MUST equal EDGE_KIND_PRIORITY[kind]
     source: str     # ast_emits|taskset_depends_on|glossary|...
-    meta: dict
+    meta: dict[str, Any]
 
     def __post_init__(self) -> None:
         if not (0.0 <= self.priority <= 1.0):

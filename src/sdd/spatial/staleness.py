@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import subprocess
+from typing import Any
 
 from sdd.spatial.index import SpatialIndex
 
@@ -56,7 +57,7 @@ def is_stale(index: SpatialIndex, project_root: str) -> bool:
     return index.git_tree_hash != head
 
 
-def staleness_report(index: SpatialIndex, project_root: str) -> dict:
+def staleness_report(index: SpatialIndex, project_root: str) -> dict[str, Any]:
     """Return staleness metadata: stale, index_tree, head_tree, reason."""
     head = _head_tree_hash(project_root)
     stale = is_stale(index, project_root)

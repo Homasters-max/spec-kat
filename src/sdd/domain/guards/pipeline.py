@@ -1,7 +1,7 @@
 """Generic guard pipeline executor — Spec_v5 §4.11, I-GUARD-1, I-GUARD-2."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sdd.domain.guards.context import GuardOutcome, GuardResult
 from sdd.domain.guards.types import Guard
@@ -21,7 +21,7 @@ def run_guard_pipeline(
     Integrity guards (raise on violation) propagate exceptions naturally.
     Policy guards return (DENY, events) — collected and returned to caller.
     """
-    all_events: list = []
+    all_events: list[Any] = []
     last_result = GuardResult(GuardOutcome.ALLOW, "pipeline", "no guards run", None, None)
 
     for guard in guards:

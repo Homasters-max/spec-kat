@@ -18,6 +18,7 @@ import re
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from sdd.domain.state.reducer import EventReducer, SDDState
 from sdd.domain.state.yaml_state import read_state, write_state
@@ -179,7 +180,7 @@ def _get_invalidated_seqs(conn: object, _pg: bool) -> frozenset[int]:
         sql = "SELECT payload->>'target_seq' FROM event_log WHERE event_type = 'EventInvalidated'"
     else:
         sql = "SELECT payload->>'target_seq' FROM events WHERE event_type = 'EventInvalidated'"
-    rows = conn.execute(sql).fetchall()  # type: ignore[union-attr]
+    rows = conn.execute(sql).fetchall()  # type: ignore[attr-defined]
     return frozenset(int(r[0]) for r in rows if r[0] is not None)
 
 
@@ -218,19 +219,19 @@ def _replay_from_event_log(db_url: str) -> SDDState:
 
     max_seq: int = rows[-1][0] if rows else 0
 
-    events: list[dict] = []
+    events: list[dict[str, Any]] = []
     for seq, event_type, row_payload, level, event_source, caused_by_meta_seq in rows:
         if seq in invalidated_seqs:
             _log.debug("replay: skipping invalidated seq=%d (I-INVALID-2)", seq)
             continue
         try:
-            payload: dict = (
+            payload: dict[str, Any] = (
                 row_payload if isinstance(row_payload, dict)
                 else (json.loads(row_payload) if row_payload else {})
             )
         except Exception:
             payload = {}
-        event: dict = {
+        event: dict[str, Any] = {
             "event_type": event_type,
             "level": level,
             "event_source": event_source,

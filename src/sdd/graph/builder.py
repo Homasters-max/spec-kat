@@ -1,7 +1,7 @@
 """GraphFactsBuilder: assembles DeterministicGraph from SpatialIndex (BC-36-2)."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sdd.graph.errors import GraphInvariantError
 from sdd.graph.projection import project_node
@@ -20,7 +20,7 @@ class _DeterministicGraphBuilder:
 
     def build(
         self,
-        nodes: dict,
+        nodes: dict[str, Any],
         edges: list[Edge],
         snapshot_hash: str,
     ) -> DeterministicGraph:
@@ -105,15 +105,17 @@ class GraphFactsBuilder:
                     f"I-GRAPH-1: edge {edge.edge_id!r} dst={edge.dst!r} not in nodes"
                 )
 
-        # Step 5: I-GRAPH-EMITS-1 (emits: COMMAND → EVENT)
+        # Step 5: I-GRAPH-EMITS-1 (emits: COMMAND|FILE → EVENT)
+        # COMMAND nodes in the index all point to registry.py; individual handler files
+        # are FILE nodes — both are valid emits sources (extractor filters to handlers only).
         for edge in all_edges:
             if edge.kind == "emits":
                 src_node = nodes[edge.src]
                 dst_node = nodes[edge.dst]
-                if src_node.kind != "COMMAND":
+                if src_node.kind not in {"COMMAND", "FILE"}:
                     raise GraphInvariantError(
                         f"I-GRAPH-EMITS-1: emits edge {edge.edge_id!r} "
-                        f"src={edge.src!r} has kind {src_node.kind!r}, expected COMMAND"
+                        f"src={edge.src!r} has kind {src_node.kind!r}, expected COMMAND or FILE"
                     )
                 if dst_node.kind != "EVENT":
                     raise GraphInvariantError(

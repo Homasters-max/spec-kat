@@ -29,7 +29,7 @@ def next_tasks(cmd: NextTasksCommand) -> list[Task]:
     ts_path = str(taskset_file(cmd.phase_id))
     tasks = parse_taskset(ts_path)
     dag: DAG = load_dag(ts_path)
-    done_ids: frozenset[str] = frozenset(state.done_ids or [])
+    done_ids: frozenset[str] = frozenset(state.tasks_done_ids or [])
     return [
         t for t in tasks
         if t.task_id not in done_ids
