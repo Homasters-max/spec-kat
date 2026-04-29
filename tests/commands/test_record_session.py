@@ -40,11 +40,15 @@ def _store_events(db_path: str, events: list) -> None:
 # ---------------------------------------------------------------------------
 
 def test_session_dedup_same_utc_day(tmp_db_path: str) -> None:
-    """I-SESSION-DEDUP-1: second handle() call on same UTC day returns [] — no new SessionDeclared."""
+    """BC-49-C / I-HANDLER-SESSION-PURE-1: handler is pure and always returns [SessionDeclaredEvent].
+
+    Dedup is exclusively the kernel's responsibility (Step 2.5, I-DEDUP-KERNEL-AUTHORITY-1).
+    Second handle() call MUST return an event — not [] — regardless of existing DB state.
+    """
     handler = RecordSessionHandler(db_path=tmp_db_path)
     cmd = _make_cmd()
 
-    # First call: DB is empty → event emitted
+    # First call: event emitted
     events1 = handler.handle(cmd)
     assert len(events1) == 1
     assert events1[0].event_type == "SessionDeclared"
@@ -52,9 +56,10 @@ def test_session_dedup_same_utc_day(tmp_db_path: str) -> None:
     # Persist the event (simulate execute_command)
     _store_events(tmp_db_path, events1)
 
-    # Second call same day: dedup fires → empty list
+    # Second call: handler is pure — always emits; kernel (Step 2.5) handles dedup
     events2 = handler.handle(cmd)
-    assert events2 == []
+    assert len(events2) == 1
+    assert events2[0].event_type == "SessionDeclared"
 
 
 # ---------------------------------------------------------------------------

@@ -184,6 +184,21 @@ class EventReducer:
     _HANDLER_EVENTS: ClassVar[frozenset[str]] = frozenset(_EVENT_SCHEMA)
     _KNOWN_NO_HANDLER: frozenset[str] = V1_L1_EVENT_TYPES - _HANDLER_EVENTS
 
+    # I-AUDIT-ONLY-SSOT-1: single source of truth for audit-only event classification.
+    # Audit-only events appear in _EVENT_SCHEMA but produce no state mutation.
+    _AUDIT_ONLY_EVENTS: ClassVar[frozenset[str]] = frozenset({"SessionDeclared"})
+
+    @classmethod
+    def is_invalidatable(cls, event_type: str) -> bool:
+        """I-INVALIDATABLE-INTERFACE-1: returns True if the event can be invalidated.
+
+        True  — event_type is unknown (not in _EVENT_SCHEMA) or is audit-only (_AUDIT_ONLY_EVENTS).
+        False — event_type is in _EVENT_SCHEMA and not audit-only (state-mutating).
+        """
+        if event_type not in cls._EVENT_SCHEMA:
+            return True
+        return event_type in cls._AUDIT_ONLY_EVENTS
+
     def _pre_filter(
         self,
         events: list[dict[str, object]],

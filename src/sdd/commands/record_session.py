@@ -14,7 +14,6 @@ from typing import Any
 from sdd.commands._base import CommandHandlerBase, error_event_boundary
 from sdd.core.events import DomainEvent, EventLevel, SessionDeclaredEvent
 from sdd.domain.session.policy import SessionDedupPolicy
-from sdd.infra.db import open_sdd_connection
 
 # BC-48-D: canonical dedup policy for record-session; imported by REGISTRY.
 DEDUP_POLICY: SessionDedupPolicy = SessionDedupPolicy()
@@ -50,32 +49,8 @@ class RecordSessionCommand:
 class RecordSessionHandler(CommandHandlerBase):
     """Pure handler: returns SessionDeclaredEvent (I-HANDLER-PURE-1)."""
 
-    def _session_declared_today(self, session_type: str, phase_id: int) -> bool:
-        """Return True if SessionDeclared for (session_type, phase_id) already exists today UTC.
-
-        I-SESSION-DEDUP-1: prevents duplicate SessionDeclared events within the same UTC day.
-        Queries payload.timestamp prefix (YYYY-MM-DD) stored in the events table payload column.
-        """
-        today = _utc_date_str()
-        conn = open_sdd_connection(self._db_path, read_only=True)
-        try:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM event_log "
-                "WHERE event_type = 'SessionDeclared' "
-                "AND payload->>'session_type' = %s "
-                "AND (payload->>'phase_id')::INTEGER = %s "
-                "AND LEFT(payload->>'timestamp', 10) = %s "
-                "AND expired = FALSE",
-                [session_type, phase_id, today],
-            ).fetchone()
-            return bool(row and row[0] > 0)
-        finally:
-            conn.close()
-
     @error_event_boundary(source=__name__)
     def handle(self, cmd: Any) -> list[DomainEvent]:
-        if self._session_declared_today(cmd.session_type, cmd.phase_id):
-            return []
         return [
             SessionDeclaredEvent(
                 event_type=SessionDeclaredEvent.EVENT_TYPE,

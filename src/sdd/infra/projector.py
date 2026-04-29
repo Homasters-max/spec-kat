@@ -183,8 +183,9 @@ class Projector:
             cur.close()
 
             for row in rows:
-                payload = row.get("payload") or {}
+                payload = {k: v for k, v in (row.get("payload") or {}).items() if k != "event_type"}
                 proxy = types.SimpleNamespace(event_type=row["event_type"], **payload)
+                proxy.seq = row.get("sequence_id", 0)  # needed by _handle_session_declared
                 self.apply(proxy)  # type: ignore[arg-type]
 
             cur = pg_conn.cursor()

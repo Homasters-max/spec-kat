@@ -1,7 +1,8 @@
 """Unit tests for record-session command dedup behavior in execute_command.
 
 Invariants: I-COMMAND-OBSERVABILITY-1, I-COMMAND-NOOP-2,
-            I-SESSIONS-VIEW-LOCAL-1, I-GUARD-CONTEXT-UNCHANGED-1
+            I-SESSIONS-VIEW-LOCAL-1, I-GUARD-CONTEXT-UNCHANGED-1,
+            I-HANDLER-SESSION-PURE-1, I-HANDLER-PURE-1
 """
 from __future__ import annotations
 
@@ -11,7 +12,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sdd.commands.record_session import RecordSessionCommand, RecordSessionHandler
 from sdd.commands.registry import REGISTRY, CommandSpec, execute_command
+from sdd.core.events import SessionDeclaredEvent
 from sdd.domain.guards.context import GuardContext, GuardOutcome
 
 
@@ -203,3 +206,89 @@ def test_guard_context_has_no_sessions_view():
         "GuardContext MUST NOT expose sessions_view — dedup is a pre-guard concern "
         "(I-GUARD-CONTEXT-UNCHANGED-1)"
     )
+
+
+# ---------------------------------------------------------------------------
+# test_handler_handle_returns_event_without_io — I-HANDLER-SESSION-PURE-1
+# ---------------------------------------------------------------------------
+
+def _mock_event_log_not_seen() -> MagicMock:
+    """EventLog mock: command not yet seen — allows handle() to proceed."""
+    el = MagicMock()
+    el.exists_command.return_value = False
+    el.exists_semantic.return_value = False
+    return el
+
+
+def test_handler_handle_returns_event_without_io():
+    """handle() returns [SessionDeclaredEvent] — body performs no I/O (I-HANDLER-SESSION-PURE-1).
+
+    error_event_boundary calls _check_idempotent before handle(); that check requires
+    open_event_log. We patch it to supply a stub so the DB path is not opened.
+    The assertion target is handle() body: it must return [SessionDeclaredEvent] with no
+    writes to the supplied mock event log.
+    """
+    mock_el = _mock_event_log_not_seen()
+    handler = RecordSessionHandler(db_path="postgresql://stub/db")
+    cmd = RecordSessionCommand(
+        command_id="test-cmd-id",
+        command_type="record-session",
+        payload={"session_type": "IMPLEMENT", "task_id": "T-4908", "phase_id": 49, "plan_hash": "abc123"},
+        session_type="IMPLEMENT",
+        task_id="T-4908",
+        phase_id=49,
+        plan_hash="abc123",
+    )
+
+    with patch("sdd.commands._base.open_event_log", return_value=mock_el):
+        result = handler.handle(cmd)
+
+    assert isinstance(result, list), "handle() MUST return a list (I-HANDLER-PURE-1)"
+    assert len(result) == 1, "handle() MUST return exactly one event"
+    assert isinstance(result[0], SessionDeclaredEvent), (
+        "handle() MUST return SessionDeclaredEvent (I-HANDLER-SESSION-PURE-1)"
+    )
+    event = result[0]
+    assert event.session_type == "IMPLEMENT"
+    assert event.task_id == "T-4908"
+    assert event.phase_id == 49
+    assert event.plan_hash == "abc123"
+
+
+# ---------------------------------------------------------------------------
+# test_handler_handle_is_pure_no_db_call — I-HANDLER-PURE-1
+# ---------------------------------------------------------------------------
+
+def test_handler_handle_is_pure_no_db_call():
+    """handle() body MUST NOT call EventStore.append or any write method (I-HANDLER-PURE-1).
+
+    I-HANDLER-PURE-1: handle() returns events only — no EventStore, no rebuild_state,
+    no sync_projections. Writing to the EventStore is the Write Kernel's responsibility (I-3).
+
+    We patch open_event_log so _check_idempotent (in the decorator) can run, then verify
+    the mock event log's append was never called — proving handle() body is append-free.
+    """
+    mock_el = _mock_event_log_not_seen()
+    handler = RecordSessionHandler(db_path="postgresql://stub/db")
+    cmd = RecordSessionCommand(
+        command_id="test-cmd-id-2",
+        command_type="record-session",
+        payload={"session_type": "VALIDATE", "task_id": None, "phase_id": 49, "plan_hash": "def456"},
+        session_type="VALIDATE",
+        task_id=None,
+        phase_id=49,
+        plan_hash="def456",
+    )
+
+    with patch("sdd.commands._base.open_event_log", return_value=mock_el):
+        result = handler.handle(cmd)
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert isinstance(result[0], SessionDeclaredEvent), (
+        "handle() MUST return only domain events (I-HANDLER-PURE-1)"
+    )
+    mock_el.append.assert_not_called()
+    assert result[0].session_type == "VALIDATE"
+    assert result[0].phase_id == 49
+    assert result[0].task_id is None

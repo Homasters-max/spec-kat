@@ -86,10 +86,10 @@ class InvalidateEventHandler(CommandHandlerBase):
 
         # I-INVALID-4: cannot invalidate state-mutating events
         from sdd.domain.state.reducer import EventReducer
-        if target_type in EventReducer._EVENT_SCHEMA:
+        if not EventReducer.is_invalidatable(target_type):
             raise InvariantViolationError(
                 f"I-INVALID-4: cannot invalidate state-mutating event "
-                f"(type={target_type!r} is in EventReducer._EVENT_SCHEMA)"
+                f"(type={target_type!r} is not invalidatable)"
             )
 
         # I-INVALID-IDEM-1: already-invalidated target → noop

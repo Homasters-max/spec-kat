@@ -160,6 +160,7 @@ def pg_test_db(_pg_shared_schema: dict[str, str]) -> Generator[str, None, None]:
     conn = psycopg.connect(base_url)
     conn.execute(f"SET search_path = {schema}, public")
     conn.execute("TRUNCATE event_log RESTART IDENTITY")
+    conn.execute("TRUNCATE p_sessions RESTART IDENTITY")
     conn.execute("DELETE FROM p_meta")
     conn.execute("INSERT INTO p_meta DEFAULT VALUES")
     conn.commit()

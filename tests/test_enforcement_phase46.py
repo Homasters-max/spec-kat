@@ -183,9 +183,10 @@ def test_stable_command_id_uses_utc() -> None:
 
 
 def test_session_dedup_same_utc_day(tmp_db_path: str) -> None:
-    """I-SESSION-DEDUP-1: RecordSessionHandler returns [] when SessionDeclared already exists today.
+    """BC-49-C / I-HANDLER-SESSION-PURE-1: handler is pure, always returns [SessionDeclaredEvent].
 
-    Seeds event_log with today's SessionDeclared, then verifies handler suppresses duplicate.
+    Dedup is exclusively the kernel's responsibility (Step 2.5, I-DEDUP-KERNEL-AUTHORITY-1).
+    handler.handle() MUST return an event even when a SessionDeclared already exists today.
     """
     from sdd.commands.record_session import RecordSessionCommand, RecordSessionHandler
     from sdd.infra.db import open_sdd_connection
@@ -222,9 +223,11 @@ def test_session_dedup_same_utc_day(tmp_db_path: str) -> None:
     )
     handler = RecordSessionHandler(db_path=tmp_db_path)
     events = handler.handle(cmd)
-    assert events == [], (
-        "I-SESSION-DEDUP-1: handler must return [] when SessionDeclared already exists today"
+    assert len(events) == 1, (
+        "I-HANDLER-SESSION-PURE-1 (BC-49-C): handler must always return [SessionDeclaredEvent];"
+        " dedup is the kernel's responsibility, not the handler's"
     )
+    assert events[0].event_type == "SessionDeclared"
 
 
 def test_session_dedup_different_utc_day(tmp_db_path: str) -> None:

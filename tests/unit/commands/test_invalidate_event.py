@@ -1,6 +1,7 @@
 """Tests for InvalidateEventHandler — Spec_v28 §2 BC-WG-5.
 
-Invariants: I-INVALID-1, I-INVALID-3, I-INVALID-4, I-INVALID-IDEM-1
+Invariants: I-INVALID-1, I-INVALID-3, I-INVALID-4, I-INVALID-IDEM-1,
+            I-INVALID-AUDIT-ONLY-1
 """
 from __future__ import annotations
 
@@ -171,3 +172,62 @@ def test_cmd_idem2_spec_is_idempotent() -> None:
     from sdd.commands.registry import REGISTRY
     spec = REGISTRY["invalidate-event"]
     assert spec.idempotent is True
+
+
+# ---------------------------------------------------------------------------
+# test_invalidate_session_declared_succeeds  (I-INVALID-AUDIT-ONLY-1)
+# ---------------------------------------------------------------------------
+
+def test_invalidate_session_declared_succeeds(tmp_db_path: str) -> None:
+    """I-INVALID-AUDIT-ONLY-1: SessionDeclared is audit-only → invalidation succeeds.
+
+    SessionDeclared is in _AUDIT_ONLY_EVENTS, so is_invalidatable returns True
+    and the handler emits EventInvalidated without raising I-INVALID-4.
+    """
+    target_seq = _seed_raw(
+        tmp_db_path,
+        "SessionDeclared",
+        {
+            "session_type": "IMPLEMENT",
+            "task_id": "T-4907",
+            "phase_id": 49,
+            "plan_hash": "abc123",
+            "timestamp": "2026-04-29T00:00:00Z",
+        },
+    )
+
+    handler = InvalidateEventHandler(db_path=tmp_db_path)
+    events = handler.handle(_cmd(target_seq=target_seq, reason="duplicate session"))
+
+    assert len(events) == 1
+    ev = events[0]
+    assert ev.event_type == "EventInvalidated"
+    assert ev.target_seq == target_seq          # type: ignore[attr-defined]
+    assert ev.reason == "duplicate session"     # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
+# test_invalidate_state_mutating_still_blocked  (I-INVALID-4 regression)
+# ---------------------------------------------------------------------------
+
+def test_invalidate_state_mutating_still_blocked(tmp_db_path: str) -> None:
+    """I-INVALID-4: state-mutating events remain blocked after audit-only exception.
+
+    Regression guard: adding SessionDeclared to _AUDIT_ONLY_EVENTS must not open
+    the gate for state-mutating events like PhaseInitialized.
+    """
+    target_seq = _seed_raw(
+        tmp_db_path,
+        "PhaseInitialized",
+        {
+            "phase_id": 49,
+            "tasks_total": 10,
+            "plan_version": 49,
+            "actor": "human",
+            "timestamp": "2026-04-29T00:00:00Z",
+        },
+    )
+
+    handler = InvalidateEventHandler(db_path=tmp_db_path)
+    with pytest.raises(InvariantViolationError, match="I-INVALID-4"):
+        handler.handle(_cmd(target_seq=target_seq))

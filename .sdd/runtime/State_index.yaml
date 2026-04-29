@@ -15,23 +15,33 @@
 
 phase:
   current: 49
-  status: ACTIVE
+  status: COMPLETE
 plan:
   version: 49
-  status: ACTIVE
+  status: COMPLETE
 tasks:
   version: 49
   total: 10
-  completed: 0
-  done_ids: []
+  completed: 10
+  done_ids:
+  - T-4901
+  - T-4902
+  - T-4903
+  - T-4904
+  - T-4905
+  - T-4906
+  - T-4907
+  - T-4908
+  - T-4909
+  - T-4910
 invariants:
-  status: UNKNOWN
+  status: PASS
 tests:
-  status: UNKNOWN
+  status: PASS
 meta:
-  last_updated: '2026-04-29T12:38:12Z'
+  last_updated: '2026-04-29T15:33:18Z'
   schema_version: 1
-  snapshot_event_id: 27542
+  snapshot_event_id: 27610
   reducer_version: 2
 phases_known:
 - 15
@@ -95,8 +105,8 @@ phases_snapshots:
   invariants_status: PASS
   tests_status: PASS
 - phase_id: 17
-  phase_status: ACTIVE
-  plan_status: ACTIVE
+  phase_status: COMPLETE
+  plan_status: COMPLETE
   tasks_total: 24
   tasks_completed: 24
   tasks_done_ids:
@@ -126,8 +136,8 @@ phases_snapshots:
   - T-1725
   plan_version: 17
   tasks_version: 17
-  invariants_status: UNKNOWN
-  tests_status: UNKNOWN
+  invariants_status: PASS
+  tests_status: PASS
 - phase_id: 18
   phase_status: COMPLETE
   plan_status: COMPLETE
@@ -255,8 +265,8 @@ phases_snapshots:
   invariants_status: PASS
   tests_status: PASS
 - phase_id: 28
-  phase_status: ACTIVE
-  plan_status: ACTIVE
+  phase_status: COMPLETE
+  plan_status: COMPLETE
   tasks_total: 8
   tasks_completed: 8
   tasks_done_ids:
@@ -270,8 +280,8 @@ phases_snapshots:
   - T-2808
   plan_version: 28
   tasks_version: 28
-  invariants_status: UNKNOWN
-  tests_status: UNKNOWN
+  invariants_status: PASS
+  tests_status: PASS
 - phase_id: 29
   phase_status: COMPLETE
   plan_status: COMPLETE
@@ -610,14 +620,24 @@ phases_snapshots:
   invariants_status: PASS
   tests_status: PASS
 - phase_id: 49
-  phase_status: ACTIVE
-  plan_status: ACTIVE
+  phase_status: COMPLETE
+  plan_status: COMPLETE
   tasks_total: 10
-  tasks_completed: 0
-  tasks_done_ids: []
+  tasks_completed: 10
+  tasks_done_ids:
+  - T-4901
+  - T-4902
+  - T-4903
+  - T-4904
+  - T-4905
+  - T-4906
+  - T-4907
+  - T-4908
+  - T-4909
+  - T-4910
   plan_version: 49
   tasks_version: 49
-  invariants_status: UNKNOWN
-  tests_status: UNKNOWN
+  invariants_status: PASS
+  tests_status: PASS
 
-# state_hash: 6d6794b812467d6fa2ffe325eb86a984c57d2b601da31d7af77b5c5e038c84eb
+# state_hash: 71298e28ccf00da73aa36abdcb6accdd76a282284093bb6b36c21b692fc9f7b7

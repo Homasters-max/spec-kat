@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -20,6 +21,7 @@ def _sdd_root() -> Path:
 @click.version_option(package_name="sdd")
 def cli() -> None:
     """SDD — Spec-Driven Development governance CLI."""
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     from sdd.guards.norm import validate_registry_actions
     validate_registry_actions()
 

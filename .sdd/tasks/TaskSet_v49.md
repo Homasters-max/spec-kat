@@ -7,7 +7,7 @@ Plan: plans/Plan_v49.md
 
 T-4901: BC-49-A — Add logging.basicConfig to CLI
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §2 Architecture / BC-49-A — CLI Logging
 Invariants:           I-CLI-LOG-LEVEL-1
 spec_refs:            [Spec_v49 §2 BC-49-A, Spec_v49 §4 BC-49-A, I-CLI-LOG-LEVEL-1]
@@ -22,14 +22,14 @@ Depends on:           —
 
 T-4902: BC-49-B Part 1 — Add _AUDIT_ONLY_EVENTS + is_invalidatable() to EventReducer
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §2 Architecture / BC-49-B — I-INVALID-4 audit-only exclusion; §4 Types & Interfaces BC-49-B
 Invariants:           I-AUDIT-ONLY-SSOT-1, I-INVALID-AUDIT-ONLY-1, I-INVALIDATABLE-INTERFACE-1
 spec_refs:            [Spec_v49 §2 BC-49-B, Spec_v49 §4 BC-49-B, I-AUDIT-ONLY-SSOT-1, I-INVALID-AUDIT-ONLY-1, I-INVALIDATABLE-INTERFACE-1]
 produces_invariants:  [I-AUDIT-ONLY-SSOT-1, I-INVALID-AUDIT-ONLY-1, I-INVALIDATABLE-INTERFACE-1]
 requires_invariants:  []
-Inputs:               src/sdd/infra/reducer.py
-Outputs:              src/sdd/infra/reducer.py
+Inputs:               src/sdd/domain/state/reducer.py
+Outputs:              src/sdd/domain/state/reducer.py
 Acceptance:           `EventReducer._AUDIT_ONLY_EVENTS = frozenset({"SessionDeclared"})` объявлена в классе; classmethod `is_invalidatable(event_type)` возвращает True для "SessionDeclared" и неизвестных типов, False для state-mutating событий из _EVENT_SCHEMA (не-audit-only)
 Depends on:           —
 
@@ -37,13 +37,13 @@ Depends on:           —
 
 T-4903: BC-49-B Part 2 — Update InvalidateEventHandler to use is_invalidatable()
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §2 Architecture / BC-49-B — invalidate_event.py; §4 Types & Interfaces BC-49-B
 Invariants:           I-INVALIDATABLE-INTERFACE-1, I-INVALID-4, I-INVALID-AUDIT-ONLY-1
 spec_refs:            [Spec_v49 §2 BC-49-B, Spec_v49 §4 BC-49-B, I-INVALIDATABLE-INTERFACE-1, I-INVALID-4]
 produces_invariants:  [I-INVALIDATABLE-INTERFACE-1]
 requires_invariants:  [I-AUDIT-ONLY-SSOT-1, I-INVALIDATABLE-INTERFACE-1]
-Inputs:               src/sdd/commands/invalidate_event.py, src/sdd/infra/reducer.py
+Inputs:               src/sdd/commands/invalidate_event.py, src/sdd/domain/state/reducer.py
 Outputs:              src/sdd/commands/invalidate_event.py
 Acceptance:           I-INVALID-4 guard в `InvalidateEventHandler.handle()` вызывает `EventReducer.is_invalidatable(target_type)` вместо прямого `target_type in EventReducer._EVENT_SCHEMA`; прямой доступ к `_EVENT_SCHEMA` из invalidate_event.py для проверки инвалидируемости отсутствует
 Depends on:           T-4902
@@ -52,7 +52,7 @@ Depends on:           T-4902
 
 T-4904: BC-49-C — Purify RecordSessionHandler.handle()
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §2 Architecture / BC-49-C — Remove handler-level dedup; §4 Types & Interfaces BC-49-C
 Invariants:           I-HANDLER-SESSION-PURE-1, I-HANDLER-PURE-1, I-DEDUP-KERNEL-AUTHORITY-1
 spec_refs:            [Spec_v49 §2 BC-49-C, Spec_v49 §4 BC-49-C, I-HANDLER-SESSION-PURE-1, I-HANDLER-PURE-1, I-DEDUP-KERNEL-AUTHORITY-1]
@@ -67,7 +67,7 @@ Depends on:           —
 
 T-4905: Tests BC-49-A — CLI logging unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §9 Verification — tests 1–2
 Invariants:           I-CLI-LOG-LEVEL-1
 spec_refs:            [Spec_v49 §9, I-CLI-LOG-LEVEL-1]
@@ -82,7 +82,7 @@ Depends on:           T-4901
 
 T-4906: Tests BC-49-B Part 1 — EventReducer interface unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §9 Verification — tests 3–6
 Invariants:           I-AUDIT-ONLY-SSOT-1, I-INVALID-AUDIT-ONLY-1, I-INVALIDATABLE-INTERFACE-1, I-INVALID-4
 spec_refs:            [Spec_v49 §9, I-AUDIT-ONLY-SSOT-1, I-INVALID-AUDIT-ONLY-1, I-INVALIDATABLE-INTERFACE-1]
@@ -97,7 +97,7 @@ Depends on:           T-4902
 
 T-4907: Tests BC-49-B Part 2 — Invalidation behavior unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §9 Verification — tests 7–8
 Invariants:           I-INVALID-AUDIT-ONLY-1, I-INVALID-4
 spec_refs:            [Spec_v49 §9, I-INVALID-AUDIT-ONLY-1, I-INVALID-4]
@@ -112,7 +112,7 @@ Depends on:           T-4903
 
 T-4908: Tests BC-49-C — Handler purity unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §9 Verification — tests 9–10
 Invariants:           I-HANDLER-SESSION-PURE-1, I-HANDLER-PURE-1
 spec_refs:            [Spec_v49 §9, I-HANDLER-SESSION-PURE-1, I-HANDLER-PURE-1]
@@ -127,7 +127,7 @@ Depends on:           T-4904
 
 T-4909: Test UC-49-3 — Re-emit after invalidation
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §7 Use Cases / UC-49-3; §9 Verification — test 11
 Invariants:           I-DEDUP-KERNEL-AUTHORITY-1, I-SESSION-INVALIDATION-1
 spec_refs:            [Spec_v49 §7 UC-49-3, Spec_v49 §9, I-DEDUP-KERNEL-AUTHORITY-1, I-SESSION-INVALIDATION-1]
@@ -142,13 +142,13 @@ Depends on:           T-4903, T-4904
 
 T-4910: Smoke Verification — UC-49-1, UC-49-2, UC-49-3
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v49 §9 Verification — Smoke scenarios; §7 Use Cases UC-49-1..3
 Invariants:           I-CLI-LOG-LEVEL-1, I-INVALID-AUDIT-ONLY-1, I-DEDUP-KERNEL-AUTHORITY-1
 spec_refs:            [Spec_v49 §9 Smoke, Spec_v49 §7, I-CLI-LOG-LEVEL-1, I-INVALID-AUDIT-ONLY-1, I-DEDUP-KERNEL-AUTHORITY-1]
 produces_invariants:  []
 requires_invariants:  [I-CLI-LOG-LEVEL-1, I-INVALID-AUDIT-ONLY-1, I-DEDUP-KERNEL-AUTHORITY-1]
-Inputs:               src/sdd/cli.py, src/sdd/commands/record_session.py, src/sdd/commands/invalidate_event.py, src/sdd/infra/reducer.py
+Inputs:               src/sdd/cli.py, src/sdd/commands/record_session.py, src/sdd/commands/invalidate_event.py, src/sdd/domain/state/reducer.py
 Outputs:              .sdd/reports/ValidationReport_T-4910.md
 Acceptance:           UC-49-1: `sdd record-session ... 2>&1 | grep "Session deduplicated"` → exit 0; UC-49-2: `sdd invalidate-event --seq <SessionDeclared_seq> --force` → exit 0; UC-49-3: повторный `sdd record-session` после инвалидации → 2 SessionDeclared в event_log
 Depends on:           T-4901, T-4902, T-4903, T-4904, T-4905, T-4906, T-4907, T-4908, T-4909
