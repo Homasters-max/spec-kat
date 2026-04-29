@@ -503,3 +503,142 @@ class TestDeterminism:
         summaries1 = {k: v.summary for k, v in build_index(project).nodes.items()}
         summaries2 = {k: v.summary for k, v in build_index(project).nodes.items()}
         assert summaries1 == summaries2
+
+
+# ---------------------------------------------------------------------------
+# I-SI-READ-1 + I-GRAPH-CACHE-2: snapshot_hash and _content_map
+# ---------------------------------------------------------------------------
+
+class TestSnapshotHashAndContentMap:
+    def test_snapshot_hash_is_hex_string(self, project):
+        index = build_index(project)
+        assert isinstance(index.snapshot_hash, str)
+        assert len(index.snapshot_hash) == 64  # sha256 hex digest
+
+    def test_snapshot_hash_based_on_file_content(self, tmp_path):
+        """I-SI-READ-1: snapshot_hash changes when FILE content changes."""
+        src = tmp_path / "src" / "sdd"
+        src.mkdir(parents=True)
+        f = src / "module.py"
+        f.write_text('"""Version A."""\n')
+        (tmp_path / ".sdd" / "tasks").mkdir(parents=True)
+        (tmp_path / "CLAUDE.md").write_text("")
+
+        index_a = build_index(str(tmp_path))
+        f.write_text('"""Version B."""\n')
+        index_b = build_index(str(tmp_path))
+
+        assert index_a.snapshot_hash != index_b.snapshot_hash
+
+    def test_snapshot_hash_stable_without_changes(self, project):
+        """I-GRAPH-CACHE-2: same content → same snapshot_hash."""
+        h1 = build_index(project).snapshot_hash
+        h2 = build_index(project).snapshot_hash
+        assert h1 == h2
+
+    def test_snapshot_hash_not_based_on_non_file_nodes(self, tmp_path):
+        """snapshot_hash ignores COMMAND/GUARD/EVENT nodes — FILE content only."""
+        src = tmp_path / "src" / "sdd"
+        src.mkdir(parents=True)
+        (src / "module.py").write_text('"""Stable."""\n')
+        commands = src / "commands"
+        commands.mkdir()
+        (commands / "__init__.py").write_text("")
+        (commands / "registry.py").write_text(
+            'REGISTRY = {"cmd-a": CommandSpec(name="cmd-a")}\n'
+        )
+        (tmp_path / ".sdd" / "tasks").mkdir(parents=True)
+        (tmp_path / "CLAUDE.md").write_text("")
+
+        index_a = build_index(str(tmp_path))
+
+        # Change only registry (COMMAND nodes) — FILE content unchanged
+        (commands / "registry.py").write_text(
+            'REGISTRY = {"cmd-b": CommandSpec(name="cmd-b")}\n'
+        )
+        index_b = build_index(str(tmp_path))
+
+        # snapshot_hash changes because registry.py is itself a FILE node
+        # (registry.py content changed → FILE node content changed)
+        assert index_a.snapshot_hash != index_b.snapshot_hash
+
+    def test_content_map_populated_for_file_nodes_only(self, project):
+        """I-GRAPH-CACHE-2: _content_map contains only FILE node paths."""
+        index = build_index(project)
+        file_paths = {node.path for node in index.nodes.values() if node.kind == "FILE"}
+        assert set(index._content_map.keys()) == file_paths
+
+    def test_content_map_values_are_file_contents(self, tmp_path):
+        """_content_map[path] == actual file content."""
+        src = tmp_path / "src" / "sdd"
+        src.mkdir(parents=True)
+        content = '"""My module."""\nx = 42\n'
+        (src / "mymod.py").write_text(content)
+        (tmp_path / ".sdd" / "tasks").mkdir(parents=True)
+        (tmp_path / "CLAUDE.md").write_text("")
+
+        index = build_index(str(tmp_path))
+        assert index._content_map.get("src/sdd/mymod.py") == content
+
+    def test_content_map_empty_when_no_file_nodes(self, tmp_path):
+        """_content_map is empty if there are no FILE nodes."""
+        (tmp_path / ".sdd" / "tasks").mkdir(parents=True)
+        (tmp_path / "CLAUDE.md").write_text("")
+        index = build_index(str(tmp_path))
+        assert index._content_map == {}
+
+
+# ---------------------------------------------------------------------------
+# I-SI-READ-1 + I-GRAPH-FS-ISOLATION-1: read_content public method
+# ---------------------------------------------------------------------------
+
+class TestReadContent:
+    def test_file_node_returns_content(self, tmp_path):
+        """read_content returns actual file content for FILE nodes."""
+        src = tmp_path / "src" / "sdd"
+        src.mkdir(parents=True)
+        content = '"""My module."""\nx = 42\n'
+        (src / "mymod.py").write_text(content)
+        (tmp_path / ".sdd" / "tasks").mkdir(parents=True)
+        (tmp_path / "CLAUDE.md").write_text("")
+
+        index = build_index(str(tmp_path))
+        node = index.nodes["FILE:src/sdd/mymod.py"]
+        assert index.read_content(node) == content
+
+    def test_non_file_node_returns_empty_string(self, project):
+        """read_content returns '' for non-FILE nodes (COMMAND, GUARD, TERM, etc.)."""
+        index = build_index(project)
+        for node in index.nodes.values():
+            if node.kind != "FILE":
+                assert index.read_content(node) == "", (
+                    f"{node.node_id}: expected '' for kind={node.kind!r}"
+                )
+
+    def test_missing_file_node_raises_key_error(self):
+        """read_content raises KeyError when FILE node is not in content map."""
+        index = SpatialIndex(
+            nodes={},
+            built_at="2026-01-01T00:00:00Z",
+            git_tree_hash=None,
+        )
+        node = SpatialNode(
+            node_id="FILE:src/sdd/missing.py",
+            kind="FILE",
+            label="missing.py",
+            path="src/sdd/missing.py",
+            summary="FILE:missing",
+            signature="",
+            meta={},
+            git_hash=None,
+            indexed_at="2026-01-01T00:00:00Z",
+        )
+        with pytest.raises(KeyError):
+            index.read_content(node)
+
+    def test_read_content_consistent_with_content_map(self, project):
+        """read_content(node) == _content_map[node.path] for all FILE nodes."""
+        index = build_index(project)
+        for node in index.nodes.values():
+            if node.kind == "FILE":
+                assert index.read_content(node) == index._content_map[node.path]

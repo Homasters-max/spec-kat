@@ -104,7 +104,7 @@ response = runtime.query(graph, policy, index, node_id)                    # Con
 ```json
 {
   "name": "sdd_resolve",
-  "description": "Поиск узлов графа по свободному тексту. Возвращает ranked list кандидатов (SearchCandidate) без выбора. При одном кандидате автоматически применяется RESOLVE_EXACT.",
+  "description": "Поиск узлов графа по свободному тексту. Возвращает ranked list кандидатов (SearchCandidate) без выбора. При одном кандидате ContextEngine автоматически применяет RESOLVE_EXACT (I-SEARCH-AUTO-EXACT-1).",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -167,34 +167,98 @@ response = runtime.query(graph, policy, index, node_id)                    # Con
 
 ## 2. BC-36-4: LightRAGProjection (полная реализация)
 
-```python
-class LightRAGProjection:
-    def query(self,
-              question:   str,
-              context:    Context,
-              rag_mode:   RagMode,
-              rag_client: "LightRAGClient | None") -> "RAGResult | None":
-        """
-        Если rag_client is None → logging.warning(); return None (graceful degradation).
-        rag_client.query(question, context=context.documents, mode=rag_mode.value.lower())
-        LightRAG получает только context.documents.
-        """
+### LightRAGRegistry — fingerprint-bound KG storage
 
+```python
+class LightRAGRegistry:
+    """Pure filesystem registry: graph_fingerprint → KG path.
+    Не знает о GraphService, ContextEngine, LightRAGClient.
+    Storage: .sdd/runtime/lightrag_cache/<graph_fingerprint>/
+    """
+    def has_kg(self, fingerprint: str) -> bool:
+        """True если KG для данного fingerprint существует на диске."""
+        ...
+
+    def get_path(self, fingerprint: str) -> Path:
+        """Возвращает путь .sdd/runtime/lightrag_cache/<fingerprint>/.
+        Путь возвращается независимо от существования KG.
+        """
+        ...
+```
+
+**I-RAG-EXPORT-FRESHNESS-1**: LightRAG KG MUST be bound to `graph_fingerprint`. Storage MUST be `.sdd/runtime/lightrag_cache/<graph_fingerprint>/`. If the stored KG fingerprint does not match the current `graph_fingerprint` → KG is invalid and MUST NOT be used. `LightRAGRegistry.has_kg(fingerprint)` is the single check point.
+
+**I-RAG-REGISTRY-PURE-1**: `LightRAGRegistry` MUST be a pure filesystem accessor. MUST NOT import `GraphService`, `ContextEngine`, or `LightRAGClient`.
+
+### LightRAGProjection
+
+```python
+# Phase 52 не создаёт новый LightRAGProjection.
+# Canonical class живёт в sdd.context_kernel.rag_types (I-LIGHTRAG-CANONICAL-1).
+# Phase 52 передаёт LightRAGRegistry через __init__(registry) — ЕДИНСТВЕННОЕ изменение.
+# query() сигнатура НЕ меняется.
+
+class LightRAGProjection:
+    def __init__(self, registry: "LightRAGRegistry | None" = None): ...
+    # Phase 51: registry=None (stub mode). Phase 52: registry = реальный LightRAGRegistry.
+
+    def query(self,
+              question:    str,
+              context:     Context,
+              rag_mode:    RagMode,
+              rag_client:  "LightRAGClient | None") -> "RAGResult | None":
+        """
+        Если rag_client is None → logging.warning(); return None (деградация к OFF).
+
+        fingerprint = context.graph_snapshot_hash  # берётся из Context, не из параметра
+
+        Если rag_mode in (GLOBAL, HYBRID) и self._registry is not None:
+            если not registry.has_kg(fingerprint):
+                logging.warning("KG not found for fingerprint; degrading to LOCAL")
+                rag_mode = RagMode.LOCAL   # деградация к LOCAL, не OFF
+
+        rag_client.query(question, context=context.documents, mode=rag_mode.value.lower())
+        LightRAG получает context.documents во всех режимах.
+        → return RAGResult(summary=..., rag_mode=rag_mode.value)
+        """
+```
+
+**I-RAG-DEGRADE-LOCAL-1**: При отсутствии KG для текущего `graph_fingerprint`, `RagMode.GLOBAL` и `RagMode.HYBRID` MUST degrade к `RagMode.LOCAL` (не OFF). Warning MUST быть залогирован в stderr. `NavigationResponse.rag_mode` MUST отражать фактически использованный режим (`"LOCAL"`), не запрошенный.
+
+### LightRAGExporter + sdd rag-export
+
+```python
 class LightRAGExporter:
     def export(self,
-               graph: DeterministicGraph,
-               docs: list[DocumentChunk],
-               rag_client: "LightRAGClient") -> None:
-        entities      = [{"entity_name": n.node_id, "entity_type": n.kind, ...}
-                         for n in graph.nodes.values()]
-        relationships = [{"src_id": e.src, "tgt_id": e.dst, "description": e.kind, ...}
-                         for edges in graph.edges_out.values() for e in edges]
-        chunks        = [{"content": doc.content, "source_id": doc.node_id,
-                          "file_path": doc.meta.get("path", "")}
-                         for doc in docs]
-        rag_client.insert_custom_kg({"entities": entities, "relationships": relationships,
-                                     "chunks": chunks})
+               graph:       DeterministicGraph,
+               docs:        list[DocumentChunk],
+               rag_client:  "LightRAGClient",
+               registry:    LightRAGRegistry,
+               fingerprint: str) -> None:
+        """
+        Идемпотентный экспорт:
+        1. Если registry.has_kg(fingerprint) → skip, return (уже актуален).
+        2. entities = [{entity_name: n.node_id, entity_type: n.kind, ...}]
+        3. relationships = [{src_id: e.src, tgt_id: e.dst, description: e.kind, ...}]
+        4. chunks = [{content: doc.content, source_id: doc.node_id, file_path: ...}]
+        5. rag_client.insert_custom_kg({entities, relationships, chunks})
+           → сохраняет в registry.get_path(fingerprint)/
+        """
 ```
+
+**sdd rag-export** — отдельная CLI-команда (не часть query-пайплайна):
+
+```bash
+sdd rag-export [--rebuild]
+```
+
+Вычисляет `graph_fingerprint`, проверяет `LightRAGRegistry.has_kg()`, при промахе — запускает `LightRAGExporter.export()`. `--rebuild` игнорирует существующий KG и пересобирает.
+
+**I-RAG-EXPORT-NOT-IN-QUERY-1**: `LightRAGExporter.export()` MUST NOT be called from `ContextEngine`, `ContextRuntime`, или любого CLI query-handler (resolve/explain/trace/invariant). Экспорт — исключительно через `sdd rag-export` или явный вызов вне query-пути.
+
+**I-RAG-GLOBAL-V1-DISABLED-1**: В Phase 52 (v1) `RagMode.GLOBAL` и `RagMode.HYBRID` MUST be disabled by default. `PolicyResolver._DEFAULT` MUST NOT assign `GLOBAL` или `HYBRID` в v1. При явном запросе GLOBAL/HYBRID через конфигурацию — предупреждение в stderr: "GLOBAL/HYBRID mode is experimental; requires sdd rag-export". Причина: hidden state (KG), freshness risk, LLM non-determinism. Активация в будущей фазе после стабилизации `LightRAGRegistry` + `sdd rag-export`.
+
+**I-RAG-EXPORT-TASK-MODE-1**: `sdd rag-export` MUST быть исключён из task mode build_commands (ключ начинается с `"rag"` → исключается аналогично `"test"`-командам по I-TASK-MODE-1).
 
 **Инварианты LightRAG:**
 
@@ -287,15 +351,18 @@ src/sdd/graph_navigation/cli/resolve.py    — sdd resolve
 src/sdd/graph_navigation/cli/explain.py   — sdd explain
 src/sdd/graph_navigation/cli/trace.py     — sdd trace
 src/sdd/graph_navigation/cli/invariant.py — sdd invariant
+src/sdd/graph_navigation/cli/rag_export.py — sdd rag-export (идемпотентный экспорт KG)
 src/sdd/graph_navigation/cli/formatting.py — format_json, format_text, format_error, debug_output
 src/sdd/graph_navigation/tool_definitions.py — 4 JSON schemas (§7.2)
+src/sdd/graph_navigation/rag/registry.py      — LightRAGRegistry (fingerprint → path)
 src/sdd/graph_navigation/rag/lightrag_projection.py — LightRAGProjection (полная реализация)
-src/sdd/graph_navigation/rag/lightrag_exporter.py
+src/sdd/graph_navigation/rag/lightrag_exporter.py   — LightRAGExporter (идемпотентный)
 src/sdd/graph_navigation/migration.py      — migration_complete() → bool
 tests/unit/graph_navigation/test_cli_formatting.py
 tests/unit/graph_navigation/test_cli_error_codes.py
 tests/unit/graph_navigation/test_tool_definitions.py
 tests/unit/graph_navigation/test_rag_projection.py
+tests/unit/graph_navigation/test_rag_registry.py
 tests/unit/graph_navigation/test_migration.py
 tests/integration/test_graph_navigation_cli.py  — INT-1..10
 tests/integration/test_lightrag_export.py
@@ -319,6 +386,25 @@ src/sdd/context/build_context.py        → src/sdd/context_legacy/build_context
 47. `test_cli_error_codes_not_found` — I-CLI-ERROR-CODES-1.
 48. `test_cli_error_codes_graph_not_built`
 49. `test_tool_def_node_id_format` — I-TOOL-DEF-1.
+
+**LightRAGRegistry:**
+
+59. `test_registry_has_kg_false_when_missing` — I-RAG-EXPORT-FRESHNESS-1: отсутствие папки → `has_kg() == False`.
+60. `test_registry_has_kg_true_after_export` — после `LightRAGExporter.export()` → `has_kg() == True`.
+61. `test_registry_get_path_deterministic` — одинаковый fingerprint → одинаковый путь.
+62. `test_registry_does_not_import_graph_service` — I-RAG-REGISTRY-PURE-1: grep-тест.
+
+**LightRAGProjection деградация:**
+
+63. `test_projection_global_degrades_to_local_when_no_kg` — I-RAG-DEGRADE-LOCAL-1: GLOBAL + no KG → LOCAL + warning, `rag_mode="LOCAL"` в response.
+64. `test_projection_hybrid_degrades_to_local_when_no_kg` — аналогично для HYBRID.
+65. `test_projection_none_client_degrades_to_off` — `rag_client=None` → `None` (OFF, не LOCAL).
+66. `test_projection_response_rag_mode_reflects_actual` — `NavigationResponse.rag_mode` = фактически использованный режим.
+
+**LightRAGExporter идемпотентность:**
+
+67. `test_exporter_skip_if_kg_exists` — I-RAG-EXPORT-FRESHNESS-1: повторный вызов → skip, `insert_custom_kg` не вызывается.
+68. `test_exporter_not_called_from_context_engine` — I-RAG-EXPORT-NOT-IN-QUERY-1: grep-тест.
 
 `test_migration_complete_returns_true` — migration gate.
 `test_import_direction_phase52` — `sdd.graph_navigation` не импортирует из `sdd.graph.cache` или `sdd.graph.builder` напрямую.
@@ -347,7 +433,10 @@ src/sdd/context/build_context.py        → src/sdd/context_legacy/build_context
 4. `--format json` = валидный `NavigationResponse` JSON на stdout
 5. Все 4 typed error codes (NOT_FOUND, GRAPH_NOT_BUILT, INVARIANT_VIOLATION, BUDGET_EXCEEDED) покрыты тестами 47–48
 6. **`migration_complete()` возвращает `True` — hard gate** (False → DoD не выполнен)
-7. `LightRAGClient` = Protocol; `LightRAGProjection` компилируется без lightrag; graceful degradation к OFF
-8. Tool definitions в `tool_definitions.py` соответствуют CLI — test 49
-9. `mypy --strict` проходит на `sdd.graph_navigation.*`
-10. Все Phase 50 и Phase 51 тесты не регрессируют
+7. `LightRAGClient` = Protocol; `LightRAGProjection` компилируется без lightrag; graceful degradation к OFF при `rag_client=None`, к LOCAL при отсутствии KG в registry
+8. `LightRAGRegistry` — pure filesystem, zero imports от GraphService/ContextEngine — grep-тест (test 62)
+9. `LightRAGExporter.export()` идемпотентен — тест 67
+10. `sdd rag-export` работает через `sdd.cli:main`; исключён из task mode build_commands
+11. Tool definitions в `tool_definitions.py` соответствуют CLI — test 49
+12. `mypy --strict` проходит на `sdd.graph_navigation.*`
+13. Все Phase 50 и Phase 51 тесты не регрессируют

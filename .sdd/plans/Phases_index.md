@@ -44,3 +44,5 @@
 | 47 | EventLog Kernel Extraction & Post-DuckDB Cleanup | .sdd/specs/Spec_v47_EventLogKernelExtraction.md | .sdd/plans/Plan_v47.md | PLANNED |
 | 48 | Session Dedup (Domain-Level, Safe) | .sdd/specs/Spec_v48_SessionDedup.md | .sdd/plans/Plan_v48.md | PLANNED |
 | 49 | Session Dedup Fixes | .sdd/specs/Spec_v49_SessionDedupFixes.md | .sdd/plans/Plan_v49.md | PLANNED |
+| 50 | Graph Subsystem Foundation | .sdd/specs/Spec_v50_GraphSubsystemFoundation.md | .sdd/plans/Plan_v50.md | PLANNED |
+| 51 | Context Kernel + Policy Layer | .sdd/specs/Spec_v51_ContextKernelPolicyLayer.md | .sdd/plans/Plan_v51.md | PLANNED |

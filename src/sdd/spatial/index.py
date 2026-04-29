@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
 import re
@@ -19,14 +20,30 @@ class SpatialIndex:
     nodes:         dict[str, SpatialNode]
     built_at:      str
     git_tree_hash: str | None
+    snapshot_hash: str = ""
     version:       int = 1
     meta:          dict = field(default_factory=dict)
+    _content_map:  dict[str, str] = field(init=False, default_factory=dict)
+
+    def read_content(self, node: SpatialNode) -> str:
+        """Return file content for FILE nodes; '' for others; KeyError for missing FILE.
+
+        I-SI-READ-1: only public access point for node content.
+        I-GRAPH-FS-ISOLATION-1: callers must not read filesystem directly.
+        """
+        if node.kind != "FILE":
+            return ""
+        path = node.path or ""
+        if path not in self._content_map:
+            raise KeyError(node.node_id)
+        return self._content_map[path]
 
 
 class IndexBuilder:
     def __init__(self, project_root: str) -> None:
         self._root = os.path.abspath(project_root)
         self._now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self._file_content_map: dict[str, str] = {}
 
     # ------------------------------------------------------------------
     # Public API
@@ -53,12 +70,25 @@ class IndexBuilder:
         git_tree_hash = self._git_tree_hash()
         meta = self._validate_term_links(nodes)
 
-        return SpatialIndex(
+        # I-SI-READ-1 + I-GRAPH-CACHE-2: snapshot_hash = sha256(sorted FILE-nodes by path+content)
+        file_pairs = sorted(
+            (node.path or "", self._file_content_map.get(node.path or "", ""))
+            for node in nodes.values()
+            if node.kind == "FILE"
+        )
+        snapshot_hash = hashlib.sha256(
+            json.dumps(file_pairs).encode()
+        ).hexdigest()
+
+        index = SpatialIndex(
             nodes=nodes,
             built_at=self._now,
             git_tree_hash=git_tree_hash,
+            snapshot_hash=snapshot_hash,
             meta=meta,
         )
+        index._content_map = {path: content for path, content in file_pairs}
+        return index
 
     # ------------------------------------------------------------------
     # Node builders
@@ -77,6 +107,12 @@ class IndexBuilder:
                 abs_path = os.path.join(dirpath, fname)
                 rel_path = os.path.relpath(abs_path, self._root).replace(os.sep, "/")
                 node_id = f"FILE:{rel_path}"
+                try:
+                    with open(abs_path) as f:
+                        content = f.read()
+                except Exception:
+                    content = ""
+                self._file_content_map[rel_path] = content
                 nodes.append(SpatialNode(
                     node_id=node_id,
                     kind="FILE",
@@ -465,6 +501,7 @@ def load_index(path: str) -> SpatialIndex:
         nodes=nodes,
         built_at=data["built_at"],
         git_tree_hash=data.get("git_tree_hash"),
+        snapshot_hash=data.get("snapshot_hash", ""),
         version=data.get("version", 1),
         meta=data.get("meta", {}),
     )
@@ -491,6 +528,7 @@ def save_index(index: SpatialIndex, path: str) -> None:
         "version": index.version,
         "built_at": index.built_at,
         "git_tree_hash": index.git_tree_hash,
+        "snapshot_hash": index.snapshot_hash,
         "nodes": nodes_dict,
         "meta": index.meta,
     }

@@ -78,11 +78,19 @@ Policy Layer — изолированная pure функция `QueryIntent →
 ### Типы
 
 ```python
+MIN_CONTEXT_SIZE: int = 256  # policy/types.py; min chars for non-empty context (I-CONTEXT-BUDGET-VALID-1)
+
 @dataclass
 class Budget:
     max_nodes: int
     max_edges: int
     max_chars: int    # model-agnostic; approx_tokens = max_chars / 4 (runtime only)
+
+    def __post_init__(self) -> None:
+        if self.max_nodes < 1:
+            raise ValueError(f"Budget.max_nodes must be ≥ 1, got {self.max_nodes}")
+        if self.max_chars < MIN_CONTEXT_SIZE:
+            raise ValueError(f"Budget.max_chars must be ≥ MIN_CONTEXT_SIZE ({MIN_CONTEXT_SIZE}), got {self.max_chars}")
 
 class RagMode(Enum):
     OFF
@@ -105,11 +113,12 @@ class PolicyResolver:
     Не знает о DeterministicGraph, traversal, ContextEngine, GraphService.
     """
     _DEFAULT: dict[QueryIntent, NavigationPolicy] = {
+        # v1: GLOBAL и HYBRID отключены (I-RAG-GLOBAL-V1-DISABLED-1)
         QueryIntent.RESOLVE_EXACT: NavigationPolicy(Budget(5,  10, 4000),  RagMode.OFF),
-        QueryIntent.EXPLAIN:       NavigationPolicy(Budget(20, 40, 16000), RagMode.HYBRID),
+        QueryIntent.EXPLAIN:       NavigationPolicy(Budget(20, 40, 16000), RagMode.LOCAL),
         QueryIntent.TRACE:         NavigationPolicy(Budget(30, 60, 20000), RagMode.LOCAL),
         QueryIntent.INVARIANT:     NavigationPolicy(Budget(10, 20, 8000),  RagMode.OFF),
-        QueryIntent.SEARCH:        NavigationPolicy(Budget(15, 0,  12000), RagMode.GLOBAL),
+        QueryIntent.SEARCH:        NavigationPolicy(Budget(15, 0,  12000), RagMode.LOCAL),
     }
 
     def resolve(self, intent: QueryIntent) -> NavigationPolicy:
@@ -189,10 +198,14 @@ class Selection:
 
 **BFS (каноническая):**
 ```python
+BFS_OVERSELECT_FACTOR = 3  # policy/types.py; BFS останавливается по max_nodes * factor
+
 queue = deque([(seed_node_id, 0)])
 nodes[seed_node_id] = RankedNode(seed_node_id, hop=0, global_importance_score=1.0)
 while queue:
     node_id, hop = queue.popleft()
+    if len(nodes) >= budget.max_nodes * BFS_OVERSELECT_FACTOR:
+        break  # I-BFS-BUDGET-1: early-stop prevents O(N) traversal on large graphs
     for edge in expand(graph, node_id, strategy, hop):
         dst = edge.dst
         if dst not in nodes or hop+1 < nodes[dst].hop:
@@ -201,6 +214,8 @@ while queue:
             edges[edge.edge_id] = RankedEdge(edge.edge_id, edge.src, dst, hop+1, edge.priority)
             queue.append((dst, hop+1))
 ```
+
+**I-BFS-BUDGET-1**: BFS MUST stop early when `len(nodes) >= budget.max_nodes * BFS_OVERSELECT_FACTOR`. This prevents O(N) full-graph traversal when budget is small. `BFS_OVERSELECT_FACTOR = 3` is a module-level constant in `policy/types.py`. Seed node is always expanded regardless of this limit (I-CONTEXT-SEED-1). SEARCH intent (max_edges=0) is exempt: BFS runs only over nodes, no edge expansion.
 
 **Стратегии selection:**
 
@@ -222,6 +237,8 @@ class SearchCandidate:
 ```
 
 **I-SEARCH-CANDIDATE-1**: SEARCH MUST return `SearchCandidate`, not `RankedNode`.
+
+**I-SEARCH-AUTO-EXACT-1**: If SEARCH returns exactly one `SearchCandidate`, `ContextEngine._build_selection()` MUST automatically upgrade intent to `RESOLVE_EXACT` and build a full selection for that node. `NavigationResponse.candidates` MUST still contain the single candidate for transparency. This logic lives exclusively in `ContextEngine`, never in CLI handlers (I-RUNTIME-ORCHESTRATOR-1).
 **I-SEARCH-NO-EMBED-1**: `fuzzy_score` MUST be computed via BM25 over `(label + " " + summary)` corpus. Embedding-based similarity FORBIDDEN (R-FUZZY-ALGO fix).
 
 **Инварианты selection:**
@@ -275,7 +292,7 @@ class DefaultContentMapper:
         return content
 
 class DocProvider:
-    def __init__(self, index: SpatialIndex, mapper: ContentMapper | None = None): ...
+    def __init__(self, index: SpatialIndex, mapper: ContentMapper = DefaultContentMapper()): ...
     def get_chunks(self, node_ids: list[str]) -> list[DocumentChunk]: ...
 ```
 
@@ -283,7 +300,11 @@ class DocProvider:
 
 **I-DOC-REFS-1**: `DocumentChunk.references` MUST contain only `node_id`-ы из `DeterministicGraph.nodes`. Broken references dropped.
 
-**I-DOC-SI-ONLY-1**: DocProvider MUST use SpatialIndex as the only source of truth. CLAUDE.md, TaskSet.md, glossary.yaml не читаются напрямую.
+**I-DOC-SI-ONLY-1**: `SpatialIndex` is the single source of file metadata (paths, line bounds, kind). `DocProvider` resolves file paths from `SpatialIndex` and reads actual content from the filesystem. CLAUDE.md, TaskSet.md, glossary.yaml MUST NOT be read directly outside `build_context.py` (I-CTX-MIGRATION-3).
+
+**I-DOC-FS-IO-1**: `DocProvider.get_chunks()` is the SINGLE point of filesystem I/O in Context Kernel. `ContextEngine`, `ContextAssembler`, and `LightRAGProjection` MUST NOT open files directly. Enforced by grep-test: no `open(` calls outside `DocProvider`.
+
+**I-DOC-NON-FILE-1**: For non-FILE nodes (`COMMAND`, `EVENT`, `TASK`, `INVARIANT`, `TERM`): `DefaultContentMapper.extract_chunk()` returns `""`. `DocumentChunk.content = ""`, `char_count = 0`. These chunks are included in `documents` list for reference resolution (I-DOC-REFS-1) but do NOT consume char budget. Implementors MUST NOT synthesize content for non-FILE nodes — absence of content is intentional.
 
 **I-DOC-2**: Chunk extraction для FILE-узлов MUST be deterministic (AST-based).
 
@@ -310,13 +331,19 @@ class ContextAssembler:
 
 **I-CONTEXT-BUDGET-1**: `len(nodes) ≤ max_nodes`, `len(edges) ≤ max_edges`, `Σ char_count(documents) ≤ max_chars`.
 
+**I-CONTEXT-BUDGET-VALID-1**: `Budget` MUST satisfy `max_nodes ≥ 1` и `max_chars ≥ MIN_CONTEXT_SIZE` (константа в `policy/types.py`). Violation при создании `Budget` → `ValueError`. Защищает от пустых контекстов и неконсистентных ответов. `PolicyResolver._DEFAULT` MUST pass this validation at import time (static assert).
+
 **I-CONTEXT-TRUNCATE-1**: Deterministic ordering: `(hop ASC, -global_importance_score, node_id ASC)` для nodes; `(hop ASC, -priority, edge_id ASC)` для edges; `(node_rank, kind, hash(content))` для documents.
 
 **I-CONTEXT-SEED-1**: Seed node MUST always be present regardless of budget.
 
 **I-CONTEXT-ORDER-1**: Document ordering MUST depend only on stable `(node_id rank, kind, hash(content))`.
 
-**I-CONTEXT-LINEAGE-1**: `Context.graph_snapshot_hash` MUST equal `DeterministicGraph.source_snapshot_hash`. `Context.context_id = sha256(graph_snapshot_hash + ":" + seed_node_id + ":" + intent.value)[:32]`.
+**I-CONTEXT-LINEAGE-1**: `Context.graph_snapshot_hash` MUST equal `DeterministicGraph.source_snapshot_hash`. `Context.context_id` computation:
+- For all intents except SEARCH: `sha256(graph_snapshot_hash + ":" + seed_node_id + ":" + intent.value)[:32]`
+- For SEARCH: `sha256(graph_snapshot_hash + ":SEARCH:" + sha256(raw_query.encode())[:16])[:32]`
+
+`raw_query` MUST be passed through to `ContextAssembler.build()` when intent is SEARCH. For non-SEARCH, `raw_query` is never used in `context_id`. Rationale: SEARCH has no single seed node; caching by query text prevents `context_id` collisions between different SEARCH queries on the same snapshot.
 
 **I-CONTEXT-DETERMINISM-1**: Context MUST be identical for same `(graph, query, budget)`.
 
@@ -329,14 +356,27 @@ class LightRAGClient(Protocol):
     def insert_custom_kg(self, kg: dict) -> None: ...
 
 @dataclass
+class RAGResult:
+    """Результат LightRAG query. Изолирован от Context."""
+    summary:  str
+    rag_mode: str   # фактически использованный режим: "LOCAL"|"GLOBAL"|"HYBRID"
+
+@dataclass
 class NavigationResponse:
     """Полный ответ. Явная граница fact vs inference."""
     context:     Context
-    rag_summary: str | None   # None если RAG=OFF
-    rag_mode:    str | None   # "LOCAL"|"HYBRID"|"GLOBAL"|None
+    rag_summary: str | None              # None если RAG=OFF
+    rag_mode:    str | None              # "LOCAL"|"HYBRID"|"GLOBAL"|None; фактический режим
+    candidates:  list[SearchCandidate] | None  # non-None только для QueryIntent.SEARCH (I-SEARCH-RESPONSE-1)
 
 class LightRAGProjection:
-    """Stub-реализация без lightrag install. При отсутствии lightrag — graceful degradation."""
+    """Canonical implementation. Lives in sdd.context_kernel.rag_types — единственный класс.
+    Phase 52 НЕ создаёт новый класс; только добавляет LightRAGRegistry как __init__ dependency.
+    query() сигнатура НЕИЗМЕННА между фазами (I-LIGHTRAG-CANONICAL-1).
+    """
+    def __init__(self, registry: "LightRAGRegistry | None" = None): ...
+    # registry=None допустимо в Phase 51 (stub mode); Phase 52 передаёт реальный LightRAGRegistry.
+
     def query(self, question: str, context: Context,
               rag_mode: RagMode, rag_client: "LightRAGClient | None") -> "RAGResult | None":
         if rag_client is None:
@@ -346,15 +386,33 @@ class LightRAGProjection:
 
 **I-NAV-RESPONSE-1**: `rag_summary` MUST NOT be mixed into `context.documents`.
 
-**I-RAG-POLICY-1**: `rag_mode=RagMode.OFF` → LightRAG не вызывается.
+**I-SEARCH-RESPONSE-1**: For `QueryIntent.SEARCH`: `NavigationResponse.candidates` MUST be non-None and contain the ranked `list[SearchCandidate]`. `NavigationResponse.context.nodes` MUST contain only the seed node (or empty if no seed is applicable). For all other intents: `candidates` MUST be `None`. `ContextEngine._build_selection()` MUST NOT return `SearchCandidate` inside `Selection.nodes`.
 
-**I-RAG-GROUNDING-1**: RAG-ответ MUST be based only on provided `Context.documents`.
+**I-SEARCH-MAX-EDGES-1**: For `QueryIntent.SEARCH`, `Budget.max_edges = 0` is valid. `ContextAssembler.build()` MUST treat `max_edges = 0` as "include no edges" — not as an error. `Selection.edges` remains empty; `Context.edges` is `[]`.
 
-**I-RAG-DETACH-1**: LightRAG MUST NOT access global knowledge graph during query.
+**I-RAG-POLICY-1**: `rag_mode=RagMode.OFF` → LightRAG не вызывается. `rag_mode=RagMode.LOCAL` → LightRAG вызывается только с `Context.documents`, без KG. `rag_mode=RagMode.GLOBAL` или `HYBRID` → требует предварительно построенного KG (Phase 52 `LightRAGRegistry`).
+
+**I-RAG-GROUNDING-1**: Для `RagMode.LOCAL` — `rag_summary` MUST be based only on provided `Context.documents`. Для `RagMode.GLOBAL` и `HYBRID` — LightRAG MAY use pre-built KG; `rag_summary` является KG-augmented inference и MUST быть отмечен как таковой в `NavigationResponse.rag_mode`. Агент MUST применять `I-AGENT-5` (`rag_summary` = inference, не факт) строго к GLOBAL/HYBRID ответам.
+
+**I-RAG-KG-DEPENDENCY-1**: `RagMode.LOCAL` НЕ требует предварительного KG-экспорта. `RagMode.GLOBAL` и `HYBRID` требуют валидного KG в `LightRAGRegistry` (fingerprint совпадает с `graph_fingerprint`). Отсутствие KG при GLOBAL/HYBRID → деградация к `LOCAL` (не OFF) + warning в stderr.
+
+**I-RAG-DETACH-1**: LightRAG MUST NOT access global knowledge graph during LOCAL-mode query.
 
 **I-RAG-CLIENT-ISOLATION-1**: `LightRAGClient` used in `query()` MUST be stateless with respect to previously inserted KG data.
 
 **I-RAG-NO-PERSISTENCE-1**: `LightRAGClient` used in `query()` MUST NOT persist any state across calls.
+
+**I-RAG-NONDETERMINISTIC-1**: `NavigationResponse.rag_summary` является недетерминированным (LLM inference). `Context` (nodes, edges, documents) — детерминирован и является единственной truth. `rag_summary` — interpretation layer поверх `Context`. Система разделена на:
+- **Deterministic core**: `Context = f(snapshot_hash, query)` — полностью воспроизводим, тестируем без моков LLM.
+- **Non-deterministic layer**: `rag_summary = g(Context)` — опциональный, изолирован от ядра.
+
+Следствие: replayability, дебажимость и testability гарантированы для ядра независимо от наличия LightRAG.
+
+**I-RAG-LLM-CONFIG-1**: `LightRAGClient` MUST be initialized with `temperature=0` (or the equivalent determinism parameter of the underlying model). This is a mandatory construction-site requirement enforced at instantiation, not a type-level constraint. Enforced by: integration test that calls `LightRAGProjection.query()` twice with identical `(question, context, mode)` and asserts `rag_summary` equality.
+
+**I-LIGHTRAG-CANONICAL-1**: `LightRAGProjection` in `sdd.context_kernel.rag_types` is the single canonical class. Phase 52 MUST NOT define a second `LightRAGProjection` in `sdd.graph_navigation`. Phase 52 extends it via `__init__(registry)` injection only. `ContextEngine` always imports from `sdd.context_kernel`. Enforced by grep-test: `class LightRAGProjection` appears in exactly one file.
+
+**I-RAG-EXPLAINABILITY-1**: `Context` обеспечивает 100% explainability — любой ответ раскладывается в nodes + edges + document chunks. `rag_summary` — interpretation, explainability для него не требуется. Агент MUST применять `I-AGENT-5` при работе с `rag_summary`.
 
 ### 2.7 ContextEngine — pure pipeline
 
@@ -375,12 +433,19 @@ class ContextEngine:
         policy:       NavigationPolicy,    # уже resolved внешним вызовом PolicyResolver.resolve()
         doc_provider: DocProvider,         # создан вне ContextEngine (в ContextRuntime)
         node_id:      str,
+        rag_client:   "LightRAGClient | None" = None,  # прокинут из ContextRuntime
     ) -> NavigationResponse:
         """
         1. selection = _build_selection(graph, node_id, policy)
         2. context = assembler.build(graph, selection, policy.budget, doc_provider)
-        3. rag_summary = rag_projection.query(...) if policy.rag_mode != RagMode.OFF else None
-        4. return NavigationResponse(context, rag_summary, rag_mode=policy.rag_mode.value)
+        3. rag_result = rag_projection.query(node_id, context, policy.rag_mode, rag_client)
+               if rag_projection and policy.rag_mode != RagMode.OFF else None
+        4. return NavigationResponse(
+               context,
+               rag_summary=rag_result.summary if rag_result else None,
+               rag_mode=rag_result.rag_mode if rag_result else None,
+               candidates=None,  # non-None only for SEARCH (set in step 1)
+           )
         """
 ```
 
@@ -393,15 +458,23 @@ class ContextEngine:
 ### 2.8 ContextRuntime — lifecycle orchestrator (R-RUNTIME-CONTRADICTION fix)
 
 ```python
+# Module-level default; allows Phase 52 CLI to instantiate ContextRuntime without custom wiring.
+_default_doc_provider_factory: Callable[[SpatialIndex], DocProvider] = (
+    lambda index: DocProvider(index, DefaultContentMapper())
+)
+
 class ContextRuntime:
     """Entry point to Context Kernel. Создаёт DocProvider из SpatialIndex.
     НЕ держит GraphService — граф строится в CLI до вызова query().  ← R-RUNTIME-CONTRADICTION fix
+    Держит rag_client — инжектируется при инстанциировании, не при каждом query().
     """
     def __init__(
         self,
         engine:               ContextEngine,
-        doc_provider_factory: Callable[[SpatialIndex], DocProvider],
+        doc_provider_factory: Callable[[SpatialIndex], DocProvider] = _default_doc_provider_factory,
+        rag_client:           "LightRAGClient | None" = None,
     ): ...
+    # rag_client прокидывается в LightRAGProjection.query() через ContextEngine._rag_projection
 
     def query(
         self,
@@ -412,7 +485,7 @@ class ContextRuntime:
     ) -> NavigationResponse:
         """
         doc_provider = self._doc_provider_factory(index)
-        return self._engine.query(graph, policy, doc_provider, node_id)
+        return self._engine.query(graph, policy, doc_provider, node_id, rag_client=self._rag_client)
         """
 ```
 
