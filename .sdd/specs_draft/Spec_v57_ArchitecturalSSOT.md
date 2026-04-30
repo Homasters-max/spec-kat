@@ -44,6 +44,7 @@ sdd arch-check --format json
 - BC-57-5: `graph_coverage` marker в `SpatialIndex.meta` (числовой + multi-type)
 - BC-57-6: `sdd arch-check --check module-cohesion` — enforcement I-MODULE-COHESION-1
 - BC-57-7: `sdd arch-check --check bc-cross-dependencies` — enforce I-BC-CONSISTENCY-1 violations (cycles → exit 1)
+- BC-57-RAG-SOFT: RAG soft enforcement — `NavigationResponse.based_on` + `LightRAGProjection` soft guard
 
 ### Out of Scope
 
@@ -433,6 +434,80 @@ Verification:
 
 ---
 
+### BC-57-RAG-SOFT: RAG Soft Enforcement + Explainability (NEW)
+
+**Цель:** Начать применение I-ARCH-LAYER-SEPARATION-1 (Phase 55 declared) на L3 границе.
+Phase 57 = soft enforcement (warning + degrade). Phase 58 = hard enforcement (exception).
+
+**Архитектурный принцип:**
+```
+ContextEngine (deterministic L2)
+  ↓ context.documents (sealed at entry gate)
+LightRAGProjection (L3 adapter, soft guard Phase 57)
+  ↓
+RAG ranking (advisory, non-deterministic)
+```
+
+**Изменяемые файлы:**
+
+```
+src/sdd/context_kernel/rag_types.py   — based_on поле + soft enforcement в LightRAGProjection
+src/sdd/context_kernel/engine.py      — заполнять based_on из selection.nodes.keys()
+```
+
+**`NavigationResponse.based_on` (I-NAV-BASED-ON-1):**
+
+```python
+@dataclass
+class NavigationResponse:
+    context: Context
+    rag_summary: str | None
+    rag_mode: str | None
+    candidates: list[SearchCandidate] | None
+    based_on: list[str] | None = None  # NEW: ["FILE:X", "COMMAND:Y", "INVARIANT:Z"]
+```
+
+Заполняется в `engine.py`:
+```python
+return NavigationResponse(
+    ...,
+    based_on=list(selection.nodes.keys()),  # deterministic: selection always computed before RAG
+)
+```
+
+**Soft enforcement в `LightRAGProjection.query()`:**
+
+```python
+def query(self, question, context, rag_mode, rag_client, rag_policy=None):
+    # I-RAG-SCOPE-1 soft enforcement (Phase 57):
+    if rag_policy is not None and rag_policy.allow_global_search:
+        import warnings
+        warnings.warn(
+            "I-RAG-SCOPE-1: allow_global_search=True violates I-ARCH-LAYER-SEPARATION-1; "
+            "degrading to LOCAL (graph-scoped) mode",
+            RuntimeWarning,
+        )
+        rag_mode = RagMode.LOCAL
+
+    # I-RAG-SCOPE-ENTRY-1 soft (Phase 57): seal input at L2/L3 boundary
+    # Phase 58 will assert; Phase 57 logs for observability
+    allowed_ids = {d.node_id for d in getattr(context, "documents", [])}
+    if allowed_ids:
+        import logging
+        logging.debug("RAG entry gate: allowed document scope = %d docs", len(allowed_ids))
+    # ... rest of existing query() logic unchanged
+```
+
+**Backward compatibility:** `rag_policy` — опциональный параметр (default `None`).
+Существующие вызовы без `rag_policy` работают без изменений.
+
+**Phase 57 — НЕ изменяет:**
+- `ContextEngine.query()` signature (I-ENGINE-PURE-1 preserved)
+- `LightRAGProjection.__init__()` (I-LIGHTRAG-CANONICAL-1 preserved)
+- `NavigationPolicy` loading (rag_policy propagated via caller, not engine)
+
+---
+
 ### Dependencies
 
 ```text
@@ -443,6 +518,8 @@ BC-57-3 → BC-57-2 : ViolatesEdgeExtractor implements I-ARCH checks
 BC-57-4 → BC-57-1 : anchor_nodes required (no resolve_keywords fallback)
 BC-57-4 → BC-56-A1 (Phase 56) : extends GraphCallEntry with nodes_covered
 BC-57-5 → BC-56-BC + BC-56-LAYER : coverage computed from belongs_to + in_layer completeness
+BC-57-RAG-SOFT → BC-55-P9 (Phase 55) : RAGPolicy declared; Phase 57 adds soft enforcement
+BC-57-RAG-SOFT → BC-57-3 : arch-check framework validates I-ARCH-LAYER-SEPARATION-1 context
 ```
 
 ---
@@ -638,6 +715,11 @@ EDGE_KIND_PRIORITY: dict[str, float] = {
 | I-MODULE-COHESION-1 | FILE в MODULE:M с external_imports > N (default 10) → cohesion violation. Enforcement: sdd arch-check --check module-cohesion | 57 |
 | I-ARCH-CONFIDENCE-1 | arch-check layer-purity/layer-direction используют только edges с confidence >= 0.9 для violations. calls (0.6) → WARNING only | 57 |
 | I-CONTEXT-CONFIDENCE-1 | Selection НЕ содержит nodes с path_confidence < min_path_confidence (default 0.5). Исключение: seed node (hop=0, path_confidence=1.0) | 57 |
+| I-RAG-1 | soft enforcement: `allow_global_search=True` → `RuntimeWarning` + degrade to `RagMode.LOCAL`. Hard enforcement → Phase 58 | 57 soft |
+| I-RAG-SCOPE-ENTRY-1 | soft: entry gate logs allowed document scope. Hard assertion → Phase 58. `input_documents == ContextEngine.output.documents` at LightRAGProjection entry | 57 soft |
+| I-NAV-BASED-ON-1 | `NavigationResponse.based_on` MUST list all `selection.nodes.keys()`. MUST NOT be None when context is non-empty. Populated in `ContextEngine.query()` | 57 |
+| I-RAG-DEGRADED-1 | При недоступности EmbeddingProvider (нет ключа, сеть, 429, parse error): EmbeddingProvider/rerank НЕ вызываются. `documents` возвращаются в граф-порядке (hop ASC, global_importance_score DESC, node_id ASC). `rag_summary: null`. `rag_mode: "DEGRADED"`. Никаких полупересчитанных ранков. L1/L2 MUST остаться полностью работоспособными | 57 |
+| I-SPATIAL-PROJECTION-1 | `SpatialIndex` является проекцией Graph/FS. НЕ создаёт собственных node_id. НЕ является самостоятельным source of truth структурной информации. Обновляется синхронно с GraphIndexBuilder | 57 declared |
 
 ### Preserved Invariants
 
@@ -774,6 +856,158 @@ sdd graph-stats
 | 12 | `sdd arch-check` с `coverage=partial` → exit 0 + warning (не error) | I-GRAPH-COVERAGE-1 |
 | 13 | violates edge создаётся для реального нарушения I-ARCH-2 | BC-57-3 |
 | 14 | `sdd explain FILE:X --edge-types violates` возвращает нарушенные инварианты | BC-57-3 |
+
+---
+
+## 11. Phase Acceptance Checklist
+
+> Методология: `.sdd/docs/ref/phase-acceptance.md`
+
+### Part 1 — In-Phase DoD
+
+**Step U (Universal):**
+```bash
+sdd show-state                          # tasks_completed == tasks_total
+sdd validate --check-dod --phase 57     # exit 0
+python3 -m pytest tests/unit/ -q        # 0 failures
+```
+
+**Step 57-A — Build pipeline stages (BC-57-BUILD-PIPELINE):**
+```bash
+# Derived extractors не запускаются до classified
+python3 -c "
+from sdd.graph.builder import GraphFactsBuilder
+b = GraphFactsBuilder.__new__(GraphFactsBuilder)
+stages = [e.pipeline_stage for e in b._extractors]
+# raw → classified → derived → validated (порядок)
+print(stages)
+"
+# → все 'derived' экстракторы идут после всех 'classified'
+```
+
+**Step 57-B — arch-check functional (BC-57-3):**
+```bash
+sdd arch-check --check layer-purity --format json
+# → exit 0 ИЛИ exit 1 с violations list
+# Неприемлемо: crash/traceback
+
+sdd arch-check --check layer-direction --format json
+# → exit 0 ИЛИ exit 1 с violations list
+
+sdd arch-check --check bc-cycles --format json
+# → exit 0 ИЛИ exit 1
+
+sdd arch-check --check module-cohesion --format json
+# → exit 0 ИЛИ exit 1
+
+sdd arch-check --check all --format json
+# → exit 0 ИЛИ exit 1; НЕ crash
+```
+
+**Step 57-C — graph-guard v2 с seed-only guard (I-GRAPH-GUARD-3):**
+```bash
+# Сессия только с seed вызовом (edges=0) → guard не засчитывает покрытие
+python3 -m pytest tests/unit/test_graph_guard_v2.py::test_guard_v2_seed_only_not_counted -v
+# → PASSED
+
+# I-GRAPH-GUARD-4: изолированный coverage → exit 1
+python3 -m pytest tests/unit/test_graph_guard_v2.py::test_guard_v2_isolated_coverage -v
+# → PASSED
+```
+
+**Step 57-D — graph_coverage числовой (BC-57-5):**
+```bash
+python3 -c "
+from sdd.spatial.index import IndexBuilder
+# После nav-rebuild
+idx = ...  # load spatial index
+meta = idx.meta.get('graph_coverage', {})
+assert 'coverage_score' in meta, 'coverage_score MISSING'
+assert 'coverage_by_type' in meta, 'coverage_by_type MISSING'
+assert isinstance(meta['coverage_score'], float)
+print(f'coverage_score={meta[\"coverage_score\"]:.2f}')
+"
+# → coverage_score=X.XX (float, 0.0-1.0)
+```
+
+**Step 57-E — Edge.confidence и EDGE_KIND_CONFIDENCE (E-5):**
+```bash
+python3 -c "
+from sdd.graph.types import EDGE_KIND_CONFIDENCE, Edge
+assert 'calls' in EDGE_KIND_CONFIDENCE
+assert EDGE_KIND_CONFIDENCE['calls'] == 0.6
+assert EDGE_KIND_CONFIDENCE['imports'] == 1.0
+e = Edge(edge_id='x', src='A', dst='B', kind='imports', priority=0.6, source='test', meta={})
+assert e.confidence == 1.0  # default
+print('OK')
+"
+# → OK
+```
+
+**Step 57-F — module-cohesion enforcement (BC-57-6):**
+```bash
+sdd arch-check --check module-cohesion --format json
+# → {"violations": [...]} или {"violations": []}
+# Неприемлемо: crash или отсутствие ключа "violations"
+```
+
+---
+
+### Part 2 — Regression Guard
+
+```bash
+# (R-57-1) arch-check informational mode Phase 56 → violations mode Phase 57
+# Убедиться что bc-cross-dependencies теперь exit 1 при нарушениях (не exit 0 всегда)
+sdd arch-check --check bc-cross-dependencies --format json
+# Если violations > 0 → exit 1 (Phase 57 enforcement, нормально)
+
+# (R-57-2) BOUNDED_CONTEXT, LAYER nodes из Phase 56 — всё ещё присутствуют
+sdd graph-stats --node-type BOUNDED_CONTEXT --format json  # count > 0
+sdd graph-stats --node-type LAYER --format json            # count > 0
+
+# (R-57-3) tested_by из Phase 53, MODULE из Phase 55 — не сломаны
+sdd graph-stats --edge-type tested_by --format json   # count > 0
+sdd graph-stats --node-type MODULE --format json       # count > 0
+
+# (R-57-4) sdd explain без --edge-types — поведение идентично Phase 56
+sdd explain COMMAND:complete --format json
+# → те же nodes что и в Phase 56 (confidence filter не убирает лишнего)
+```
+
+Если хоть одна регрессия → **STOP → sdd report-error → recovery.md**.
+
+---
+
+### Part 3 — Transition Gate (before Phase 58)
+
+Человек верифицирует перед `sdd activate-phase 58`:
+
+```bash
+# Gate 58-A: arch-check tool functional (все check types работают)
+sdd arch-check --check all --format json
+# Expected: exit 0 ИЛИ exit 1; НЕ crash/traceback
+
+# Gate 58-B: понять схему существующего invariant_edges.py (ручная проверка)
+cat src/sdd/graph/extractors/invariant_edges.py | head -20
+# Ожидание: понять какие edge kinds уже строятся (verified_by, introduced_in)
+# BC-58-3 расширяет, не заменяет — это нужно подтвердить до старта
+
+# Gate 58-C: graph-guard v2 работает (требуется для BC-58-6)
+sdd graph-guard check --format json 2>&1 | head -5
+# Expected: json output (не crash)
+```
+
+---
+
+### Part 4 — Rollback Triggers
+
+Немедленно STOP если:
+- `sdd arch-check --check all` → crash вместо exit 0/1 с JSON
+- `Edge.confidence` поле ломает сериализацию существующих edges в graph cache
+- `path_confidence` filter в Selection убирает более 20% nodes на существующих queries (regression)
+- `coverage_score` = 0.0 после полного nav-rebuild (не вычислен или вычислен неверно)
+- `I-GRAPH-GUARD-3` тест падает (seed-only не фильтруется)
+- Любой тест Phase 52-56 начинает падать
 
 ---
 

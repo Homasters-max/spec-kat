@@ -1,11 +1,12 @@
 """GraphFactsBuilder: assembles DeterministicGraph from SpatialIndex (BC-36-2)."""
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any
 
 from sdd.graph.errors import GraphInvariantError
 from sdd.graph.projection import project_node
-from sdd.graph.types import EDGE_KIND_PRIORITY, DeterministicGraph, Edge
+from sdd.graph.types import EDGE_KIND_PRIORITY, DeterministicGraph, Edge, Node
 
 if TYPE_CHECKING:
     from sdd.graph.extractors import EdgeExtractor
@@ -51,22 +52,71 @@ class GraphFactsBuilder:
 
     I-GRAPH-FS-ISOLATION-1: zero direct open() calls.
     I-GRAPH-FACTS-ESCAPE-1: _DeterministicGraphBuilder is private, not in __init__.py.
+    I-TEST-NODE-2: pass project_root to enable TEST node scanning from tests/ directories.
     """
 
-    def __init__(self, extractors: list[EdgeExtractor] | None = None) -> None:
+    def __init__(
+        self,
+        extractors: list[EdgeExtractor] | None = None,
+        project_root: str | None = None,
+    ) -> None:
         from sdd.graph.extractors import _DEFAULT_EXTRACTORS
         from sdd.graph.extractors.implements_edges import ImplementsEdgeExtractor
+        from sdd.graph.extractors.tested_by_edges import TestedByEdgeExtractor
 
         self._extractors: list[EdgeExtractor] = (
             extractors
             if extractors is not None
-            else [*_DEFAULT_EXTRACTORS, ImplementsEdgeExtractor()]
+            else [
+                *_DEFAULT_EXTRACTORS,
+                ImplementsEdgeExtractor(),
+                TestedByEdgeExtractor(project_root=project_root),
+            ]
         )
+        self._project_root = project_root
+
+    @staticmethod
+    def _scan_test_nodes(project_root: str) -> list[Node]:
+        """Scan test directories and return TEST Nodes (I-TEST-NODE-2).
+
+        tests/unit/ and tests/integration/ → no tier metadata
+        tests/property/ and tests/fuzz/    → tier: slow
+        No open() calls (I-GRAPH-FS-ISOLATION-1).
+        """
+        scan_dirs: list[tuple[str, dict[str, Any]]] = [
+            ("tests/unit", {}),
+            ("tests/integration", {}),
+            ("tests/property", {"tier": "slow"}),
+            ("tests/fuzz", {"tier": "slow"}),
+        ]
+        result: list[Node] = []
+        for rel_dir, extra_meta in scan_dirs:
+            abs_dir = os.path.join(project_root, rel_dir)
+            if not os.path.isdir(abs_dir):
+                continue
+            for dirpath, dirnames, filenames in os.walk(abs_dir):
+                dirnames[:] = sorted(d for d in dirnames if d != "__pycache__")
+                for fname in sorted(filenames):
+                    if not fname.endswith(".py"):
+                        continue
+                    abs_path = os.path.join(dirpath, fname)
+                    rel_path = os.path.relpath(abs_path, project_root).replace(os.sep, "/")
+                    node_id = f"TEST:{rel_path}"
+                    result.append(Node(
+                        node_id=node_id,
+                        kind="TEST",
+                        label=fname,
+                        summary=f"Test file: {rel_path}",
+                        meta={"path": rel_path, **extra_meta},
+                    ))
+        return result
 
     def build(self, index: SpatialIndex) -> DeterministicGraph:
         """Build DeterministicGraph from SpatialIndex.
 
         1. Project all SpatialNodes → Nodes.
+        1b. Scan TEST nodes from test directories if project_root provided (I-TEST-NODE-2).
+        1c. Verify I-TEST-NODE-3: TEST and FILE are mutually exclusive by path prefix.
         2. Collect edges from all extractors (no open() calls).
         3. Verify I-GRAPH-PRIORITY-1: priority == EDGE_KIND_PRIORITY[kind].
         4. Verify I-GRAPH-1: all edge src/dst exist as nodes.
@@ -77,7 +127,27 @@ class GraphFactsBuilder:
         9. Set source_snapshot_hash = index.snapshot_hash (I-GRAPH-LINEAGE-1).
         """
         # Step 1: project nodes
-        nodes = {n.node_id: project_node(n) for n in index.nodes.values()}
+        nodes: dict[str, Node] = {n.node_id: project_node(n) for n in index.nodes.values()}
+
+        # Step 1b: scan TEST nodes from test directories (I-TEST-NODE-2)
+        if self._project_root:
+            for test_node in self._scan_test_nodes(self._project_root):
+                if test_node.node_id not in nodes:
+                    nodes[test_node.node_id] = test_node
+
+        # Step 1c: I-TEST-NODE-3 — TEST and FILE are mutually exclusive by path prefix
+        for nid, node in nodes.items():
+            path: str = node.meta.get("path") or ""
+            if node.kind == "TEST" and path.startswith("src/"):
+                raise GraphInvariantError(
+                    f"I-TEST-NODE-3: node {nid!r} has kind=TEST but src/ path; "
+                    "TEST nodes must be under tests/, not src/"
+                )
+            if node.kind == "FILE" and path.startswith("tests/"):
+                raise GraphInvariantError(
+                    f"I-TEST-NODE-3: node {nid!r} has kind=FILE but tests/ path; "
+                    "FILE nodes must be under src/, not tests/"
+                )
 
         # Step 2: collect edges from all extractors
         all_edges: list[Edge] = []

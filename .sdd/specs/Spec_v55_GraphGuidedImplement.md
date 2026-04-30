@@ -442,7 +442,49 @@ BC-55-P1 → BC-55-P5 : tool-reference документирует команды
 BC-55-P4 → BC-55-P6 : NORM-GRAPH-001 становится механизмом override для NORM-SCOPE-002
 BC-55-P7 → BC-55-P8 : MODULE nodes используют session_context при логировании (Phase 56)
 BC-55-P2 → BC-55-P8 : engine.query() получает session_id для audit через CLI
+BC-55-P9 → BC-55-P2 : RAGPolicy передаётся через NavigationPolicy в engine.query()
 ```
+
+---
+
+### BC-55-P9: RAGPolicy Declaration + L0–L3 Architecture Hierarchy (NEW)
+
+**Цель:** Зафиксировать архитектурный контракт RAG-слоя до его реализации.
+Без явной иерархии RAG может выйти за границы graph scope и сломать детерминизм L1/L2.
+
+**Главный инвариант (I-ARCH-LAYER-SEPARATION-1):**
+```
+L0: EventLog (SSOT)
+L1: Graph (derived, deterministic)
+L2: ContextEngine (selection, deterministic)
+L3: RAG (ranking ONLY within L2 output, NON-deterministic, advisory)
+```
+RAG MAY ONLY reorder ContextEngine output.
+RAG MUST NOT: add new nodes, remove nodes, trigger graph traversal, access filesystem.
+
+**Новый тип `RAGPolicy` (Phase 55: объявлен, Phase 58: enforced):**
+
+```python
+# src/sdd/policy/__init__.py
+
+@dataclass(frozen=True)
+class RAGPolicy:
+    """RAG pipeline constraints. Phase 55: declared. Phase 57: soft. Phase 58: hard."""
+    max_documents: int = 20
+    allow_global_search: bool = False   # I-RAG-SCOPE-1: MUST remain False
+    min_graph_hops: int = 0
+
+@dataclass(frozen=True)
+class NavigationPolicy:
+    budget: Budget
+    rag_mode: RagMode
+    rag_policy: RAGPolicy = field(default_factory=RAGPolicy)  # backward compat
+```
+
+**Файл:** `src/sdd/policy/__init__.py` — единственное изменение, backward compat через `field(default_factory=...)`.
+
+**Стадия Phase 55:** `RAGPolicy` объявлен как тип. `allow_global_search=False` — default.
+Enforcement (warning, exception) — Phase 57 и Phase 58 соответственно.
 
 ---
 
@@ -492,12 +534,20 @@ def query(self, graph, policy, index, node_id,
 ### CLI: `sdd explain` / `sdd trace` (BC-55-P2)
 
 ```
-sdd explain <node_id> [--edge-types TYPE1,TYPE2,...] [--format json|text]
-sdd trace <node_id>   [--edge-types TYPE1,TYPE2,...] [--format json|text]
+sdd explain <node_id> [--edge-types TYPE1,TYPE2,...] [--query "текст вопроса"] [--format json|text]
+sdd trace <node_id>   [--edge-types TYPE1,TYPE2,...] [--query "текст вопроса"] [--format json|text]
 
 --edge-types: comma-separated; если не передан → None (engine defaults)
 --edge-types ""       → ValueError, не silent empty result
+--query: свободный текст текущего вопроса LLM/пользователя.
+         Если передан → активирует Semantic Ranking Layer (L3): RAG-реранкинг context.documents.
+         Если не передан → rag_mode: OFF, чистая граф-навигация (поведение без изменений).
+         В tool-schema агента поле query ОБЯЗАТЕЛЬНО (query="" → rag_mode: OFF явно).
 ```
+
+**I-RAG-QUERY-1:** Query НЕ является domain-событием EventLog. Логируется в `graph_calls.jsonl`
+как операционный атрибут `ExecutionContext`. Replay-safety = тот же query в логах + тот же
+`EmbeddingCache` composite key → идентичные векторы → идентичный порядок чанков.
 
 ### Session Context (BC-55-P8)
 
@@ -522,6 +572,12 @@ def set_current_session(session_id: str, session_type: str, phase_id: int) -> No
 | I-DECOMPOSE-RESOLVE-2 | top-1 candidate kind from `sdd resolve` MUST be in `expected_kinds` | 55 |
 | I-ENGINE-EDGE-FILTER-1 | edge_types filter MUST be applied inside BFS expand functions, never as post-filter after engine.query() or ContextRuntime.query() | 55 |
 | I-SESSION-CONTEXT-1 | `current_session.json` MUST be written ONLY by `sdd record-session` handler | 55 |
+| I-ARCH-LAYER-SEPARATION-1 | RAG MAY ONLY reorder ContextEngine output. MUST NOT add/remove nodes, trigger graph traversal, or access filesystem/graph store | 55 declared |
+| I-RAG-1 | RAG MUST NOT introduce documents outside ContextEngine output. RAG role = ranking within `context.documents` only | 55 declared |
+| I-RAG-SCOPE-1 | `LightRAGProjection.query()` MUST only rank documents already in `context.documents`. No filesystem read, no graph traversal, no external vector search | 55 declared |
+| I-RAG-SCOPE-ENTRY-1 | `input_documents == ContextEngine.output.documents`. Verified at `LightRAGProjection` entry before any ranking. Phase 55: declared. Phase 57: soft. Phase 58: hard | 55 declared |
+| I-RAG-QUERY-1 | Query используемый для RAG-реранкинга MUST логироваться в `graph_calls.jsonl` как операционный атрибут ExecutionContext. Query НЕ становится domain-событием EventLog. Replay-safety через cache composite key | 55 declared |
+| I-BM25-SINGLETON-1 | BM25-индекс существует ТОЛЬКО в `SpatialIndex`. `sdd resolve` — фасад над `SpatialIndex.query_bm25()`. Не допускается вторая независимая BM25-реализация вне SpatialIndex | 55 declared |
 
 ### Preserved Invariants
 
@@ -636,6 +692,118 @@ def set_current_session(session_id: str, session_type: str, phase_id: int) -> No
 
 ---
 
+## 11. Phase Acceptance Checklist
+
+> Методология: `.sdd/docs/ref/phase-acceptance.md`
+
+### Part 1 — In-Phase DoD
+
+**Step U (Universal):**
+```bash
+sdd show-state                          # tasks_completed == tasks_total
+sdd validate --check-dod --phase 55     # exit 0
+python3 -m pytest tests/unit/ -q        # 0 failures
+```
+
+**Step 55-A — Engine threading (I-ENGINE-EDGE-FILTER-1):**
+```bash
+# BFS filter применяется внутри expand, не как post-filter
+sdd explain COMMAND:complete --edge-types implements,guards --format json
+# → все nodes на hop=1 достижимы ТОЛЬКО через implements или guards
+# → нет nodes, достигнутых через другие edge kinds
+
+sdd trace FILE:src/sdd/graph/builder.py --edge-types imports --format json
+# → только imports-edges в результате (не все in-edges)
+
+# Пустой frozenset → ошибка, не молчаливый пустой результат
+sdd explain COMMAND:complete --edge-types "" 2>&1 | grep -i "error\|invalid"
+# → должен вывести ошибку
+```
+
+**Step 55-B — MODULE nodes (BC-55-P7):**
+```bash
+sdd graph-stats --node-type MODULE --format json
+# → {"count": N}, N > 0
+
+sdd explain MODULE:sdd.graph --edge-types contains --format json
+# → возвращает FILE nodes из src/sdd/graph/
+
+sdd explain MODULE:sdd.context_kernel --edge-types contains --format json
+# → возвращает FILE nodes из src/sdd/context_kernel/
+```
+
+**Step 55-C — TaskNavigationSpec (BC-55-P3):**
+```bash
+# TaskSet с resolve_keywords секцией → task.navigation != None
+# TaskSet без навигации → task.navigation = None (без ошибки)
+python3 -c "from sdd.tasks.navigation import TaskNavigationSpec; print('OK')"
+# → OK
+```
+
+**Step 55-D — Session Context (BC-55-P8):**
+```bash
+sdd record-session --type IMPLEMENT --phase 55
+cat .sdd/runtime/current_session.json
+# → {"session_id": "...", "session_type": "IMPLEMENT", "phase_id": 55, "declared_at": "..."}
+```
+
+---
+
+### Part 2 — Regression Guard
+
+Следующие команды должны давать тот же результат что и на Phase 52:
+
+```bash
+# (R-55-1) sdd explain без --edge-types — поведение идентично Phase 52
+sdd explain COMMAND:complete --format json
+# → те же nodes что и до Phase 55 (backward compat: allowed_kinds=None)
+
+# (R-55-2) sdd trace без --edge-types — поведение идентично Phase 52
+sdd trace FILE:src/sdd/graph/builder.py --format json
+# → те же nodes что и до Phase 55
+
+# (R-55-3) sdd resolve не затронут
+sdd resolve "complete" --format json
+# → результат аналогичен Phase 52
+```
+
+Если хоть одна регрессия → **STOP → sdd report-error → recovery.md**.
+
+---
+
+### Part 3 — Transition Gate (before Phase 56)
+
+Человек верифицирует перед `sdd activate-phase 56`:
+
+```bash
+# Gate 56-A: TestedByEdgeExtractor (Phase 53 COMPLETE required)
+sdd graph-stats --edge-type tested_by --format json
+# Expected: {"count": N}, N > 0
+# Если 0 → Phase 53 не завершена → Phase 56 BLOCKED
+
+# Gate 56-B: MODULE nodes из Phase 55
+sdd explain MODULE:sdd.graph --edge-types contains --format json
+# Expected: ≥1 FILE node в результате
+
+# Gate 56-C: sdd_config.yaml содержит bounded_contexts секцию
+python3 -c "import yaml; c=yaml.safe_load(open('.sdd/config/sdd_config.yaml')); assert 'bounded_contexts' in c, 'MISSING'"
+# Expected: exit 0 (нет AssertionError)
+# Если MISSING → добавить конфиг по шаблону в phase-acceptance.md §5 ПЕРЕД активацией 56
+```
+
+---
+
+### Part 4 — Rollback Triggers
+
+Немедленно STOP если:
+- `sdd explain COMMAND:complete --format json` возвращает меньше nodes чем до Phase 55
+- `sdd explain COMMAND:complete --edge-types implements` возвращает nodes с hop=1 через НЕ-implements edges
+- `sdd graph-stats --node-type MODULE` → `count: 0` (MODULE nodes не построены)
+- `current_session.json` записан НЕ через `sdd record-session` (нарушение I-SESSION-CONTEXT-1)
+- Любой unit тест упавший до Phase 55 начинает падать снова
+
+---
+
 ## 10. Out of Scope
 
 | Item | Owner / Phase |
@@ -654,3 +822,12 @@ def set_current_session(session_id: str, session_type: str, phase_id: int) -> No
 | I-ARCH-1/2/3 invariants (graph-enforced layer compliance) | Phase 57 (BC-57-2) |
 | graph-guard v2 (anchor_nodes coverage) | Phase 57 (BC-57-4) |
 | `graph_coverage` marker в SpatialIndex.meta | Phase 57 (BC-57-5) |
+| I-RAG-1 / I-RAG-SCOPE-1 soft enforcement (warning + degrade) | Phase 57 (BC-57-RAG-SOFT) |
+| `NavigationResponse.based_on` explainability field | Phase 57 (BC-57-RAG-SOFT) |
+| `I-NAV-BASED-ON-1` (based_on non-None enforcement) | Phase 57 (BC-57-RAG-SOFT) |
+| `EmbeddingProvider` Protocol + `EmbeddingCache` | Phase 58 (BC-58-RAG) |
+| `rank_documents()` pure function (RAGRanker) | Phase 58 (BC-58-RAG) |
+| I-RAG-1 hard enforcement (RAGPolicyViolation exception) | Phase 58 (BC-58-RAG) |
+| I-RAG-DETERMINISTIC-1 (ranking determinism + lexical tie-breaker) | Phase 58 (BC-58-RAG) |
+| I-EMBED-CACHE-1 (composite cache key) | Phase 58 (BC-58-RAG) |
+| I-CHUNK-DETERMINISTIC-1 (AST-boundary chunking) | Phase 58 (BC-58-RAG) |

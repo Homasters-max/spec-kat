@@ -17,10 +17,11 @@ build:
     #   CHECK_DOD       → test_full  (all suites, coverage enforced)
     #   explicit PG env → test_pg    (requires live PostgreSQL)
     #
-    test_fast:  pytest tests/unit/ -q -x -m "not pg"
-    test:       pytest tests/unit/ tests/integration/ -q -m "not pg" --cov=src/sdd --cov-report=term-missing --cov-fail-under=80
-    test_full:  pytest tests/ -q -m "not pg" --cov=src/sdd --cov-report=term-missing --cov-fail-under=80
-    test_pg:    pytest tests/ -m pg -q
+    test_fast:    pytest tests/unit/ -q -x -m "not pg"
+    test:         pytest tests/unit/ tests/integration/ -q -m "not pg" --cov=src/sdd --cov-report=term-missing --cov-fail-under=80
+    test_full:    pytest tests/ -q -m "not pg" --cov=src/sdd --cov-report=term-missing --cov-fail-under=80
+    test_pg:      pytest tests/ -m pg -q
+    test_filter:  sdd test-filter --node {node_id} --tier default
 
     # acceptance: presence of this key triggers _run_acceptance_check (I-ACCEPT-1).
     # The value documents intent; ruff runs on {outputs} files, pytest reused via

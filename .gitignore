@@ -28,5 +28,9 @@ sdd_v1/
 .sdd/state/sdd_events.duckdb
 obsidian-vault/
 
+# Environment / secrets
+.env
+.env.local
+
 # OS
 .DS_Store

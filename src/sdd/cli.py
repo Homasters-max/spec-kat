@@ -426,6 +426,16 @@ def rag_export_cmd(rebuild: bool) -> None:
     sys.exit(run(rebuild=rebuild))
 
 
+@cli.command("test-filter")
+@click.option("--node", "node_id", required=True, help="Graph node ID to find tests for")
+@click.option("--tier", type=click.Choice(["fast", "default", "full"]), default="default", help="Fallback test tier")
+@click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
+def test_filter_cmd(node_id: str, tier: str, rebuild: bool) -> None:
+    """Run only tests that cover NODE_ID via tested_by edges (I-TEST-FILTER-1)."""
+    from sdd.graph_navigation.cli.test_filter import run
+    sys.exit(run(node_id, tier=tier, rebuild=rebuild))
+
+
 def _emit_json_error(error_type: str, message: str, exit_code: int) -> None:
     json.dump({"error_type": error_type, "message": message, "exit_code": exit_code}, sys.stderr)
     sys.stderr.write("\n")

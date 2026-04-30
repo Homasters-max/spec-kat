@@ -146,6 +146,71 @@ arch_check:
 
 ---
 
+## §6b Phase 53 Acceptance Checklist (spec immutable — DoD здесь)
+
+Spec_v53 находится в `.sdd/specs/` (approved, immutable). DoD определяется здесь.
+
+### Part 1 — In-Phase DoD
+
+```bash
+# Step U (Universal)
+sdd show-state                          # tasks_completed == tasks_total
+sdd validate --check-dod --phase 53     # exit 0
+python3 -m pytest tests/unit/ -q        # 0 failures
+
+# Step 53-A: TEST node kind зарегистрирован
+python3 -c "from sdd.spatial.nodes import VALID_KINDS; assert 'TEST' in VALID_KINDS; print('TEST kind OK')"
+# → TEST kind OK
+
+# Step 53-B: TestedByEdgeExtractor строит edges
+sdd graph-stats --edge-type tested_by --format json
+# → {"count": N}, N > 0
+
+# Step 53-C: направление edges корректное (src → tested_by → TEST)
+sdd explain FILE:src/sdd/commands/complete.py --edge-types tested_by --format json
+# → destination nodes имеют kind=TEST (не FILE), т.е. tested_by → TEST
+
+sdd explain COMMAND:complete --edge-types tested_by --format json
+# → destination: TEST:tests/unit/commands/test_complete.py
+
+# Step 53-D: нет фантомных edges
+python3 -m pytest tests/unit/graph/test_tested_by_extractor.py::test_tested_by_no_phantom_edges -v
+# → PASSED
+
+# Step 53-E: sdd test-filter работает
+sdd test-filter --node COMMAND:complete
+# → запускает pytest tests/unit/commands/test_complete.py (не весь suite)
+```
+
+### Part 2 — Regression Guard
+
+```bash
+# tested_by: 0.80 уже в EDGE_KIND_PRIORITY до Phase 53 — не должно измениться
+python3 -c "from sdd.graph.types import EDGE_KIND_PRIORITY; assert EDGE_KIND_PRIORITY['tested_by'] == 0.80"
+# → exit 0
+
+# sdd explain существующих nodes — не затронут
+sdd explain COMMAND:complete --format json  # те же results что в Phase 52
+```
+
+### Part 3 — Transition Gate (as Phase Gate for Phase 56)
+
+Это доводится до Phase 56 как gate:
+
+```bash
+sdd graph-stats --edge-type tested_by --format json
+# Expected: {"count": N}, N > 0
+# Если 0 → Phase 56 BLOCKED
+```
+
+### Part 4 — Rollback Triggers
+
+- `sdd explain FILE:X --edge-types tested_by` возвращает nodes с kind=FILE (неверное направление)
+- `sdd graph-stats --edge-type tested_by` → `count: 0`
+- `sdd test-filter` запускает весь test suite вместо targeted (fallback без warn)
+
+---
+
 ## §7 Quick Reference: все transition gates
 
 | Переход | Gate команда | Ожидаемый результат |

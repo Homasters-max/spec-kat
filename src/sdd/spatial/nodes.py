@@ -3,11 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+VALID_KINDS: frozenset[str] = frozenset({
+    "FILE", "COMMAND", "GUARD", "REDUCER", "EVENT",
+    "TASK", "INVARIANT", "TERM", "TEST",
+})
+
 
 @dataclass(frozen=True)
 class SpatialNode:
     node_id:    str
-    kind:       str        # FILE|COMMAND|GUARD|REDUCER|EVENT|TASK|INVARIANT|TERM
+    kind:       str        # FILE|COMMAND|GUARD|REDUCER|EVENT|TASK|INVARIANT|TERM|TEST
     label:      str
     path:       str | None  # None for virtual nodes (INVARIANT, TERM)
     summary:    str         # ~80 tokens; I-SUMMARY-1: 1 line; I-SUMMARY-2: never empty

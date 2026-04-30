@@ -769,6 +769,127 @@ sdd trace FILE:src/sdd/infra/db.py --edge-types calls,imports
 
 ---
 
+## 11. Phase Acceptance Checklist
+
+> Методология: `.sdd/docs/ref/phase-acceptance.md`
+
+### Part 1 — In-Phase DoD
+
+**Step U (Universal):**
+```bash
+sdd show-state                          # tasks_completed == tasks_total
+sdd validate --check-dod --phase 56     # exit 0
+python3 -m pytest tests/unit/ -q        # 0 failures
+```
+
+**Step 56-A — BOUNDED_CONTEXT и LAYER coverage (BC-56-BC, BC-56-LAYER):**
+```bash
+sdd graph-stats --node-type BOUNDED_CONTEXT --format json
+# → {"count": N}, N > 0  (все BC из sdd_config.yaml представлены)
+
+sdd graph-stats --node-type LAYER --format json
+# → {"count": N}, N > 0
+
+sdd graph-stats --edge-type belongs_to --format json
+# → {"count": N}, N > 0  (FILE nodes классифицированы по BC)
+
+sdd graph-stats --edge-type in_layer --format json
+# → {"count": N}, N > 0  (FILE nodes классифицированы по Layer)
+
+# BCResolver консистентность: нет расхождений между экстракторами
+sdd arch-check --check bc-cross-dependencies --format json
+# → exit 0 (информационный режим в Phase 56)
+```
+
+**Step 56-B — GraphCallLog и audit (BC-56-A1, BC-56-A2):**
+```bash
+# После любого graph navigation вызова — запись в graph_calls.jsonl
+sdd explain COMMAND:complete --format json
+cat .sdd/runtime/graph_calls.jsonl | tail -1 | python3 -c "import json,sys; d=json.loads(sys.stdin.read()); assert 'session_id' in d"
+# → exit 0
+
+sdd record-metric --name test_metric --value 1.0 --phase 56
+sdd query-events --type MetricRecorded --limit 1
+# → MetricRecorded event в EventStore
+```
+
+**Step 56-C — graph-guard enforcement (BC-56-G1):**
+```bash
+# graph-guard check блокирует complete если не было graph вызовов
+# (проверяется через integration test, не вручную)
+python3 -m pytest tests/integration/test_graph_guard.py -q
+# → PASS
+```
+
+**Step 56-D — TaskNavigationSpec v2 anchor_nodes (BC-56-S1):**
+```bash
+# TaskSet с anchor_nodes секцией парсится в TaskNavigationSpec.is_anchor_mode() = True
+python3 -c "from sdd.tasks.navigation import TaskNavigationSpec; ts=TaskNavigationSpec(write_scope=(), anchor_nodes=('COMMAND:complete',)); assert ts.is_anchor_mode()"
+# → exit 0
+```
+
+---
+
+### Part 2 — Regression Guard
+
+```bash
+# (R-56-1) sdd explain существующих nodes — поведение идентично Phase 55
+sdd explain COMMAND:complete --format json
+# → ≥ тот же набор nodes что и в Phase 55
+
+# (R-56-2) sdd resolve — не затронут
+sdd resolve "complete" --format json
+# → результат аналогичен Phase 55
+
+# (R-56-3) MODULE nodes из Phase 55 — всё ещё присутствуют
+sdd graph-stats --node-type MODULE --format json
+# → count > 0 (не сломан ModuleEdgeExtractor)
+
+# (R-56-4) tested_by edges из Phase 53 — всё ещё присутствуют
+sdd graph-stats --edge-type tested_by --format json
+# → count > 0 (не сломан TestedByEdgeExtractor)
+```
+
+Если хоть одна регрессия → **STOP → sdd report-error → recovery.md**.
+
+---
+
+### Part 3 — Transition Gate (before Phase 57)
+
+Человек верифицирует перед `sdd activate-phase 57`:
+
+```bash
+# Gate 57-A: BOUNDED_CONTEXT coverage
+sdd graph-stats --node-type BOUNDED_CONTEXT --format json
+# Expected: {"count": N}, N > 0
+
+# Gate 57-B: LAYER coverage
+sdd graph-stats --node-type LAYER --format json
+# Expected: {"count": N}, N > 0
+
+# Gate 57-C: arch-check tool functional (не "violations == 0", а "tool works")
+# см. phase-acceptance.md §6 — gate semantics
+sdd arch-check --check bc-cross-dependencies --format json
+# Expected: exit 0, JSON output (violations list может быть непустым — ОК)
+
+# Gate 57-D: cross_bc_dependency edges
+sdd graph-stats --edge-type cross_bc_dependency --format json
+# Expected: {"count": N}, N ≥ 0 (может быть 0 если нет cross-BC imports — ОК)
+```
+
+---
+
+### Part 4 — Rollback Triggers
+
+Немедленно STOP если:
+- `sdd graph-stats --node-type BOUNDED_CONTEXT` → `count: 0` после Phase 56 implementation
+- `sdd arch-check --check bc-cross-dependencies` → exit 1 с ошибкой парсинга (не violation — а crash)
+- GraphCallLog не пишет записи после graph вызовов (audit broken)
+- `sdd graph-guard check` блокирует `sdd complete` даже при наличии graph вызовов в сессии
+- Registration order нарушен: `CrossBCEdgeExtractor` запустился до `BoundedContextEdgeExtractor` → I-BC-RESOLVER-1 violation
+
+---
+
 ## 10. Out of Scope
 
 | Item | Owner / Phase |
@@ -784,3 +905,6 @@ sdd trace FILE:src/sdd/infra/db.py --edge-types calls,imports
 | `sdd arch-check --check cycles` | Phase 57 |
 | Embedding-based search в `sdd resolve` | Отдельная спека |
 | Graph-level diff между состояниями фаз | Отдельная спека |
+| I-RAG-SCOPE-ENTRY-1 hard enforcement (entry gate) | Phase 57 (BC-57-RAG-SOFT) |
+| `NavigationResponse.based_on` | Phase 57 (BC-57-RAG-SOFT) |
+| `EmbeddingProvider`, `EmbeddingCache`, `rank_documents()` | Phase 58 (BC-58-RAG) |
