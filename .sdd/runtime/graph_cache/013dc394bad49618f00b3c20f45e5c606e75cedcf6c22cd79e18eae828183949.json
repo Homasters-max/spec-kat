@@ -303,7 +303,7 @@
         "node_id": "FILE:src/sdd/context/build_context.py",
         "kind": "FILE",
         "label": "build_context.py",
-        "summary": "Staged context builder — Spec_v2 §4.8.",
+        "summary": "Deprecated: sdd.context.build_context moved to sdd.context_legacy.build_context.",
         "meta": {
           "path": "src/sdd/context/build_context.py"
         }
@@ -387,6 +387,24 @@
         "summary": "RankedNode, RankedEdge, Selection, _build_selection() — BFS traversal core (BC-36-3).",
         "meta": {
           "path": "src/sdd/context_kernel/selection.py"
+        }
+      },
+      "FILE:src/sdd/context_legacy/__init__.py": {
+        "node_id": "FILE:src/sdd/context_legacy/__init__.py",
+        "kind": "FILE",
+        "label": "__init__.py",
+        "summary": "Legacy context implementation — FS-based build_context (I-LEGACY-FS-EXCEPTION-1).",
+        "meta": {
+          "path": "src/sdd/context_legacy/__init__.py"
+        }
+      },
+      "FILE:src/sdd/context_legacy/build_context.py": {
+        "node_id": "FILE:src/sdd/context_legacy/build_context.py",
+        "kind": "FILE",
+        "label": "build_context.py",
+        "summary": "Staged context builder — Spec_v2 §4.8 (legacy FS implementation).",
+        "meta": {
+          "path": "src/sdd/context_legacy/build_context.py"
         }
       },
       "FILE:src/sdd/core/__init__.py": {
@@ -789,7 +807,7 @@
         "node_id": "FILE:src/sdd/graph/extractors/ast_edges.py",
         "kind": "FILE",
         "label": "ast_edges.py",
-        "summary": "ASTEdgeExtractor: imports, emits, guards, tested_by edges from Python AST.",
+        "summary": "ASTEdgeExtractor: imports, emits, guards edges from Python AST.",
         "meta": {
           "path": "src/sdd/graph/extractors/ast_edges.py"
         }
@@ -801,6 +819,15 @@
         "summary": "GlossaryEdgeExtractor: 'means' edges from TERM node links.",
         "meta": {
           "path": "src/sdd/graph/extractors/glossary_edges.py"
+        }
+      },
+      "FILE:src/sdd/graph/extractors/implements_edges.py": {
+        "node_id": "FILE:src/sdd/graph/extractors/implements_edges.py",
+        "kind": "FILE",
+        "label": "implements_edges.py",
+        "summary": "ImplementsEdgeExtractor: implements edges from handler FILE nodes to COMMAND nodes.",
+        "meta": {
+          "path": "src/sdd/graph/extractors/implements_edges.py"
         }
       },
       "FILE:src/sdd/graph/extractors/invariant_edges.py": {
@@ -819,6 +846,114 @@
         "summary": "TaskDepsExtractor: 'depends_on' and 'implements' edges from TASK nodes.",
         "meta": {
           "path": "src/sdd/graph/extractors/task_deps.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/__init__.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/__init__.py",
+        "kind": "FILE",
+        "label": "__init__.py",
+        "summary": "sdd.graph_navigation — BC-36-7 CLI graph navigation handlers.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/__init__.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/migration.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/migration.py",
+        "kind": "FILE",
+        "label": "migration.py",
+        "summary": "BC-36-5 legacy migration gate (Spec_v52 §3).",
+        "meta": {
+          "path": "src/sdd/graph_navigation/migration.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/tool_definitions.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/tool_definitions.py",
+        "kind": "FILE",
+        "label": "tool_definitions.py",
+        "summary": "Tool definitions for agent integration — BC-36-7 §7.2.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/tool_definitions.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/cli/explain.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/cli/explain.py",
+        "kind": "FILE",
+        "label": "explain.py",
+        "summary": "CLI handler: sdd explain <node_id> — BC-36-7.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/cli/explain.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/cli/formatting.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+        "kind": "FILE",
+        "label": "formatting.py",
+        "summary": "Shared CLI output formatting — format_json, format_text, format_error, debug_output.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/cli/formatting.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/cli/invariant.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+        "kind": "FILE",
+        "label": "invariant.py",
+        "summary": "CLI handler: sdd invariant <I-NNN> — BC-36-7.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/cli/invariant.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/cli/rag_export.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+        "kind": "FILE",
+        "label": "rag_export.py",
+        "summary": "CLI handler: sdd rag-export [--rebuild] — BC-36-4.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/cli/rag_export.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/cli/resolve.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+        "kind": "FILE",
+        "label": "resolve.py",
+        "summary": "CLI handler: sdd resolve <query> — BC-36-7.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/cli/resolve.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/cli/trace.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/cli/trace.py",
+        "kind": "FILE",
+        "label": "trace.py",
+        "summary": "CLI handler: sdd trace <node_id> — BC-36-7.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/cli/trace.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/rag/__init__.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/rag/__init__.py",
+        "kind": "FILE",
+        "label": "__init__.py",
+        "summary": "FILE:__init__",
+        "meta": {
+          "path": "src/sdd/graph_navigation/rag/__init__.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+        "kind": "FILE",
+        "label": "lightrag_exporter.py",
+        "summary": "LightRAGExporter — idempotent KG export from DeterministicGraph to LightRAG.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/rag/lightrag_exporter.py"
+        }
+      },
+      "FILE:src/sdd/graph_navigation/rag/registry.py": {
+        "node_id": "FILE:src/sdd/graph_navigation/rag/registry.py",
+        "kind": "FILE",
+        "label": "registry.py",
+        "summary": "LightRAGRegistry — pure filesystem registry for fingerprint-bound KG storage.",
+        "meta": {
+          "path": "src/sdd/graph_navigation/rag/registry.py"
         }
       },
       "FILE:src/sdd/guards/__init__.py": {
@@ -1945,6 +2080,24 @@
         "meta": {
           "path": null
         }
+      },
+      "TERM:test_tier_contract": {
+        "node_id": "TERM:test_tier_contract",
+        "kind": "TERM",
+        "label": "Test Tier Contract",
+        "summary": "Four-level test execution hierarchy defined in project_profile",
+        "meta": {
+          "path": null
+        }
+      },
+      "TERM:tested_by_extractor": {
+        "node_id": "TERM:tested_by_extractor",
+        "kind": "TERM",
+        "label": "TestedByEdgeExtractor",
+        "summary": "Planned graph extractor (Phase 53) that produces 'tested_by' edges from COMMAND and FILE nodes to TEST nodes",
+        "meta": {
+          "path": null
+        }
       }
     },
     "edges_out": {
@@ -1954,6 +2107,15 @@
           "edge_id": "0e3c008de79d2de3",
           "src": "FILE:src/sdd/cli.py",
           "dst": "FILE:src/sdd/commands/bootstrap_complete.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "0ee3f5e9beaeac8b",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/resolve.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -1990,69 +2152,6 @@
           "edge_id": "144b34f6b31d5ec4",
           "src": "FILE:src/sdd/cli.py",
           "dst": "FILE:src/sdd/commands/update_state.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "1631a278945270f2",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/projections.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "1631a278945270f2",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/projections.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -2212,6 +2311,15 @@
           "meta": {}
         },
         {
+          "edge_id": "93be3731d07a0ea9",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "a68843734e1d509d",
           "src": "FILE:src/sdd/cli.py",
           "dst": "GUARD:norm",
@@ -2284,6 +2392,15 @@
           "meta": {}
         },
         {
+          "edge_id": "da333049c07ec1db",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "deb269e25914954a",
           "src": "FILE:src/sdd/cli.py",
           "dst": "FILE:src/sdd/commands/registry.py",
@@ -2335,6 +2452,24 @@
           "kind": "guards",
           "priority": 0.9,
           "source": "ast_guards",
+          "meta": {}
+        },
+        {
+          "edge_id": "f17bd24bf7b618fd",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "f3d0dda312c4bc05",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
           "meta": {}
         },
         {
@@ -2531,6 +2666,15 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "f6d0e2dba2ca3553",
+          "src": "FILE:src/sdd/commands/activate_phase.py",
+          "dst": "COMMAND:activate-phase",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/commands/activate_plan.py": [
@@ -2587,6 +2731,15 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "ce3581246bbc4a9a",
+          "src": "FILE:src/sdd/commands/activate_plan.py",
+          "dst": "FILE:src/sdd/core/types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/commands/amend_plan.py": [
@@ -2615,6 +2768,15 @@
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "96a6c2c882452012",
+          "src": "FILE:src/sdd/commands/amend_plan.py",
+          "dst": "COMMAND:amend-plan",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
           "meta": {}
         },
         {
@@ -2690,6 +2852,15 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "beeb9b63673777aa",
+          "src": "FILE:src/sdd/commands/analytics_refresh.py",
+          "dst": "COMMAND:analytics-refresh",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/commands/approve_spec.py": [
@@ -2709,6 +2880,15 @@
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "933d394bd44fd395",
+          "src": "FILE:src/sdd/commands/approve_spec.py",
+          "dst": "COMMAND:approve-spec",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
           "meta": {}
         },
         {
@@ -2804,6 +2984,15 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "f0be9b6c4f976ff7",
+          "src": "FILE:src/sdd/commands/complete.py",
+          "dst": "COMMAND:complete",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/commands/init_project.py": [
@@ -2824,9 +3013,27 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "e140fc75034060ad",
+          "src": "FILE:src/sdd/commands/init_project.py",
+          "dst": "COMMAND:init-project",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/commands/invalidate_event.py": [
+        {
+          "edge_id": "099757119f050d01",
+          "src": "FILE:src/sdd/commands/invalidate_event.py",
+          "dst": "COMMAND:invalidate-event",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        },
         {
           "edge_id": "249b21c79bc53fcc",
           "src": "FILE:src/sdd/commands/invalidate_event.py",
@@ -3052,6 +3259,15 @@
           "meta": {}
         },
         {
+          "edge_id": "2f260f30688df57f",
+          "src": "FILE:src/sdd/commands/rebuild_state.py",
+          "dst": "COMMAND:rebuild-state",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        },
+        {
           "edge_id": "d3f8514bf241b4bd",
           "src": "FILE:src/sdd/commands/rebuild_state.py",
           "dst": "FILE:src/sdd/commands/_base.py",
@@ -3153,6 +3369,15 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "b53dab26a706dc21",
+          "src": "FILE:src/sdd/commands/record_decision.py",
+          "dst": "COMMAND:record-decision",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/commands/record_session.py": [
@@ -3163,6 +3388,15 @@
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "4f3bc544671f2cbb",
+          "src": "FILE:src/sdd/commands/record_session.py",
+          "dst": "COMMAND:record-session",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
           "meta": {}
         },
         {
@@ -3704,6 +3938,15 @@
           "meta": {}
         },
         {
+          "edge_id": "3290395d76e370ff",
+          "src": "FILE:src/sdd/commands/switch_phase.py",
+          "dst": "COMMAND:switch-phase",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        },
+        {
           "edge_id": "8603934c3dbdcd91",
           "src": "FILE:src/sdd/commands/switch_phase.py",
           "dst": "FILE:src/sdd/domain/guards/norm_guard.py",
@@ -3786,6 +4029,15 @@
         }
       ],
       "FILE:src/sdd/commands/sync_invariants.py": [
+        {
+          "edge_id": "3b31c3df66262b85",
+          "src": "FILE:src/sdd/commands/sync_invariants.py",
+          "dst": "COMMAND:sync-invariants",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        },
         {
           "edge_id": "756b4117deeb3c8e",
           "src": "FILE:src/sdd/commands/sync_invariants.py",
@@ -4056,9 +4308,9 @@
       ],
       "FILE:src/sdd/context/__init__.py": [
         {
-          "edge_id": "cab8eb714ce220f4",
+          "edge_id": "ef3575806082e35d",
           "src": "FILE:src/sdd/context/__init__.py",
-          "dst": "FILE:src/sdd/context/build_context.py",
+          "dst": "FILE:src/sdd/context_legacy/build_context.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -4067,36 +4319,9 @@
       ],
       "FILE:src/sdd/context/build_context.py": [
         {
-          "edge_id": "49dbe1099c9a09f4",
+          "edge_id": "d71f3006db8169ac",
           "src": "FILE:src/sdd/context/build_context.py",
-          "dst": "FILE:src/sdd/domain/state/yaml_state.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "5d11408054ff0717",
-          "src": "FILE:src/sdd/context/build_context.py",
-          "dst": "FILE:src/sdd/infra/config_loader.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "61bfe31ee85fb237",
-          "src": "FILE:src/sdd/context/build_context.py",
-          "dst": "FILE:src/sdd/core/errors.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "64ad69c0cb139c7d",
-          "src": "FILE:src/sdd/context/build_context.py",
-          "dst": "FILE:src/sdd/domain/tasks/parser.py",
+          "dst": "FILE:src/sdd/context_legacy/build_context.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -4311,6 +4536,45 @@
           "edge_id": "ced4753f2fa714e6",
           "src": "FILE:src/sdd/context_kernel/selection.py",
           "dst": "FILE:src/sdd/graph/types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/context_legacy/__init__.py": [],
+      "FILE:src/sdd/context_legacy/build_context.py": [
+        {
+          "edge_id": "21b37aa19342785f",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
+          "dst": "FILE:src/sdd/core/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "277469ff3484fa5e",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
+          "dst": "FILE:src/sdd/domain/state/yaml_state.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "7eb297b4fe667a1c",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
+          "dst": "FILE:src/sdd/infra/config_loader.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "b1dc697e2741fdd8",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
+          "dst": "FILE:src/sdd/domain/tasks/parser.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -5025,6 +5289,15 @@
           "meta": {}
         },
         {
+          "edge_id": "8962f0aca9b463a4",
+          "src": "FILE:src/sdd/graph/builder.py",
+          "dst": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "c05f5108c64efc38",
           "src": "FILE:src/sdd/graph/builder.py",
           "dst": "FILE:src/sdd/graph/errors.py",
@@ -5144,6 +5417,15 @@
           "meta": {}
         },
         {
+          "edge_id": "56641596adddb14e",
+          "src": "FILE:src/sdd/graph/extractors/__init__.py",
+          "dst": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "5d748a4473425a39",
           "src": "FILE:src/sdd/graph/extractors/__init__.py",
           "dst": "FILE:src/sdd/graph/extractors/invariant_edges.py",
@@ -5256,6 +5538,26 @@
           "meta": {}
         }
       ],
+      "FILE:src/sdd/graph/extractors/implements_edges.py": [
+        {
+          "edge_id": "65fbff047e8b4406",
+          "src": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "dst": "FILE:src/sdd/graph/types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "b1331a271a4cb10c",
+          "src": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
       "FILE:src/sdd/graph/extractors/invariant_edges.py": [
         {
           "edge_id": "8d2f0070d7980c9b",
@@ -5308,6 +5610,467 @@
           "edge_id": "cf87cb5622833c97",
           "src": "FILE:src/sdd/graph/extractors/task_deps.py",
           "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/__init__.py": [],
+      "FILE:src/sdd/graph_navigation/migration.py": [],
+      "FILE:src/sdd/graph_navigation/tool_definitions.py": [],
+      "FILE:src/sdd/graph_navigation/cli/explain.py": [
+        {
+          "edge_id": "38fbae77fc172def",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "623c5d5677a52020",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "63d59cdb34522dcc",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "7252daec3336796f",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "78cdc2a426e2ed46",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "816fc11e2dab273e",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "b659efb64d8de29b",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ba1891fb9803180f",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "d3150f9beb4d6861",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/formatting.py": [
+        {
+          "edge_id": "2229a0b8ae7d84e7",
+          "src": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "dst": "FILE:src/sdd/context_kernel/rag_types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/invariant.py": [
+        {
+          "edge_id": "05d4e2bb24f0c315",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "188e045b82dd285f",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "6f906b3dccb78f6e",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "907dc339caa1fd80",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "a4f851a2df446913",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "bcece344ab5abcff",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "c9b71769d91698b9",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ebe9ffce29301da0",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "fb98e602410c7dde",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/rag_export.py": [
+        {
+          "edge_id": "2175c8031f4d7456",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "2be07c9d2290bf24",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "430a1f56bcecf73b",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph_navigation/rag/registry.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "51e51b30f8a52106",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "67de3daea6a3ce70",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/context_kernel/rag_types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "dd3eb6d4280e6357",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/context_kernel/documents.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "e02d4a41bb0b1a9f",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/resolve.py": [
+        {
+          "edge_id": "008ff0b83a026977",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "29a66a6fb43c9e84",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "29d4c5b130f8ef98",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "3de70ea164772b4e",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "7932eaf60a033ab2",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "7a7048d55c23e01a",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "8f55f920260679f7",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "c119d720c67bcc67",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "c3ca1830acaf4856",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/trace.py": [
+        {
+          "edge_id": "04d5e08f6a5065ea",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "09611cb2e2d114d5",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "2a177b35e1058be1",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "4b40f46e09964404",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "79138c2fddd78ded",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "95de35d72db80e1e",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ab9214e6d0d57bb7",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "f2cf47f7e7ef2b35",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ffdf4a136dfc4dd5",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/rag/__init__.py": [],
+      "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py": [
+        {
+          "edge_id": "39a896ad608c898c",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "dst": "FILE:src/sdd/context_kernel/rag_types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "9a32fa490b6bf0db",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "dst": "FILE:src/sdd/context_kernel/documents.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "a9a4c8feb5690361",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "dst": "FILE:src/sdd/graph/types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "eaf937683f2a2148",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "dst": "FILE:src/sdd/graph_navigation/rag/registry.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/rag/registry.py": [
+        {
+          "edge_id": "b3d64933f40d4518",
+          "src": "FILE:src/sdd/graph_navigation/rag/registry.py",
+          "dst": "FILE:src/sdd/infra/paths.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -6077,7 +6840,19 @@
       "TERM:graph_loader": [],
       "TERM:index_builder": [],
       "TERM:navigation_session": [],
-      "TERM:term_node": []
+      "TERM:term_node": [],
+      "TERM:test_tier_contract": [
+        {
+          "edge_id": "7f38c166f5d0bb48",
+          "src": "TERM:test_tier_contract",
+          "dst": "INVARIANT:I-TASK-MODE-1",
+          "kind": "means",
+          "priority": 0.5,
+          "source": "glossary",
+          "meta": {}
+        }
+      ],
+      "TERM:tested_by_extractor": []
     },
     "edges_in": {
       "FILE:src/sdd/__init__.py": [],
@@ -6861,22 +7636,48 @@
         }
       ],
       "FILE:src/sdd/context/__init__.py": [],
-      "FILE:src/sdd/context/build_context.py": [
+      "FILE:src/sdd/context/build_context.py": [],
+      "FILE:src/sdd/context_kernel/__init__.py": [],
+      "FILE:src/sdd/context_kernel/assembler.py": [
         {
-          "edge_id": "cab8eb714ce220f4",
-          "src": "FILE:src/sdd/context/__init__.py",
-          "dst": "FILE:src/sdd/context/build_context.py",
+          "edge_id": "29a66a6fb43c9e84",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
-        }
-      ],
-      "FILE:src/sdd/context_kernel/__init__.py": [],
-      "FILE:src/sdd/context_kernel/assembler.py": [
+        },
+        {
+          "edge_id": "ab9214e6d0d57bb7",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
         {
           "edge_id": "d2b61911e5b4c6e9",
           "src": "FILE:src/sdd/context_kernel/engine.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "d3150f9beb4d6861",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/assembler.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ebe9ffce29301da0",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
           "dst": "FILE:src/sdd/context_kernel/assembler.py",
           "kind": "imports",
           "priority": 0.6,
@@ -6915,6 +7716,15 @@
           "meta": {}
         },
         {
+          "edge_id": "9a32fa490b6bf0db",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "dst": "FILE:src/sdd/context_kernel/documents.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "ab32f70f738e5ff9",
           "src": "FILE:src/sdd/context_kernel/rag_types.py",
           "dst": "FILE:src/sdd/context_kernel/documents.py",
@@ -6931,9 +7741,54 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "dd3eb6d4280e6357",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/context_kernel/documents.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/context_kernel/engine.py": [
+        {
+          "edge_id": "04d5e08f6a5065ea",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "63d59cdb34522dcc",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "7932eaf60a033ab2",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "907dc339caa1fd80",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/context_kernel/engine.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
         {
           "edge_id": "c9dfac9265c71c5a",
           "src": "FILE:src/sdd/context_kernel/runtime.py",
@@ -6964,8 +7819,35 @@
           "meta": {}
         },
         {
+          "edge_id": "4b40f46e09964404",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "623c5d5677a52020",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "66d381f6984d65fd",
           "src": "FILE:src/sdd/context_kernel/engine.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "8f55f920260679f7",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
           "dst": "FILE:src/sdd/context_kernel/intent.py",
           "kind": "imports",
           "priority": 0.6,
@@ -6989,12 +7871,48 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "fb98e602410c7dde",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/context_kernel/intent.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/context_kernel/rag_types.py": [
         {
+          "edge_id": "2229a0b8ae7d84e7",
+          "src": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "dst": "FILE:src/sdd/context_kernel/rag_types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "39a896ad608c898c",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "dst": "FILE:src/sdd/context_kernel/rag_types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "62bee1cfb3071cc9",
           "src": "FILE:src/sdd/context_kernel/runtime.py",
+          "dst": "FILE:src/sdd/context_kernel/rag_types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "67de3daea6a3ce70",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
           "dst": "FILE:src/sdd/context_kernel/rag_types.py",
           "kind": "imports",
           "priority": 0.6,
@@ -7011,7 +7929,44 @@
           "meta": {}
         }
       ],
-      "FILE:src/sdd/context_kernel/runtime.py": [],
+      "FILE:src/sdd/context_kernel/runtime.py": [
+        {
+          "edge_id": "05d4e2bb24f0c315",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "7252daec3336796f",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "c3ca1830acaf4856",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "f2cf47f7e7ef2b35",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/context_kernel/runtime.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
       "FILE:src/sdd/context_kernel/selection.py": [
         {
           "edge_id": "08956a4640e21ef7",
@@ -7026,6 +7981,27 @@
           "edge_id": "308ce094a0a05403",
           "src": "FILE:src/sdd/context_kernel/engine.py",
           "dst": "FILE:src/sdd/context_kernel/selection.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/context_legacy/__init__.py": [],
+      "FILE:src/sdd/context_legacy/build_context.py": [
+        {
+          "edge_id": "d71f3006db8169ac",
+          "src": "FILE:src/sdd/context/build_context.py",
+          "dst": "FILE:src/sdd/context_legacy/build_context.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ef3575806082e35d",
+          "src": "FILE:src/sdd/context/__init__.py",
+          "dst": "FILE:src/sdd/context_legacy/build_context.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -7073,6 +8049,15 @@
         {
           "edge_id": "2022f9d7560e42a3",
           "src": "FILE:src/sdd/commands/activate_phase.py",
+          "dst": "FILE:src/sdd/core/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "21b37aa19342785f",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
           "dst": "FILE:src/sdd/core/errors.py",
           "kind": "imports",
           "priority": 0.6,
@@ -7136,15 +8121,6 @@
         {
           "edge_id": "564cc805408da167",
           "src": "FILE:src/sdd/commands/validate_invariants.py",
-          "dst": "FILE:src/sdd/core/errors.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "61bfe31ee85fb237",
-          "src": "FILE:src/sdd/context/build_context.py",
           "dst": "FILE:src/sdd/core/errors.py",
           "kind": "imports",
           "priority": 0.6,
@@ -7723,6 +8699,15 @@
         {
           "edge_id": "c13c6fe44f15b4d8",
           "src": "FILE:src/sdd/commands/invalidate_event.py",
+          "dst": "FILE:src/sdd/core/types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ce3581246bbc4a9a",
+          "src": "FILE:src/sdd/commands/activate_plan.py",
           "dst": "FILE:src/sdd/core/types.py",
           "kind": "imports",
           "priority": 0.6,
@@ -8328,8 +9313,8 @@
       ],
       "FILE:src/sdd/domain/state/yaml_state.py": [
         {
-          "edge_id": "392a14199f2d3ae1",
-          "src": "FILE:src/sdd/domain/state/__init__.py",
+          "edge_id": "277469ff3484fa5e",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
           "dst": "FILE:src/sdd/domain/state/yaml_state.py",
           "kind": "imports",
           "priority": 0.6,
@@ -8337,8 +9322,8 @@
           "meta": {}
         },
         {
-          "edge_id": "49dbe1099c9a09f4",
-          "src": "FILE:src/sdd/context/build_context.py",
+          "edge_id": "392a14199f2d3ae1",
+          "src": "FILE:src/sdd/domain/state/__init__.py",
           "dst": "FILE:src/sdd/domain/state/yaml_state.py",
           "kind": "imports",
           "priority": 0.6,
@@ -8457,15 +9442,6 @@
           "meta": {}
         },
         {
-          "edge_id": "64ad69c0cb139c7d",
-          "src": "FILE:src/sdd/context/build_context.py",
-          "dst": "FILE:src/sdd/domain/tasks/parser.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
           "edge_id": "6abeaff61f828161",
           "src": "FILE:src/sdd/commands/registry.py",
           "dst": "FILE:src/sdd/domain/tasks/parser.py",
@@ -8495,6 +9471,15 @@
         {
           "edge_id": "929e803d7519016b",
           "src": "FILE:src/sdd/domain/tasks/scheduler.py",
+          "dst": "FILE:src/sdd/domain/tasks/parser.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "b1dc697e2741fdd8",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
           "dst": "FILE:src/sdd/domain/tasks/parser.py",
           "kind": "imports",
           "priority": 0.6,
@@ -8557,6 +9542,24 @@
           "meta": {}
         },
         {
+          "edge_id": "38fbae77fc172def",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "3de70ea164772b4e",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "7bac5b539cee4d00",
           "src": "FILE:src/sdd/graph/extractors/glossary_edges.py",
           "dst": "FILE:src/sdd/graph/errors.py",
@@ -8568,6 +9571,15 @@
         {
           "edge_id": "8172ab533a071522",
           "src": "FILE:src/sdd/graph/extractors/ast_edges.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "bcece344ab5abcff",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
           "dst": "FILE:src/sdd/graph/errors.py",
           "kind": "imports",
           "priority": 0.6,
@@ -8600,6 +9612,15 @@
           "priority": 0.6,
           "source": "ast_imports",
           "meta": {}
+        },
+        {
+          "edge_id": "ffdf4a136dfc4dd5",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/graph/errors.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
         }
       ],
       "FILE:src/sdd/graph/projection.py": [
@@ -8613,7 +9634,53 @@
           "meta": {}
         }
       ],
-      "FILE:src/sdd/graph/service.py": [],
+      "FILE:src/sdd/graph/service.py": [
+        {
+          "edge_id": "2175c8031f4d7456",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "29d4c5b130f8ef98",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "6f906b3dccb78f6e",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "78cdc2a426e2ed46",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "79138c2fddd78ded",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/graph/service.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
       "FILE:src/sdd/graph/types.py": [
         {
           "edge_id": "198bc1da4e1b3970",
@@ -8679,6 +9746,15 @@
           "meta": {}
         },
         {
+          "edge_id": "65fbff047e8b4406",
+          "src": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "dst": "FILE:src/sdd/graph/types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "7caeb670d8669e99",
           "src": "FILE:src/sdd/graph/extractors/glossary_edges.py",
           "dst": "FILE:src/sdd/graph/types.py",
@@ -8699,6 +9775,15 @@
         {
           "edge_id": "9f919c631fb7355a",
           "src": "FILE:src/sdd/graph/__init__.py",
+          "dst": "FILE:src/sdd/graph/types.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "a9a4c8feb5690361",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
           "dst": "FILE:src/sdd/graph/types.py",
           "kind": "imports",
           "priority": 0.6,
@@ -8765,6 +9850,26 @@
           "meta": {}
         }
       ],
+      "FILE:src/sdd/graph/extractors/implements_edges.py": [
+        {
+          "edge_id": "56641596adddb14e",
+          "src": "FILE:src/sdd/graph/extractors/__init__.py",
+          "dst": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "8962f0aca9b463a4",
+          "src": "FILE:src/sdd/graph/builder.py",
+          "dst": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
       "FILE:src/sdd/graph/extractors/invariant_edges.py": [
         {
           "edge_id": "5d748a4473425a39",
@@ -8781,6 +9886,143 @@
           "edge_id": "7aea9db90b615572",
           "src": "FILE:src/sdd/graph/extractors/__init__.py",
           "dst": "FILE:src/sdd/graph/extractors/task_deps.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/__init__.py": [],
+      "FILE:src/sdd/graph_navigation/migration.py": [],
+      "FILE:src/sdd/graph_navigation/tool_definitions.py": [],
+      "FILE:src/sdd/graph_navigation/cli/explain.py": [
+        {
+          "edge_id": "93be3731d07a0ea9",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/formatting.py": [
+        {
+          "edge_id": "09611cb2e2d114d5",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "2be07c9d2290bf24",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "a4f851a2df446913",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "ba1891fb9803180f",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "c119d720c67bcc67",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/formatting.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/invariant.py": [
+        {
+          "edge_id": "f17bd24bf7b618fd",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/rag_export.py": [
+        {
+          "edge_id": "da333049c07ec1db",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/resolve.py": [
+        {
+          "edge_id": "0ee3f5e9beaeac8b",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/cli/trace.py": [
+        {
+          "edge_id": "f3d0dda312c4bc05",
+          "src": "FILE:src/sdd/cli.py",
+          "dst": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/rag/__init__.py": [],
+      "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py": [
+        {
+          "edge_id": "e02d4a41bb0b1a9f",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
+      "FILE:src/sdd/graph_navigation/rag/registry.py": [
+        {
+          "edge_id": "430a1f56bcecf73b",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/graph_navigation/rag/registry.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "eaf937683f2a2148",
+          "src": "FILE:src/sdd/graph_navigation/rag/lightrag_exporter.py",
+          "dst": "FILE:src/sdd/graph_navigation/rag/registry.py",
           "kind": "imports",
           "priority": 0.6,
           "source": "ast_imports",
@@ -8961,8 +10203,8 @@
           "meta": {}
         },
         {
-          "edge_id": "5d11408054ff0717",
-          "src": "FILE:src/sdd/context/build_context.py",
+          "edge_id": "7eb297b4fe667a1c",
+          "src": "FILE:src/sdd/context_legacy/build_context.py",
           "dst": "FILE:src/sdd/infra/config_loader.py",
           "kind": "imports",
           "priority": 0.6,
@@ -9270,51 +10512,6 @@
           "meta": {}
         },
         {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "182484411c3d14a0",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/paths.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
           "edge_id": "18a86025e98b93b9",
           "src": "FILE:src/sdd/commands/report_error.py",
           "dst": "FILE:src/sdd/infra/paths.py",
@@ -9398,6 +10595,15 @@
         {
           "edge_id": "b26fa21ada5d770b",
           "src": "FILE:src/sdd/commands/approve_spec.py",
+          "dst": "FILE:src/sdd/infra/paths.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "b3d64933f40d4518",
+          "src": "FILE:src/sdd/graph_navigation/rag/registry.py",
           "dst": "FILE:src/sdd/infra/paths.py",
           "kind": "imports",
           "priority": 0.6,
@@ -9551,24 +10757,6 @@
       ],
       "FILE:src/sdd/infra/projections.py": [
         {
-          "edge_id": "1631a278945270f2",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/projections.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
-          "edge_id": "1631a278945270f2",
-          "src": "FILE:src/sdd/cli.py",
-          "dst": "FILE:src/sdd/infra/projections.py",
-          "kind": "imports",
-          "priority": 0.6,
-          "source": "ast_imports",
-          "meta": {}
-        },
-        {
           "edge_id": "428c117acafad4ff",
           "src": "FILE:src/sdd/commands/registry.py",
           "dst": "FILE:src/sdd/infra/projections.py",
@@ -9662,7 +10850,44 @@
         }
       ],
       "FILE:src/sdd/policy/__init__.py": [],
-      "FILE:src/sdd/policy/resolver.py": [],
+      "FILE:src/sdd/policy/resolver.py": [
+        {
+          "edge_id": "008ff0b83a026977",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "188e045b82dd285f",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "2a177b35e1058be1",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "816fc11e2dab273e",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/policy/resolver.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        }
+      ],
       "FILE:src/sdd/policy/types.py": [],
       "FILE:src/sdd/spatial/__init__.py": [],
       "FILE:src/sdd/spatial/adapter.py": [],
@@ -9704,6 +10929,15 @@
           "meta": {}
         },
         {
+          "edge_id": "51e51b30f8a52106",
+          "src": "FILE:src/sdd/graph_navigation/cli/rag_export.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "5728c7147593f9a0",
           "src": "FILE:src/sdd/context_kernel/documents.py",
           "dst": "FILE:src/sdd/spatial/index.py",
@@ -9715,6 +10949,15 @@
         {
           "edge_id": "795033850b01b8fa",
           "src": "FILE:src/sdd/graph/extractors/task_deps.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "7a7048d55c23e01a",
+          "src": "FILE:src/sdd/graph_navigation/cli/resolve.py",
           "dst": "FILE:src/sdd/spatial/index.py",
           "kind": "imports",
           "priority": 0.6,
@@ -9749,6 +10992,33 @@
           "meta": {}
         },
         {
+          "edge_id": "95de35d72db80e1e",
+          "src": "FILE:src/sdd/graph_navigation/cli/trace.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "b1331a271a4cb10c",
+          "src": "FILE:src/sdd/graph/extractors/implements_edges.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "b659efb64d8de29b",
+          "src": "FILE:src/sdd/graph_navigation/cli/explain.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
           "edge_id": "b8af0f04233ff5b5",
           "src": "FILE:src/sdd/spatial/staleness.py",
           "dst": "FILE:src/sdd/spatial/index.py",
@@ -9760,6 +11030,15 @@
         {
           "edge_id": "c09d668d9a18c3ca",
           "src": "FILE:src/sdd/spatial/navigator.py",
+          "dst": "FILE:src/sdd/spatial/index.py",
+          "kind": "imports",
+          "priority": 0.6,
+          "source": "ast_imports",
+          "meta": {}
+        },
+        {
+          "edge_id": "c9b71769d91698b9",
+          "src": "FILE:src/sdd/graph_navigation/cli/invariant.py",
           "dst": "FILE:src/sdd/spatial/index.py",
           "kind": "imports",
           "priority": 0.6,
@@ -9922,11 +11201,50 @@
           "priority": 0.5,
           "source": "glossary",
           "meta": {}
+        },
+        {
+          "edge_id": "f6d0e2dba2ca3553",
+          "src": "FILE:src/sdd/commands/activate_phase.py",
+          "dst": "COMMAND:activate-phase",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
         }
       ],
-      "COMMAND:amend-plan": [],
-      "COMMAND:analytics-refresh": [],
-      "COMMAND:approve-spec": [],
+      "COMMAND:amend-plan": [
+        {
+          "edge_id": "96a6c2c882452012",
+          "src": "FILE:src/sdd/commands/amend_plan.py",
+          "dst": "COMMAND:amend-plan",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:analytics-refresh": [
+        {
+          "edge_id": "beeb9b63673777aa",
+          "src": "FILE:src/sdd/commands/analytics_refresh.py",
+          "dst": "COMMAND:analytics-refresh",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:approve-spec": [
+        {
+          "edge_id": "933d394bd44fd395",
+          "src": "FILE:src/sdd/commands/approve_spec.py",
+          "dst": "COMMAND:approve-spec",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
       "COMMAND:check-dod": [],
       "COMMAND:complete": [
         {
@@ -9937,15 +11255,94 @@
           "priority": 0.5,
           "source": "glossary",
           "meta": {}
+        },
+        {
+          "edge_id": "f0be9b6c4f976ff7",
+          "src": "FILE:src/sdd/commands/complete.py",
+          "dst": "COMMAND:complete",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
         }
       ],
-      "COMMAND:init-project": [],
-      "COMMAND:invalidate-event": [],
-      "COMMAND:rebuild-state": [],
-      "COMMAND:record-decision": [],
-      "COMMAND:record-session": [],
-      "COMMAND:switch-phase": [],
-      "COMMAND:sync-invariants": [],
+      "COMMAND:init-project": [
+        {
+          "edge_id": "e140fc75034060ad",
+          "src": "FILE:src/sdd/commands/init_project.py",
+          "dst": "COMMAND:init-project",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:invalidate-event": [
+        {
+          "edge_id": "099757119f050d01",
+          "src": "FILE:src/sdd/commands/invalidate_event.py",
+          "dst": "COMMAND:invalidate-event",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:rebuild-state": [
+        {
+          "edge_id": "2f260f30688df57f",
+          "src": "FILE:src/sdd/commands/rebuild_state.py",
+          "dst": "COMMAND:rebuild-state",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:record-decision": [
+        {
+          "edge_id": "b53dab26a706dc21",
+          "src": "FILE:src/sdd/commands/record_decision.py",
+          "dst": "COMMAND:record-decision",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:record-session": [
+        {
+          "edge_id": "4f3bc544671f2cbb",
+          "src": "FILE:src/sdd/commands/record_session.py",
+          "dst": "COMMAND:record-session",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:switch-phase": [
+        {
+          "edge_id": "3290395d76e370ff",
+          "src": "FILE:src/sdd/commands/switch_phase.py",
+          "dst": "COMMAND:switch-phase",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
+      "COMMAND:sync-invariants": [
+        {
+          "edge_id": "3b31c3df66262b85",
+          "src": "FILE:src/sdd/commands/sync_invariants.py",
+          "dst": "COMMAND:sync-invariants",
+          "kind": "implements",
+          "priority": 0.85,
+          "source": "implements_extractor",
+          "meta": {}
+        }
+      ],
       "COMMAND:sync-state": [],
       "COMMAND:validate": [
         {
@@ -10168,7 +11565,17 @@
       "INVARIANT:I-DB-2": [],
       "INVARIANT:I-DB-TEST-1": [],
       "INVARIANT:I-DB-TEST-2": [],
-      "INVARIANT:I-TASK-MODE-1": [],
+      "INVARIANT:I-TASK-MODE-1": [
+        {
+          "edge_id": "7f38c166f5d0bb48",
+          "src": "TERM:test_tier_contract",
+          "dst": "INVARIANT:I-TASK-MODE-1",
+          "kind": "means",
+          "priority": 0.5,
+          "source": "glossary",
+          "meta": {}
+        }
+      ],
       "INVARIANT:I-PHASE-SEQ-1": [],
       "INVARIANT:I-PHASE-AUTH-1": [],
       "INVARIANT:I-PHASE-STARTED-1": [],
@@ -10206,8 +11613,10 @@
       "TERM:graph_loader": [],
       "TERM:index_builder": [],
       "TERM:navigation_session": [],
-      "TERM:term_node": []
+      "TERM:term_node": [],
+      "TERM:test_tier_contract": [],
+      "TERM:tested_by_extractor": []
     },
-    "source_snapshot_hash": "58ef49ec8fe81ee8cb37f1e661efe08ca495ea5fc393d47bd4ba3c267a3dedd0"
+    "source_snapshot_hash": "d94be359fd6ba85a5cb1c69b436357bb943bb772c730162d5b1eadff04059f12"
   }
 }

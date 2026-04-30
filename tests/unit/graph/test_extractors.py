@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from sdd.graph.extractors.ast_edges import ASTEdgeExtractor
 from sdd.graph.extractors.glossary_edges import GlossaryEdgeExtractor
+from sdd.graph.extractors.implements_edges import ImplementsEdgeExtractor
 from sdd.graph.extractors.invariant_edges import InvariantEdgeExtractor
 from sdd.graph.extractors.task_deps import TaskDepsExtractor
 from sdd.graph.types import EDGE_KIND_PRIORITY
@@ -208,6 +209,29 @@ def test_extractor_no_open_call() -> None:
     with patch.object(builtins, "open", side_effect=_fail_open):
         for extractor in extractors:
             extractor.extract(index)
+
+
+# ---------------------------------------------------------------------------
+# Test 28: test_command_nodes_have_implements_edges — I-GRAPH-IMPLEMENTS-1
+# ---------------------------------------------------------------------------
+
+def test_command_nodes_have_implements_edges() -> None:
+    """I-GRAPH-IMPLEMENTS-1: each COMMAND node with a handler FILE gets an implements edge."""
+    handler_path = "src/sdd/commands/activate_phase.py"
+    file_node = _make_node(f"FILE:{handler_path}", "FILE", "activate_phase.py", path=handler_path)
+    cmd_node = _make_node("COMMAND:activate-phase", "COMMAND", "activate-phase")
+    # COMMAND without a corresponding handler file — must produce no edge
+    cmd_no_handler = _make_node("COMMAND:unknown-cmd", "COMMAND", "unknown-cmd")
+    index = _make_index([file_node, cmd_node, cmd_no_handler])
+
+    edges = ImplementsEdgeExtractor().extract(index)
+
+    impl_edges = [e for e in edges if e.kind == "implements"]
+    assert len(impl_edges) == 1, f"expected 1 implements edge, got {len(impl_edges)}"
+    assert impl_edges[0].src == f"FILE:{handler_path}"
+    assert impl_edges[0].dst == "COMMAND:activate-phase"
+    assert impl_edges[0].priority == EDGE_KIND_PRIORITY["implements"]
+    assert impl_edges[0].source == "implements_extractor"
 
 
 # ---------------------------------------------------------------------------

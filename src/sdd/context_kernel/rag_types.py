@@ -5,7 +5,7 @@ Phase 52 extends via __init__(registry) injection only — no new class.
 """
 from __future__ import annotations
 
-import sys
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
@@ -62,11 +62,21 @@ class LightRAGProjection:
         rag_mode: RagMode,
         rag_client: LightRAGClient | None,
     ) -> RAGResult | None:
-        """Return None for graceful degradation when rag_client is None (DoD 4)."""
+        """Return None for graceful degradation when rag_client is None (I-RAG-DEGRADE-LOCAL-1)."""
         if rag_client is None:
+            logging.warning("LightRAGProjection: rag_client is None; degrading to OFF")
             return None
 
-        mode_str = rag_mode.value.lower()
+        # I-RAG-DEGRADE-LOCAL-1: GLOBAL/HYBRID without KG → LOCAL (not OFF)
+        if rag_mode in (RagMode.GLOBAL, RagMode.HYBRID) and self._registry is not None:
+            fingerprint: str = getattr(context, "graph_snapshot_hash", "")
+            if not self._registry.has_kg(fingerprint):
+                logging.warning(
+                    "LightRAGProjection: KG not found for fingerprint %r; degrading to LOCAL",
+                    fingerprint,
+                )
+                rag_mode = RagMode.LOCAL
+
         documents: list[DocumentChunk] = getattr(context, "documents", [])
-        summary = rag_client.query(question, documents, mode_str)
+        summary = rag_client.query(question, documents, rag_mode.value.lower())
         return RAGResult(summary=summary, rag_mode=rag_mode.value)

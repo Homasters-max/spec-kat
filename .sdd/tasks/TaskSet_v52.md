@@ -7,7 +7,7 @@ Plan: plans/Plan_v52.md
 
 T-5201: ImplementsEdgeExtractor — реализация класса
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §4.2 — Known Graph Gap COMMAND ↔ FILE
 Invariants:           I-GRAPH-IMPLEMENTS-1, I-GRAPH-IMPLEMENTS-2
 spec_refs:            [Spec_v52 §4.2, I-GRAPH-IMPLEMENTS-1, I-GRAPH-IMPLEMENTS-2]
@@ -22,7 +22,7 @@ Depends on:           —
 
 T-5202: ImplementsEdgeExtractor — регистрация в pipeline + тест fallback
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §4.2 — Known Graph Gap COMMAND ↔ FILE
 Invariants:           I-GRAPH-IMPLEMENTS-1, I-GRAPH-IMPLEMENTS-2
 spec_refs:            [Spec_v52 §4.2, I-GRAPH-IMPLEMENTS-1, I-GRAPH-IMPLEMENTS-2]
@@ -37,7 +37,7 @@ Depends on:           T-5201
 
 T-5203: graph_navigation package scaffold — IndexBuilder + GraphService + query intent wiring
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §1 — BC-36-7 CLI, canonical handler pattern
 Invariants:           I-RUNTIME-ORCHESTRATOR-1, I-PHASE-ISOLATION-1
 spec_refs:            [Spec_v52 §1, I-RUNTIME-ORCHESTRATOR-1, I-PHASE-ISOLATION-1]
@@ -52,7 +52,7 @@ Depends on:           T-5202
 
 T-5204: sdd resolve + sdd trace CLI handlers
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §1 — BC-36-7 CLI (resolve, trace)
 Invariants:           I-CLI-FORMAT-1, I-CLI-ERROR-CODES-1, I-CLI-TRANSPARENCY-1, I-RUNTIME-ORCHESTRATOR-1
 spec_refs:            [Spec_v52 §1, I-CLI-FORMAT-1, I-CLI-ERROR-CODES-1, I-CLI-TRANSPARENCY-1]
@@ -67,7 +67,7 @@ Depends on:           T-5203
 
 T-5205: sdd explain CLI handler (uses implements-edges fallback)
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §1 — BC-36-7 CLI (explain)
 Invariants:           I-CLI-FORMAT-1, I-CLI-TRANSPARENCY-2, I-RUNTIME-ORCHESTRATOR-1, I-GRAPH-IMPLEMENTS-1
 spec_refs:            [Spec_v52 §1, I-CLI-FORMAT-1, I-CLI-TRANSPARENCY-2, I-GRAPH-IMPLEMENTS-1]
@@ -82,7 +82,7 @@ Depends on:           T-5204
 
 T-5206: sdd invariant CLI handler + tool_definitions.py
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §1 — BC-36-7 CLI (invariant)
 Invariants:           I-CLI-FORMAT-1, I-CLI-ERROR-CODES-1, I-TOOL-DEF-1
 spec_refs:            [Spec_v52 §1, I-CLI-FORMAT-1, I-CLI-ERROR-CODES-1, I-TOOL-DEF-1]
@@ -97,7 +97,7 @@ Depends on:           T-5203
 
 T-5207: Регистрация graph_navigation команд в cli.py + integration tests INT-5..7
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §1 — BC-36-7 CLI
 Invariants:           I-CLI-FORMAT-1, I-CLI-ERROR-CODES-1, I-PHASE-ISOLATION-1
 spec_refs:            [Spec_v52 §1, I-CLI-FORMAT-1, I-CLI-ERROR-CODES-1, I-PHASE-ISOLATION-1]
@@ -112,7 +112,7 @@ Depends on:           T-5204, T-5205, T-5206
 
 T-5208: LightRAGRegistry
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §2 — BC-36-4 LightRAGRegistry
 Invariants:           I-RAG-REGISTRY-PURE-1, I-RAG-GLOBAL-V1-DISABLED-1, I-RAG-1
 spec_refs:            [Spec_v52 §2, I-RAG-REGISTRY-PURE-1, I-RAG-GLOBAL-V1-DISABLED-1, I-RAG-1]
@@ -127,7 +127,7 @@ Depends on:           T-5203
 
 T-5209: LightRAGExporter + sdd rag-export CLI
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §2 — BC-36-4 LightRAGExporter, sdd rag-export
 Invariants:           I-RAG-EXPORT-FRESHNESS-1, I-RAG-EXPORT-NOT-IN-QUERY-1, I-RAG-CHUNK-1, I-RAG-EXPORT-TASK-MODE-1
 spec_refs:            [Spec_v52 §2, I-RAG-EXPORT-FRESHNESS-1, I-RAG-EXPORT-NOT-IN-QUERY-1, I-RAG-CHUNK-1, I-RAG-EXPORT-TASK-MODE-1]
@@ -142,7 +142,7 @@ Depends on:           T-5208
 
 T-5210: rag-export — task-mode exclusion + grep-test 68 + integration test
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §2 — BC-36-4, task mode exclusion
 Invariants:           I-RAG-EXPORT-NOT-IN-QUERY-1, I-RAG-EXPORT-TASK-MODE-1, I-TASK-MODE-1
 spec_refs:            [Spec_v52 §2, I-RAG-EXPORT-NOT-IN-QUERY-1, I-RAG-EXPORT-TASK-MODE-1, I-TASK-MODE-1]
@@ -157,7 +157,7 @@ Depends on:           T-5209, T-5207
 
 T-5211: LightRAGProjection — полная деградация GLOBAL/HYBRID → LOCAL → OFF
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §2 — LightRAGProjection, деградация
 Invariants:           I-RAG-DEGRADE-LOCAL-1, I-RAG-NO-PERSISTENCE-1, I-LIGHTRAG-CANONICAL-1
 spec_refs:            [Spec_v52 §2, I-RAG-DEGRADE-LOCAL-1, I-RAG-NO-PERSISTENCE-1, I-LIGHTRAG-CANONICAL-1]
@@ -172,7 +172,7 @@ Depends on:           T-5208
 
 T-5212: migration.py + migration_complete()
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §3 — BC-36-5, legacy migration close
 Invariants:           I-CTX-MIGRATION-1, I-CTX-MIGRATION-2, I-CTX-MIGRATION-3, I-CTX-MIGRATION-4
 spec_refs:            [Spec_v52 §3, I-CTX-MIGRATION-1, I-CTX-MIGRATION-2, I-CTX-MIGRATION-3, I-CTX-MIGRATION-4]
@@ -187,7 +187,7 @@ Depends on:           T-5207
 
 T-5213: context_legacy restructure — переименование build_context + deprecation adapter
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §3 — BC-36-5, context_legacy
 Invariants:           I-LEGACY-FS-EXCEPTION-1, I-GRAPH-FS-ROOT-1, I-CTX-MIGRATION-1
 spec_refs:            [Spec_v52 §3, I-LEGACY-FS-EXCEPTION-1, I-GRAPH-FS-ROOT-1]
@@ -202,7 +202,7 @@ Depends on:           T-5212
 
 T-5214: Full test suite — unit + integration + regression Phase 50/51 + mypy
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §6 — Verification
 Invariants:           I-GRAPH-IMPLEMENTS-1, I-GRAPH-IMPLEMENTS-2, I-CLI-FORMAT-1, I-RAG-DEGRADE-LOCAL-1, I-CTX-MIGRATION-1..4
 spec_refs:            [Spec_v52 §6, все invariants M1..M5]
@@ -217,7 +217,7 @@ Depends on:           T-5201, T-5202, T-5203, T-5204, T-5205, T-5206, T-5207, T-
 
 T-5215: DoD verification — sdd validate-invariants + 14 DoD checklist
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v52 §7 — DoD Phase 52
 Invariants:           I-PHASES-INDEX-1, все выше
 spec_refs:            [Spec_v52 §7, I-PHASES-INDEX-1]

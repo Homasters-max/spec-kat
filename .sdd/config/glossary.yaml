@@ -69,3 +69,57 @@ terms:
     definition: "A SpatialNode with kind='TERM' representing a DDD domain concept. Has definition, aliases, and links fields. Primary entrypoint for natural language queries via I-NAV-4."
     aliases: ["TERM", "domain term", "DDD term", "glossary entry", "term node"]
     links: ["COMMAND:nav-search", "INVARIANT:I-NAV-4", "INVARIANT:I-DDD-0"]
+
+  - id: "test_tier_contract"
+    label: "Test Tier Contract"
+    definition: "Four-level test execution hierarchy defined in project_profile.yaml build.commands. Each tier maps to a session type: test_fast (IMPLEMENT loop, unit only, fail-fast), test (VALIDATE, unit+integration, coverage-enforced), test_full (CHECK_DOD, all suites, coverage-enforced), test_pg (explicit PostgreSQL environments). All test_* keys are excluded from task mode (I-TASK-MODE-1). Default tiers exclude @pytest.mark.pg tests to prevent connection errors in non-PG environments."
+    aliases: ["test tiers", "test pyramid", "tier contract", "test_fast", "test_full", "test_pg"]
+    links: ["INVARIANT:I-TASK-MODE-1"]
+
+  - id: "tested_by_extractor"
+    label: "TestedByEdgeExtractor"
+    definition: "Graph extractor (Phase 56) that produces 'tested_by' edges from FILE nodes in src/ to FILE nodes in tests/. Extraction strategy: AST direct imports in test_*.py files → corresponding src/ modules. Boundary: direct imports only, no transitive. Enables LLM to see covering tests before modifying a file: 'sdd explain FILE:src/sdd/commands/complete.py --edge-types tested_by'."
+    aliases: ["TestedByEdgeExtractor", "tested_by", "test coverage edges"]
+    links: ["INVARIANT:I-GRAPH-IMPLEMENTS-1"]
+
+  - id: "task_navigation_spec"
+    label: "TaskNavigationSpec"
+    definition: "Isolated dataclass encapsulating task navigation metadata. Versioned: v55 = resolve_keywords + write_scope; v56 = anchor_nodes + allowed_traversal + write_scope; v57 = anchor_nodes only (legacy fields removed). Located in src/sdd/tasks/navigation.py. Ensures Task dataclass does not accumulate multi-generation schema drift. Task.navigation: TaskNavigationSpec | None."
+    aliases: ["TaskNavigationSpec", "task navigation", "anchor_nodes", "resolve_keywords", "write_scope"]
+    links: ["INVARIANT:I-TASK-INPUTS-REMOVED", "INVARIANT:I-ANCHOR-REQUIRED"]
+
+  - id: "graph_call_log"
+    label: "GraphCallLog"
+    definition: "Typed audit module for graph navigation calls (Phase 56). Stores GraphCallEntry records in .sdd/runtime/graph_calls.jsonl — separate from audit_log.jsonl (governance). API: log_graph_call(entry) and query_graph_calls(session_id). Used by sdd graph-guard check to verify IMPLEMENT sessions have graph traversals. Each CLI call to explain/trace/resolve appends one entry with session_id, result_size, and (Phase 57+) nodes_covered."
+    aliases: ["GraphCallLog", "graph_calls.jsonl", "GraphCallEntry", "graph call audit"]
+    links: ["INVARIANT:I-GRAPH-CALL-LOG-1", "INVARIANT:I-GRAPH-GUARD-1", "INVARIANT:I-AUDIT-SESSION-1"]
+
+  - id: "bounded_context_node"
+    label: "BOUNDED_CONTEXT Node"
+    definition: "Graph node kind (Phase 56) representing a DDD bounded context as a first-class graph object. node_id = BOUNDED_CONTEXT:<id> (e.g., BOUNDED_CONTEXT:graph). Classification is deterministic and path-based via bounded_contexts rules in sdd_config.yaml — no LLM. FILE nodes get 'belongs_to' edges to their BOUNDED_CONTEXT. Unclassified files → BOUNDED_CONTEXT:unclassified. Enables: 'sdd trace BOUNDED_CONTEXT:X --edge-types imports' to find cross-context dependencies."
+    aliases: ["BOUNDED_CONTEXT", "bounded context node", "belongs_to", "BC classification"]
+    links: ["INVARIANT:I-BC-DETERMINISTIC-1", "INVARIANT:I-ARCH-1"]
+
+  - id: "layer_node"
+    label: "LAYER Node"
+    definition: "Graph node kind (Phase 56) representing an architectural layer. Four values: LAYER:domain (pure logic, types), LAYER:application (commands, handlers), LAYER:infrastructure (IO, DB, cache, FS), LAYER:interface (CLI, HTTP entry points). Classification is deterministic and path-based via layers rules in sdd_config.yaml. FILE nodes get 'in_layer' edges. Enables layer purity checks in Phase 57 (sdd arch-check --check layer-purity)."
+    aliases: ["LAYER", "layer node", "in_layer", "domain layer", "infra layer", "interface layer"]
+    links: ["INVARIANT:I-LAYER-DETERMINISTIC-1", "INVARIANT:I-ARCH-2", "INVARIANT:I-ARCH-3"]
+
+  - id: "arch_check"
+    label: "sdd arch-check"
+    definition: "Read-only CLI command (Phase 57) that detects architectural invariant violations via graph queries. Checks: bc-cycles (BOUNDED_CONTEXT circular deps), layer-purity (domain→infra imports), layer-direction (reverse layer flow). Exit 0 = no violations. Exit 1 = violations found (JSON report). Phase Gate for Phase 57: must return exit 0 before PLAN Phase 57. Integrates with sdd validate-invariants. Uses ViolatesEdgeExtractor output (violates edges: FILE → INVARIANT)."
+    aliases: ["sdd arch-check", "arch-check", "architecture check", "layer violations"]
+    links: ["INVARIANT:I-ARCH-1", "INVARIANT:I-ARCH-2", "INVARIANT:I-ARCH-3"]
+
+  - id: "module_node"
+    label: "MODULE Node"
+    definition: "Graph node kind (Phase 55) representing a Python package/directory. node_id = MODULE:<dotted.path> (e.g., MODULE:sdd.graph). Contains FILE nodes via 'contains' edges. First step toward BOUNDED_CONTEXT hierarchy. Built by IndexBuilder._collect_modules() — scans src/sdd/ for directories with __init__.py. Enables 'sdd explain MODULE:sdd.X --edge-types contains' to list all files in a package."
+    aliases: ["MODULE", "module node", "contains edges", "package node"]
+    links: []
+
+  - id: "session_context"
+    label: "Session Context"
+    definition: "Mechanism for propagating current session_id to stateless graph navigation CLIs (Phase 55). sdd record-session writes .sdd/runtime/current_session.json atomically. get_current_session_id() in infra/session_context.py reads it. Used by explain/trace/resolve to populate GraphCallEntry.session_id. Returns None if no session active (no error). Governed by I-SESSION-CONTEXT-1: only record-session handler may write current_session.json."
+    aliases: ["session context", "current_session.json", "get_current_session_id", "session_id propagation"]
+    links: ["INVARIANT:I-SESSION-CONTEXT-1", "INVARIANT:I-AUDIT-SESSION-1"]

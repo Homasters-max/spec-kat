@@ -46,4 +46,10 @@
 | 49 | Session Dedup Fixes | .sdd/specs/Spec_v49_SessionDedupFixes.md | .sdd/plans/Plan_v49.md | PLANNED |
 | 50 | Graph Subsystem Foundation | .sdd/specs/Spec_v50_GraphSubsystemFoundation.md | .sdd/plans/Plan_v50.md | PLANNED |
 | 51 | Context Kernel + Policy Layer | .sdd/specs/Spec_v51_ContextKernelPolicyLayer.md | .sdd/plans/Plan_v51.md | PLANNED |
-| 52 | CLI + LightRAG + Migration Window Close | .sdd/specs/Spec_v52_CLIMigrationLightRAG.md | .sdd/plans/Plan_v52.md | PLANNED |
+| 52 | CLI + LightRAG + Migration Window Close | .sdd/specs/Spec_v52_CLIMigrationLightRAG.md | .sdd/plans/Plan_v52.md | COMPLETE |
+| 53 | Graph-Based Test Filtering         | .sdd/specs_draft/Spec_v53_GraphTestFilter.md           | — | PLANNED |
+| 54 | Real System Validation | .sdd/specs/Spec_v54_RealSystemValidation.md | .sdd/plans/Plan_v54.md | PLANNED |
+| 55 | Graph-Guided Implement             | .sdd/specs_draft/Spec_v55_GraphGuidedImplement.md      | — | PLANNED |
+| 56 | Graph-First + Architecture Context | .sdd/specs_draft/Spec_v56_GraphFirst.md                | — | PLANNED |
+| 57 | Graph as Architectural SSOT        | .sdd/specs_draft/Spec_v57_ArchitecturalSSOT.md         | — | PLANNED |
+| 58 | Module API Boundary & Calls Refinement | .sdd/specs_draft/Spec_v58_ModuleAPIAndCallsRefinement.md | — | PLANNED |

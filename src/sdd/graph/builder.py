@@ -55,9 +55,12 @@ class GraphFactsBuilder:
 
     def __init__(self, extractors: list[EdgeExtractor] | None = None) -> None:
         from sdd.graph.extractors import _DEFAULT_EXTRACTORS
+        from sdd.graph.extractors.implements_edges import ImplementsEdgeExtractor
 
         self._extractors: list[EdgeExtractor] = (
-            extractors if extractors is not None else _DEFAULT_EXTRACTORS
+            extractors
+            if extractors is not None
+            else [*_DEFAULT_EXTRACTORS, ImplementsEdgeExtractor()]
         )
 
     def build(self, index: SpatialIndex) -> DeterministicGraph:
@@ -69,8 +72,9 @@ class GraphFactsBuilder:
         4. Verify I-GRAPH-1: all edge src/dst exist as nodes.
         5. Verify I-GRAPH-EMITS-1: emits edges have COMMAND src and EVENT dst.
         6. Verify I-DDD-1: means edges have TERM src.
-        7. Build edges_out/edges_in indexes (I-GRAPH-DET-3).
-        8. Set source_snapshot_hash = index.snapshot_hash (I-GRAPH-LINEAGE-1).
+        7. Verify I-GRAPH-IMPLEMENTS-1: implements edges have FILE src and COMMAND dst.
+        8. Build edges_out/edges_in indexes (I-GRAPH-DET-3).
+        9. Set source_snapshot_hash = index.snapshot_hash (I-GRAPH-LINEAGE-1).
         """
         # Step 1: project nodes
         nodes = {n.node_id: project_node(n) for n in index.nodes.values()}
@@ -133,7 +137,23 @@ class GraphFactsBuilder:
                         f"src={edge.src!r} has kind {src_node.kind!r}, expected TERM"
                     )
 
-        # Steps 7–8: build final graph
+        # Step 7: I-GRAPH-IMPLEMENTS-1 (implements: FILE → COMMAND)
+        for edge in all_edges:
+            if edge.kind == "implements":
+                src_node = nodes[edge.src]
+                dst_node = nodes[edge.dst]
+                if src_node.kind != "FILE":
+                    raise GraphInvariantError(
+                        f"I-GRAPH-IMPLEMENTS-1: implements edge {edge.edge_id!r} "
+                        f"src={edge.src!r} has kind {src_node.kind!r}, expected FILE"
+                    )
+                if dst_node.kind != "COMMAND":
+                    raise GraphInvariantError(
+                        f"I-GRAPH-IMPLEMENTS-1: implements edge {edge.edge_id!r} "
+                        f"dst={edge.dst!r} has kind {dst_node.kind!r}, expected COMMAND"
+                    )
+
+        # Steps 8–9: build final graph
         return _DeterministicGraphBuilder().build(
             nodes=nodes,
             edges=all_edges,

@@ -374,6 +374,58 @@ def rebuild_state_cmd(full: bool) -> None:
     sys.exit(0)
 
 
+@cli.command("resolve")
+@click.argument("query")
+@click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
+@click.option("--debug", is_flag=True, default=False, help="Show debug selection info")
+@click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
+def resolve_cmd(query: str, rebuild: bool, debug: bool, fmt: str) -> None:
+    """Search graph nodes by free-text query (BC-36-7)."""
+    from sdd.graph_navigation.cli.resolve import run
+    sys.exit(run(query, rebuild=rebuild, fmt=fmt, debug=debug))
+
+
+@cli.command("explain")
+@click.argument("node_id")
+@click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
+@click.option("--debug", is_flag=True, default=False, help="Show debug selection info")
+@click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
+def explain_cmd(node_id: str, rebuild: bool, debug: bool, fmt: str) -> None:
+    """Explain how a graph node works — out-edges, emits, guards (BC-36-7)."""
+    from sdd.graph_navigation.cli.explain import run
+    sys.exit(run(node_id, rebuild=rebuild, fmt=fmt, debug=debug))
+
+
+@cli.command("trace")
+@click.argument("node_id")
+@click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
+@click.option("--debug", is_flag=True, default=False, help="Show debug selection info")
+@click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
+def trace_cmd(node_id: str, rebuild: bool, debug: bool, fmt: str) -> None:
+    """Trace reverse references of a graph node — reverse BFS (BC-36-7)."""
+    from sdd.graph_navigation.cli.trace import run
+    sys.exit(run(node_id, rebuild=rebuild, fmt=fmt, debug=debug))
+
+
+@cli.command("invariant")
+@click.argument("invariant_id")
+@click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
+@click.option("--debug", is_flag=True, default=False, help="Show debug selection info")
+@click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
+def invariant_cmd(invariant_id: str, rebuild: bool, debug: bool, fmt: str) -> None:
+    """Navigate an invariant node and its verified_by / introduced_in edges (BC-36-7)."""
+    from sdd.graph_navigation.cli.invariant import run
+    sys.exit(run(invariant_id, rebuild=rebuild, fmt=fmt, debug=debug))
+
+
+@cli.command("rag-export")
+@click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild before export")
+def rag_export_cmd(rebuild: bool) -> None:
+    """Export knowledge graph to LightRAG KG storage (BC-36-4, I-RAG-EXPORT-FRESHNESS-1)."""
+    from sdd.graph_navigation.cli.rag_export import run
+    sys.exit(run(rebuild=rebuild))
+
+
 def _emit_json_error(error_type: str, message: str, exit_code: int) -> None:
     json.dump({"error_type": error_type, "message": message, "exit_code": exit_code}, sys.stderr)
     sys.stderr.write("\n")

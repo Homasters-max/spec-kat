@@ -1,4 +1,4 @@
-"""ASTEdgeExtractor: imports, emits, guards, tested_by edges from Python AST.
+"""ASTEdgeExtractor: imports, emits, guards edges from Python AST.
 
 I-GRAPH-EXTRACTOR-2: no open() calls; all content via index.read_content(node).
 I-GRAPH-FINGERPRINT-1: EXTRACTOR_VERSION required; inspect.getsource() forbidden.
@@ -78,13 +78,17 @@ def _collect_called_names(tree: ast.Module) -> set[str]:
 
 
 class ASTEdgeExtractor:
-    """Extract imports, emits, guards, tested_by edges via static Python AST analysis.
+    """Extract imports, emits, guards edges via static Python AST analysis.
 
     I-GRAPH-EMITS-1: emits edge only when all 4 conditions are satisfied:
       1. Source node is a FILE kind node.
       2. Source file is not the events definition file itself.
       3. Target event class is a known EVENT node in the current index.
       4. The event class name appears in a direct ast.Call context (not annotation).
+
+    NOTE: 'tested_by' edges (COMMAND → TEST, priority 0.80) are NOT produced here.
+    They require TestedByEdgeExtractor (Phase 53) which needs TEST node kind support
+    in SpatialIndex. See .sdd/specs_draft/Spec_v53_GraphTestFilter.md.
     """
 
     EXTRACTOR_VERSION: ClassVar[str] = "1.0.0"

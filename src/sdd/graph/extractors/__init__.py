@@ -25,12 +25,14 @@ class EdgeExtractor(Protocol):
 # Populated as extractors are implemented (T-5011..T-5013).
 from sdd.graph.extractors.ast_edges import ASTEdgeExtractor
 from sdd.graph.extractors.glossary_edges import GlossaryEdgeExtractor
+from sdd.graph.extractors.implements_edges import ImplementsEdgeExtractor
 from sdd.graph.extractors.invariant_edges import InvariantEdgeExtractor
 from sdd.graph.extractors.task_deps import TaskDepsExtractor
 
 _DEFAULT_EXTRACTORS: list[EdgeExtractor] = [
     ASTEdgeExtractor(),
     GlossaryEdgeExtractor(),
+    ImplementsEdgeExtractor(),
     InvariantEdgeExtractor(),
     TaskDepsExtractor(),
 ]

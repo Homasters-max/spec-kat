@@ -171,6 +171,29 @@ def _read_yaml() -> SDDState | None:
         return None
 
 
+def _stamp_yaml_seq(db_url: str, state_path: str | None = None) -> None:
+    """Advance snapshot_event_id in YAML to current DB max_seq — O(1), no replay.
+
+    Called after ProjectionType.STAMP commands: audit-only domain events that
+    advance max_seq without changing SDDState content (I-YAML-STAMP-1).
+
+    No-op when YAML absent (get_current_state will rebuild from replay on next read).
+    MUST NOT call _replay_from_event_log.
+    """
+    _st = state_path or str(state_file())
+    try:
+        yaml_state = read_state(_st)
+    except Exception:
+        _log.debug("_stamp_yaml_seq: YAML absent or unreadable — skipping")
+        return
+    max_seq = _pg_max_seq(db_url)
+    if yaml_state.snapshot_event_id == max_seq:
+        return  # already current
+    new_state = dataclasses.replace(yaml_state, snapshot_event_id=max_seq)
+    write_state(new_state, _st)
+    _log.debug("_stamp_yaml_seq: snapshot_event_id → %d", max_seq)
+
+
 def _get_invalidated_seqs(conn: object, _pg: bool) -> frozenset[int]:
     """Query EventLog for all invalidated sequence_ids (I-INVALID-2).
 

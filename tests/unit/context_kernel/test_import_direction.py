@@ -1,8 +1,9 @@
-"""Import direction tests for Phase 51 (T-5120).
+"""Import direction tests for Phase 51 (T-5120) and Phase 52 (T-5203).
 
 Verifies R-IMPORT-DIRECTION:
-  - sdd.context_kernel  ↛  sdd.graph_navigation
-  - sdd.policy          ↛  sdd.context_kernel
+  - sdd.context_kernel   ↛  sdd.graph_navigation
+  - sdd.policy           ↛  sdd.context_kernel
+  - sdd.graph_navigation ↛  sdd.graph.cache / sdd.graph.builder  (I-PHASE-ISOLATION-1)
 """
 from __future__ import annotations
 
@@ -66,5 +67,28 @@ def test_import_direction_phase51_policy_no_context_kernel() -> None:
                 violations.append(f"{rel_path}: imports {mod!r}")
     assert not violations, (
         "sdd.policy imports sdd.context_kernel (R-IMPORT-DIRECTION violated):\n"
+        + "\n".join(violations)
+    )
+
+
+# ---------------------------------------------------------------------------
+# R-IMPORT-DIRECTION: graph_navigation ↛ graph.cache / graph.builder
+# ---------------------------------------------------------------------------
+
+def test_import_direction_phase52() -> None:
+    """sdd.graph_navigation MUST NOT import from sdd.graph.cache or sdd.graph.builder.
+
+    I-PHASE-ISOLATION-1: graph_navigation accesses graph subsystem only via GraphService.
+    """
+    package_dir = _SRC / "sdd" / "graph_navigation"
+    forbidden = {"sdd.graph.cache", "sdd.graph.builder"}
+    violations: list[str] = []
+    for rel_path, imports in _collect_imports(package_dir).items():
+        for mod in imports:
+            if mod in forbidden or any(mod.startswith(f"{fb}.") for fb in forbidden):
+                violations.append(f"{rel_path}: imports {mod!r}")
+    assert not violations, (
+        "sdd.graph_navigation imports sdd.graph.cache or sdd.graph.builder directly "
+        "(I-PHASE-ISOLATION-1 violated):\n"
         + "\n".join(violations)
     )

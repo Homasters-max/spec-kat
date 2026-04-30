@@ -3,15 +3,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from enum import Enum
 
-
-class QueryIntent(Enum):
-    RESOLVE_EXACT = "resolve_exact"
-    SEARCH = "search"
-    EXPLAIN = "explain"
-    TRACE = "trace"
-    INVARIANT = "invariant"
+from sdd.policy import QueryIntent as QueryIntent  # canonical enum; re-export for consumers
 
 
 # NAMESPACE:ID — e.g. "COMMAND:complete", "EVENT:PhaseInitialized"

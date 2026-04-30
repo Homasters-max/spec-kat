@@ -263,6 +263,8 @@ SEM-13  ALL session preconditions MUST execute as a strict linear dependency cha
         Parallel tool calls are NOT isolated: a failure in one cancels all sibling calls.
         Guards (phase-guard, task-guard, check-scope, norm-guard) MUST run sequentially
         in declaration order. Violation = undefined state.
+SEM-14  pytest MUST always run synchronously (`run_in_background` MUST be `false` or absent).
+        Never launch a second pytest while one is already running — hook enforces this via pgrep.
 ```
 
 ---

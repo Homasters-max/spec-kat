@@ -1,5 +1,5 @@
 """BC-CONTEXT public API — re-exports (Spec_v2 §2)."""
-from sdd.context.build_context import (
+from sdd.context_legacy.build_context import (
     EFFECTIVE_BUDGET,
     TOKEN_BUDGET,
     ContextDepth,

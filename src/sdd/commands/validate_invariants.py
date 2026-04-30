@@ -513,6 +513,9 @@ def main(args: list[str] | None = None) -> int:
                 timeout = parsed.timeout if parsed.timeout > 0 else _DEFAULT_TIMEOUT_SECS
                 # Extract test result from build loop events (I-ACCEPT-REUSE-1)
                 # In task mode, test is intentionally skipped — treat as 0 (not failed)
+                # COUPLING: hardcoded to evt.name == "test". If the "test" build command
+                # is renamed, acceptance reuse breaks (falls back to None → ACCEPTANCE_FAILED).
+                # The test tier contract guarantees "test" key always exists in project_profile.yaml.
                 test_returncode: int | None = 0 if cmd.validation_mode == "task" else None
                 for evt in events:
                     if isinstance(evt, _TestRunCompletedEvent) and evt.name == "test":

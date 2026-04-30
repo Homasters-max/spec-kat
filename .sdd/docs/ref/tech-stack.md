@@ -26,16 +26,26 @@ These are the commands run by `sdd validate-invariants`:
 - `lint`: linting command
 - `test`: test command (with coverage)
 - `typecheck`: type checking command
-- `build`: optional build command
+- `acceptance`: triggers acceptance check (ruff on outputs + reuses `test` result via I-ACCEPT-REUSE-1)
 
-Example (typical Python project):
-```yaml
-build:
-  commands:
-    lint: ruff check src/ tests/
-    test: pytest tests/ --cov=src/sdd --cov-report=term-missing -q
-    typecheck: mypy src/sdd --strict
-```
+### Test Tier Contract
+
+| Command | Scope | Flags | Use in session |
+|---|---|---|---|
+| `test_fast` | `tests/unit/` | `-x -m "not pg"` | IMPLEMENT loop (fail-fast, <15s) |
+| `test` | `tests/unit/ tests/integration/` | `-m "not pg" --cov --cov-fail-under=80` | VALIDATE T-NNN |
+| `test_full` | `tests/` | `-m "not pg" --cov --cov-fail-under=80` | CHECK_DOD |
+| `test_pg` | `tests/` | `-m pg` | Explicit PostgreSQL environments only |
+
+**I-TASK-MODE-1 compliance**: all keys prefixed `test` are auto-excluded in task mode.
+`acceptance` is always skipped in the build loop (handled separately by `_run_acceptance_check`).
+
+**Coverage invariant**: `--cov-fail-under=80` in `test` and `test_full` makes coverage a
+hard gate — CI fails if coverage drops below 80%. The `testing.coverage_threshold: 80` field
+in `project_profile.yaml` is the documentation source; enforcement is via the `--cov-fail-under` flag.
+
+**PostgreSQL exclusion**: `-m "not pg"` in all default commands prevents connection errors in
+environments without live PostgreSQL. Tests requiring PG are explicitly opt-in via `test_pg`.
 
 ## Coverage Threshold
 

@@ -8,9 +8,24 @@ build:
   commands:
     lint:       ruff check src/
     typecheck:  mypy src/sdd/
-    test:       pytest tests/unit/ tests/integration/ -q
-    test_full:  pytest tests/ -q
-    acceptance: "ruff check {outputs} && pytest tests/unit/ tests/integration/ -q"
+
+    # ── Test tiers (I-TASK-MODE-1: all keys starting with "test" excluded in task mode) ──
+    #
+    # Session mapping:
+    #   IMPLEMENT loop  → test_fast  (unit only, fail-fast, <15s)
+    #   VALIDATE T-NNN  → test       (unit+integration, coverage enforced)
+    #   CHECK_DOD       → test_full  (all suites, coverage enforced)
+    #   explicit PG env → test_pg    (requires live PostgreSQL)
+    #
+    test_fast:  pytest tests/unit/ -q -x -m "not pg"
+    test:       pytest tests/unit/ tests/integration/ -q -m "not pg" --cov=src/sdd --cov-report=term-missing --cov-fail-under=80
+    test_full:  pytest tests/ -q -m "not pg" --cov=src/sdd --cov-report=term-missing --cov-fail-under=80
+    test_pg:    pytest tests/ -m pg -q
+
+    # acceptance: presence of this key triggers _run_acceptance_check (I-ACCEPT-1).
+    # The value documents intent; ruff runs on {outputs} files, pytest reused via
+    # I-ACCEPT-REUSE-1 (evt.name == "test" from build loop). No shell execution of this string.
+    acceptance: "ruff check {outputs}  # pytest result reused from test build command"
 
 testing:
   coverage_threshold: 80

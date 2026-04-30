@@ -71,7 +71,7 @@ from sdd.infra.paths import (
     state_file,
     taskset_file,
 )
-from sdd.infra.projections import RebuildMode, get_current_state as get_current_state, rebuild_state, rebuild_taskset
+from sdd.infra.projections import RebuildMode, _stamp_yaml_seq, get_current_state as get_current_state, rebuild_state, rebuild_taskset
 
 _log = logging.getLogger(__name__)
 
@@ -81,7 +81,8 @@ _log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class ProjectionType(Enum):
-    NONE       = "none"        # no projection after write
+    NONE       = "none"        # no projection after write (infra DDL — no domain event emitted)
+    STAMP      = "stamp"       # advance snapshot_event_id only — audit-only domain events
     STATE_ONLY = "state_only"  # rebuild State_index only
     FULL       = "full"        # rebuild State_index + TaskSet
 
@@ -285,7 +286,7 @@ REGISTRY: dict[str, CommandSpec] = {
         handler_class=_lazy_record_decision_handler(),
         actor="human",
         action="record_decision",
-        projection=ProjectionType.NONE,  # decisions are audit-only; no state change (I-DECISION-AUDIT-1)
+        projection=ProjectionType.STAMP,  # audit-only; no state content change (I-DECISION-AUDIT-1)
         uses_task_id=False,
         event_schema=(DecisionRecordedEvent,),
         preconditions=("decision_id matches D-<number>", "summary <= 500 chars"),
@@ -312,7 +313,7 @@ REGISTRY: dict[str, CommandSpec] = {
         handler_class=_lazy_invalidate_event_handler(),
         actor="human",
         action="invalidate_event",
-        projection=ProjectionType.NONE,    # audit-only; no state change
+        projection=ProjectionType.STAMP,    # audit-only; no state content change
         uses_task_id=False,
         requires_active_phase=False,       # works regardless of phase status
         event_schema=(),                   # EventInvalidatedEvent — imported lazily
@@ -331,7 +332,7 @@ REGISTRY: dict[str, CommandSpec] = {
         handler_class=_lazy_record_session_handler(),
         actor="llm",
         action="declare_session",
-        projection=ProjectionType.NONE,    # audit-only; no state change (I-SESSION-DECLARED-1)
+        projection=ProjectionType.STAMP,    # audit-only; no state content change (I-SESSION-DECLARED-1)
         uses_task_id=False,
         requires_active_phase=False,       # valid for PLANNED phases (e.g. PLAN Phase N session)
         event_schema=(SessionDeclaredEvent,),
@@ -345,7 +346,7 @@ REGISTRY: dict[str, CommandSpec] = {
         handler_class=_lazy_approve_spec_handler(),
         actor="human",
         action="approve_spec",
-        projection=ProjectionType.NONE,    # audit-only; no state change
+        projection=ProjectionType.STAMP,    # audit-only; no state content change
         uses_task_id=False,
         requires_active_phase=False,       # spec approval may occur before phase activation
         event_schema=(),                   # SpecApproved — imported lazily in approve_spec.py
@@ -363,7 +364,7 @@ REGISTRY: dict[str, CommandSpec] = {
         handler_class=_lazy_amend_plan_handler(),
         actor="human",
         action="amend_plan",
-        projection=ProjectionType.NONE,    # audit-only; no state change
+        projection=ProjectionType.STAMP,    # audit-only; no state content change
         uses_task_id=False,
         requires_active_phase=False,       # custom guard enforces ACTIVE/COMPLETE; not PLANNED
         guard_factory=_lazy_amend_plan_guard_factory,
@@ -835,7 +836,7 @@ def project_all(
 
     Single EventLog replay: rebuild_state result propagated to rebuild_taskset (I-REPLAY-1).
     """
-    if projection == ProjectionType.NONE:
+    if projection in (ProjectionType.NONE, ProjectionType.STAMP):
         return
     _db = db_path    or event_store_url()
     _st = state_path or str(state_file())
@@ -874,6 +875,18 @@ def execute_and_project(
     finally:
         if _proj is not None and projector is None:
             _proj.close()
+
+    if spec.projection == ProjectionType.STAMP:
+        _db = db_path or event_store_url()
+        _st = state_path or str(state_file())
+        try:
+            _stamp_yaml_seq(_db, _st)
+        except Exception as stamp_exc:
+            _log.warning(
+                "execute_and_project: _stamp_yaml_seq failed: %s — YAML may be stale",
+                stamp_exc,
+            )
+        return events
 
     if spec.projection == ProjectionType.NONE:
         return events

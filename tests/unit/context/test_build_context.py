@@ -143,7 +143,7 @@ def _call(
     config: dict,
     mock_state: MagicMock,
 ) -> str:
-    with patch("sdd.context.build_context.read_state", return_value=mock_state):
+    with patch("sdd.context_legacy.build_context.read_state", return_value=mock_state):
         return build_context(agent_type, task_id, depth, config)
 
 
