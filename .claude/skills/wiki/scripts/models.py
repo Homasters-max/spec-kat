@@ -67,6 +67,14 @@ class ExtractionResult(BaseModel):
 
 
 @dataclass
+class PageMeta:
+    tags: list[str] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
+    domain: str = ""
+    layer: str = ""
+
+
+@dataclass
 class WikiDiff:
     page_id: str
     unified_diff: str

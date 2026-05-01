@@ -4,17 +4,45 @@
 **Переопределить:** `export WIKI_VAULT=/path/to/vault` или `--vault /path`
 
 ---
+cd /root/project/.claude/skills/wiki && source venv/bin/activate && wiki ingest /root/project/obsidian-vault/raw/hazy-dreaming-peach.md 2>&1
 
+---
 ## Быстрый старт
 
 ```bash
-# Установить (один раз)
-pip install -e /root/project/.claude/skills/wiki/scripts/
+# Установить (один раз) — создаёт изолированный venv, symlink в /usr/local/bin/wiki
+WIKI_SRC=/root/project/.claude/skills/wiki
+python3 -m venv $WIKI_SRC/venv
+$WIKI_SRC/venv/bin/pip install -e $WIKI_SRC/scripts/ -q
+ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
+
+# Уже установлено — venv: /root/project/.claude/skills/wiki/venv/
+# wiki доступен глобально без активации venv
 
 # Проверить что всё работает
-cd /root/project/obsidian-vault
 wiki --help
 ```
+
+> **Примечание:** `pip install` напрямую не работает на Debian/Ubuntu с externally-managed Python.
+> Venv изолирует зависимости и не требует `--break-system-packages`.
+
+### Инициализация vault (первый запуск)
+
+```bash
+# Создать vault в папке по умолчанию (/root/project/obsidian-vault)
+wiki init
+
+# Или задать произвольный путь
+wiki init --vault /path/to/my-vault
+
+# С кастомным доменом и моделью
+wiki init --domain work --model claude-opus-4-7
+
+# Перезаписать существующий конфиг
+wiki init --force
+```
+
+`wiki init` создаёт структуру директорий, `wiki_config.yaml`, пустой глоссарий, лог-файлы и инициализирует git-репозиторий. Идемпотентен — повторный запуск без `--force` не перезапишет существующие файлы.
 
 ---
 
@@ -55,6 +83,19 @@ vault_root: /root/project/obsidian-vault
 ---
 
 ## Все команды CLI
+
+### `wiki init` — инициализировать vault
+
+```bash
+wiki init                            # vault в /root/project/obsidian-vault
+wiki init --vault /path/to/vault     # произвольный путь
+wiki init --domain work              # задать домен (default: personal)
+wiki init --force                    # перезаписать существующий конфиг
+```
+
+Создаёт структуру директорий, `wiki_config.yaml`, пустой глоссарий, лог-файлы, инициализирует git. Идемпотентен — безопасно запускать повторно.
+
+---
 
 ### `wiki ingest` — загрузить сырой файл
 
@@ -158,6 +199,19 @@ wiki log --n 50    # последние 50
 
 ---
 
+### `wiki mark-ingested` — пометить файл как обработанный
+
+```bash
+wiki mark-ingested <sha256>
+wiki mark-ingested <sha256> --file raw/my-notes.md
+```
+
+Записывает sha256 в `ingest_log.jsonl`. Запускать как **последний шаг** после `git commit` в pipeline wiki-evolve. Только после этого файл перестаёт появляться в `wiki ingest --pending`.
+
+SHA256 печатается командой `wiki ingest` в строке `sha256 : ...`.
+
+---
+
 ### `wiki promote` — продвинуть query в ContextPacket
 
 ```bash
@@ -165,6 +219,38 @@ wiki promote <query_id>
 ```
 
 Берёт `context_snapshot` из query_log по ID и кэширует как ContextPacket для последующей обработки через `wiki-evolve`.
+
+---
+
+### `wiki log-query` — записать запрос в query_log
+
+```bash
+wiki log-query --query "что такое RAG pipeline?"
+wiki log-query --query "что такое RAG pipeline?" --snapshot /tmp/context.json
+```
+
+Выводит сгенерированный `query_id` в stdout. Использовать перед `wiki promote`:
+
+```bash
+QID=$(wiki log-query --query "что такое RAG pipeline?")
+wiki promote $QID
+```
+
+`--snapshot` — путь к JSON-файлу с объектом контекста (`{}`-формат). Если не указан, `context_snapshot = {}` и `wiki promote` вернёт ошибку "context_snapshot is empty".
+
+---
+
+### `wiki status` — состояние pipeline
+
+```bash
+wiki status
+```
+
+Показывает:
+- Количество необработанных файлов в `raw/`
+- Наличие `runtime/tmp/extraction.json`
+- Черновики в `runtime/tmp/`
+- Количество записей в ingest_log и query_log
 
 ---
 
@@ -201,14 +287,16 @@ wiki curate-apply
 5. Вы: `wiki validate-extraction` — убедитесь что exit 0
 6. Claude (LLM): пишет черновики страниц в `runtime/tmp/`
 7. Вы: `wiki apply-drafts` → `wiki rebuild` → `wiki lint` → `git commit`
-8. Claude: `wiki sync-glossary` — опциональный review новых терминов
+8. Вы: `wiki mark-ingested <sha256>` — пометить файл как обработанный
+9. Claude: `wiki sync-glossary` — опциональный review новых терминов
 
 ### Сценарий 2: задать вопрос (wiki-query)
 
 1. Запустите `/wiki` → опишите вопрос
 2. Claude: `wiki search <terms>` + `wiki show <ids>` — READ-ONLY
 3. Claude (LLM): синтезирует ответ с цитатами
-4. Опционально: `wiki promote <query_id>` чтобы сохранить контекст для будущей обработки
+4. Опционально: `wiki log-query --query "<вопрос>" [--snapshot ctx.json]` → получить `query_id`
+5. Опционально: `wiki promote <query_id>` — сохранить контекст для wiki-evolve
 
 ### Сценарий 3: навести порядок (wiki-curate)
 
@@ -269,3 +357,5 @@ echo 'export WIKI_VAULT=/root/project/obsidian-vault' >> ~/.bashrc
 | `wiki lint` exit 1 — orphan | страница без входящих ссылок | добавить `[[page_id]]` в связанную страницу |
 | `wiki search` — No results | wiki/ пуст или индекс устарел | удалить `runtime/cache/bm25_corpus.json`, повторить |
 | `validate-extraction` exit 1 | невалидный JSON или схема | LLM должен переписать extraction.json |
+| `wiki promote` exit 1 — "context_snapshot is empty" | log-query вызван без --snapshot | повторить с --snapshot |
+| `wiki promote` exit 1 — "query_id not found" | неверный query_id | проверить `wiki log --n 50` |

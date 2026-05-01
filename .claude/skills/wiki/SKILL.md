@@ -22,40 +22,111 @@ Process a pending raw file through the full ingest → extract → apply pipelin
 
 ```
 Stage 0 (CLI):
-  wiki ingest --pending --take 1
+  wiki ingest --pending --take 1   # из очереди pending (стандартный путь)
+  wiki ingest <path>               # конкретный файл (когда пользователь передаёт путь явно)
   → prints ContextPacket path (runtime/cache/<sha256>.json)
 
 Stage 1 (LLM):
-  Read ContextPacket from the printed path
-  → analyse content_chunks, glossary_hints, related_pages
-  → write runtime/tmp/extraction.json  (must conform to ExtractionResult schema)
+  Read ContextPacket from the printed path (use Read tool with the full path).
+  Analyse content_chunks (actual text), glossary_hints (known terms),
+  and related_pages (existing wiki pages ranked by relevance).
 
-  ExtractionResult schema:
-    entities:            list[ExtractedEntity]
-    relations:           list[Relation]
-    conflicts:           list[ConflictNote]
-    glossary_proposals:  list[GlossaryProposal]
+  IMPORTANT: ensure runtime/tmp/ exists before writing:
+    mkdir -p <vault>/runtime/tmp/
+
+  Write runtime/tmp/extraction.json conforming to ExtractionResult schema.
+
+  Example extraction.json:
+  {
+    "entities": [
+      {"term": "rag-pipeline",  "type": "pattern", "confidence": 0.9,  "in_glossary": false},
+      {"term": "vector-store",  "type": "tool",    "confidence": 0.85, "in_glossary": true},
+      {"term": "retrieval-augmented-generation", "type": "idea", "confidence": 0.95, "in_glossary": false}
+    ],
+    "relations": [
+      {"from_term": "rag-pipeline", "to_term": "vector-store",                    "type": "uses"},
+      {"from_term": "rag-pipeline", "to_term": "retrieval-augmented-generation",  "type": "implements"}
+    ],
+    "conflicts": [
+      {"page": "embedding-search", "note": "source prefers cosine; page says dot-product"}
+    ],
+    "glossary_proposals": [
+      {"term": "RAG", "suggested_page": "rag-pipeline", "type": "pattern",
+       "reason": "acronym used 5× without definition"}
+    ]
+  }
+
+  page_id naming rules (MANDATORY):
+    kebab-case: lowercase letters, digits, hyphens only
+    NO dots  NO spaces  NO underscores
+    ✓ "rag-pipeline"   ✗ "RAG_Pipeline"   ✗ "rag.pipeline"
+
+  type guide:
+    "idea"    → abstract concept, principle, mental model  ("separation-of-concerns")
+    "pattern" → repeatable solution / recipe               ("rag-pipeline", "circuit-breaker")
+    "tool"    → concrete technology, library, software     ("postgres", "chroma", "fastapi")
+
+  confidence: include entities ≥ 0.7; omit vague mentions below that
+  in_glossary: true ONLY if term appears in glossary_hints from ContextPacket
 
   → user runs: wiki validate-extraction
     exit non-zero → STOP, fix extraction.json and retry
 
 Stage 2 (LLM):
-  Read ExtractionResult from runtime/tmp/extraction.json
-  Read existing wiki pages referenced in entities/relations
-  → for each page operation write a draft file:
-      runtime/tmp/<page_id>.create.md   — new page (full content)
-      runtime/tmp/<page_id>.diff.md     — incremental patch (unified diff)
-      runtime/tmp/<page_id>.rewrite.md  — full replacement (YAML frontmatter with reason field)
-  page_id must NOT contain dots
+  Read ExtractionResult from runtime/tmp/extraction.json.
+  For each entity choose operation:
+
+  OPERATION SELECTION:
+    create  → page does not exist   (wiki show <page_id> returns "not found")
+    diff    → page exists + small addition + page size > 1000 chars
+    rewrite → page exists + structural change OR page size ≤ 1000 chars
+
+  .create.md FORMAT  (key MUST be "page_type", NOT "type"):
+    ---
+    page_type: pattern
+    tags: [rag, retrieval, llm]
+    ---
+    # RAG Pipeline
+
+    ## Summary
+    One-paragraph description.
+
+    ## How It Works
+    Steps or mechanics, referencing [[other-page-id]] with wikilinks.
+
+    ## When To Use
+    Conditions that make this the right choice.
+
+    ## Trade-offs
+    Costs, limitations, gotchas.
+
+    ## See Also
+    - [[related-page-id]]
+
+  .diff.md FORMAT:
+    ---
+    base_sha256: <run: sha256sum wiki/<type>/<page_id>.md | awk '{print $1}'>
+    ---
+    <unified diff in standard patch format>
+
+  .rewrite.md FORMAT:
+    ---
+    reason: structural_change    # or: small_page
+    ---
+    <full new page content — same structure as .create.md body>
+
+  WIKILINKS: [[page_id]] — no spaces, no extension.
+  Each entity in ExtractionResult should appear in at least one wikilink.
 
   → user runs: wiki apply-drafts
     conflict → STOP, resolve manually then retry
 
 Post-action (CLI, run in order):
-  wiki rebuild        ← regenerates derived/index.md + derived/graph.json
-  wiki lint           ← exit 1 if broken links / orphans / duplicates
-  git commit          ← commit raw file + wiki pages together
-  wiki sync-glossary  ← interactive review of glossary_pending.yaml
+  wiki rebuild                        ← regenerate derived/index.md + graph.json
+  wiki lint                           ← exit 1 if broken links / orphans / duplicates
+  git commit                          ← commit raw file + wiki pages together
+  wiki sync-glossary                  ← interactive review of glossary_pending.yaml
+  wiki mark-ingested <sha256>         ← mark file done; sha256 printed by wiki ingest
 ```
 
 ---
@@ -79,8 +150,19 @@ Stage 1 (LLM):
     - promote_suggestion: query_id to promote if this query reveals reusable knowledge
 
 Post-action (optional, user decision):
-  wiki promote <query_id>
-  → saves context_snapshot to query_log so it can be re-ingested later via wiki-evolve
+  If the query reveals reusable knowledge worth ingesting later:
+
+  Step 1 — record in query_log (prints query_id):
+    wiki log-query --query "<the user's original question>"
+
+  Step 2 — optionally attach context snapshot:
+    wiki log-query --query "<question>" --snapshot /path/to/context.json
+
+  Step 3 — promote to ContextPacket for future wiki-evolve:
+    wiki promote <query_id>
+
+  Note: promote_suggestion in LLM output is a SIGNAL to run the above steps —
+  not a query_id that already exists. Only wiki log-query writes to query_log.
 ```
 
 ---

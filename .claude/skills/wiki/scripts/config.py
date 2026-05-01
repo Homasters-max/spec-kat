@@ -15,6 +15,8 @@ class WikiConfig(BaseModel):
     llm_model: str
     small_page_threshold: int
     vault_root: Path
+    domains: list[str] = []
+    layers: list[str] = []
 
 
 def load_config(vault_root: Path) -> WikiConfig:

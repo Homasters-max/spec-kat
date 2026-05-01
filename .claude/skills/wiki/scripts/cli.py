@@ -82,6 +82,39 @@ def _ingest_one(src: Path, vault_root: Path) -> None:
     typer.echo(f"  cache   : {cache_path}")
 
 
+@app.command(name="mark-ingested")
+def mark_ingested(
+    sha256: str = typer.Argument(..., help="SHA256 of the ingested file"),
+    file: str = typer.Option(..., "--file", help="Original file path (for log record)"),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Record a file as ingested in ingest_log (run after full wiki-evolve cycle)."""
+    import datetime
+    from models import IngestLogEntry
+    from state import append_ingest_log, read_ingest_log
+
+    vault_root = _resolve_vault(vault)
+
+    if not file:
+        typer.echo("Error: --file is required.", err=True)
+        raise typer.Exit(1)
+
+    known = {e.sha256 for e in read_ingest_log(vault_root)}
+    if sha256 in known:
+        typer.echo(f"[SKIP] {sha256[:8]} already in ingest_log.")
+        return
+
+    cache_path = vault_root / "runtime" / "cache" / f"{sha256}.json"
+    entry = IngestLogEntry(
+        sha256=sha256,
+        file=file,
+        ts=datetime.datetime.utcnow().isoformat(),
+        packet_path=str(cache_path),
+    )
+    append_ingest_log(vault_root, entry)
+    typer.echo(f"[OK] Marked {sha256[:8]} as ingested.")
+
+
 @app.command(name="validate-extraction")
 def validate_extraction(
     vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
@@ -130,14 +163,37 @@ def rebuild(
 def lint(
     vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
 ) -> None:
-    """Check wiki integrity: orphans, broken links, duplicates."""
+    """Check wiki integrity: orphans, broken links, duplicates, frontmatter."""
+    from config import load_config
     from lint import run_lint
 
-    report = run_lint(_resolve_vault(vault))
+    vault_root = _resolve_vault(vault)
+
+    # Load domains/layers from config if available (E1/E2); fallback = no validation
+    domains: list[str] | None = None
+    layers: list[str] | None = None
+    try:
+        cfg = load_config(vault_root)
+        domains = getattr(cfg, "domains", None)
+        layers = getattr(cfg, "layers", None)
+    except Exception:
+        pass
+
+    report = run_lint(vault_root, domains=domains, layers=layers)
 
     orphans = report["orphans"]
     broken = report["broken_links"]
     duplicates = report["duplicates"]
+    warnings = report["warnings"]
+    errors = report["errors"]
+
+    if warnings:
+        for item in warnings:
+            typer.echo(f"WARNING: {item['page_id']}: {item['message']}")
+
+    if errors:
+        for item in errors:
+            typer.echo(f"ERROR: {item['page_id']}: {item['message']}")
 
     if orphans:
         typer.echo(f"Orphans ({len(orphans)}):")
@@ -154,9 +210,10 @@ def lint(
         for item in duplicates:
             typer.echo(f"  - {item['a']} ≈ {item['b']}")
 
-    if not any([orphans, broken, duplicates]):
+    has_errors = any([errors, broken, duplicates])
+    if not any([warnings, errors, orphans, broken, duplicates]):
         typer.echo("[OK] No issues found.")
-    else:
+    elif has_errors:
         raise typer.Exit(1)
 
 
@@ -265,6 +322,226 @@ def promote(
     typer.echo(f"  cache  : {cache_path}")
 
 
+@app.command(name="log-query")
+def log_query(
+    query: str = typer.Option(..., "--query", help="The query text to record"),
+    snapshot: Optional[Path] = typer.Option(None, "--snapshot", help="Path to JSON file with context_snapshot"),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Record a query in query_log and print the generated query_id."""
+    import datetime
+    import json
+    import uuid
+
+    from models import QueryLogEntry
+    from state import append_query_log
+
+    vault_root = _resolve_vault(vault)
+
+    context_snapshot: dict = {}
+    if snapshot is not None:
+        snap_path = snapshot if snapshot.is_absolute() else Path.cwd() / snapshot
+        if not snap_path.exists():
+            typer.echo(f"Snapshot file not found: {snap_path}", err=True)
+            raise typer.Exit(1)
+        try:
+            context_snapshot = json.loads(snap_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            typer.echo(f"Invalid JSON in snapshot file: {exc}", err=True)
+            raise typer.Exit(1)
+        if not isinstance(context_snapshot, dict):
+            typer.echo("Snapshot file must contain a JSON object (dict).", err=True)
+            raise typer.Exit(1)
+
+    query_id = uuid.uuid4().hex[:12]
+    ts = datetime.datetime.utcnow().isoformat()
+    entry = QueryLogEntry(query_id=query_id, query=query, ts=ts, context_snapshot=context_snapshot)
+    append_query_log(vault_root, entry)
+    typer.echo(query_id)
+
+
+@app.command()
+def status(
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Show current wiki pipeline state: pending files, tmp drafts, logs."""
+    from git import GitRepo
+    from state import read_ingest_log, read_query_log
+
+    vault_root = _resolve_vault(vault)
+
+    try:
+        repo = GitRepo(vault_root)
+        pending = repo.pending_raw_files()
+    except Exception:
+        pending = []
+    typer.echo(f"Pending raw files : {len(pending)}")
+    for f in pending[:5]:
+        typer.echo(f"  {f.relative_to(vault_root)}")
+    if len(pending) > 5:
+        typer.echo(f"  ... and {len(pending) - 5} more")
+
+    tmp_dir = vault_root / "runtime" / "tmp"
+    extraction = tmp_dir / "extraction.json"
+    typer.echo(f"extraction.json   : {'EXISTS' if extraction.exists() else 'missing'}")
+    drafts = (
+        list(tmp_dir.glob("*.create.md"))
+        + list(tmp_dir.glob("*.diff.md"))
+        + list(tmp_dir.glob("*.rewrite.md"))
+    )
+    typer.echo(f"Draft files (tmp) : {len(drafts)}")
+    for d in drafts[:5]:
+        typer.echo(f"  {d.name}")
+
+    ingest_entries = read_ingest_log(vault_root)
+    query_entries = read_query_log(vault_root)
+    typer.echo(f"Ingest log entries: {len(ingest_entries)}")
+    typer.echo(f"Query log entries  : {len(query_entries)}")
+    if ingest_entries:
+        last = ingest_entries[-1]
+        typer.echo(f"  Last ingest: {last.ts[:19]}  {last.file}")
+
+
+@app.command(name="save-proposals")
+def save_proposals(
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Merge glossary_proposals from extraction.json into glossary_pending.yaml."""
+    import json
+
+    import yaml
+
+    vault_root = _resolve_vault(vault)
+    extraction_path = vault_root / "runtime" / "tmp" / "extraction.json"
+
+    if not extraction_path.exists():
+        typer.echo("runtime/tmp/extraction.json not found.", err=True)
+        raise typer.Exit(1)
+
+    data = json.loads(extraction_path.read_text(encoding="utf-8"))
+    proposals = data.get("glossary_proposals", [])
+    if not proposals:
+        typer.echo("[OK] 0 added, 0 skipped (no proposals in extraction.json)")
+        return
+
+    pending_path = vault_root / ".wiki" / "config" / "glossary_pending.yaml"
+    existing: list[dict] = []
+    if pending_path.exists():
+        existing = yaml.safe_load(pending_path.read_text(encoding="utf-8")) or []
+
+    existing_terms = {e.get("term") for e in existing}
+    added = 0
+    skipped = 0
+
+    for prop in proposals:
+        term = prop.get("term")
+        if term in existing_terms:
+            typer.echo(f"[SKIP] {term} (already pending)", err=True)
+            skipped += 1
+        else:
+            existing.append(prop)
+            existing_terms.add(term)
+            added += 1
+
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    pending_path.write_text(yaml.dump(existing, allow_unicode=True), encoding="utf-8")
+    typer.echo(f"[OK] {added} added, {skipped} skipped")
+
+
+@app.command(name="delete")
+def delete_page(
+    page_id: str = typer.Argument(..., help="Page id to delete"),
+    confirm: bool = typer.Option(False, "--confirm", help="Execute deletion (default is dry-run)"),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Delete a wiki page: remove file, incoming links, glossary entry, rebuild."""
+    import re
+
+    import yaml
+    from config import load_glossary
+    from rebuild import rebuild_all
+
+    vault_root = _resolve_vault(vault)
+    wiki_dir = vault_root / "wiki"
+
+    # Locate the page file
+    page_file: Path | None = None
+    for pt in ("idea", "pattern", "tool"):
+        candidate = wiki_dir / pt / f"{page_id}.md"
+        if candidate.exists():
+            page_file = candidate
+            break
+
+    if page_file is None:
+        typer.echo(f"Page '{page_id}' not found.", err=True)
+        raise typer.Exit(1)
+
+    # Find pages that reference [[page_id]]
+    link_pattern = re.compile(r"\[\[" + re.escape(page_id) + r"\]\]")
+    referencing: list[Path] = []
+    for md in wiki_dir.rglob("*.md"):
+        if md == page_file:
+            continue
+        if link_pattern.search(md.read_text(encoding="utf-8")):
+            referencing.append(md)
+
+    # Check glossary
+    glossary_path = vault_root / ".wiki" / "config" / "glossary.yaml"
+    glossary: list[dict] = load_glossary(vault_root)
+    glossary_entry = next((e for e in glossary if e.get("page") == page_id), None)
+
+    if not confirm:
+        # Dry-run: show info
+        lines = page_file.read_text(encoding="utf-8").splitlines()
+        typer.echo(f"=== {page_id} (first 10 lines) ===")
+        for ln in lines[:10]:
+            typer.echo(f"  {ln}")
+
+        if referencing:
+            typer.echo(f"\nReferenced by ({len(referencing)}):")
+            for p in referencing:
+                typer.echo(f"  - {p.relative_to(vault_root)}")
+        else:
+            typer.echo("\nNo incoming links.")
+
+        if glossary_entry:
+            typer.echo(f"\nGlossary entry: term='{glossary_entry.get('term')}' → will be removed")
+        else:
+            typer.echo("\nNo glossary entry.")
+
+        typer.echo(f"\nRun with --confirm to proceed.")
+        return
+
+    # --confirm: execute deletion
+    # 1. Update referencing pages
+    see_also_pattern = re.compile(r"^-\s+\[\[" + re.escape(page_id) + r"\]\]\s*$", re.MULTILINE)
+    updated_count = 0
+    for p in referencing:
+        text = p.read_text(encoding="utf-8")
+        # Remove See Also list items
+        text = see_also_pattern.sub("", text)
+        # Replace inline [[page_id]] with plain page_id
+        text = link_pattern.sub(page_id, text)
+        p.write_text(text, encoding="utf-8")
+        updated_count += 1
+
+    # 2. Remove glossary entry
+    glossary_removed = False
+    if glossary_entry:
+        glossary = [e for e in glossary if e.get("page") != page_id]
+        glossary_path.write_text(yaml.dump(glossary, allow_unicode=True), encoding="utf-8")
+        glossary_removed = True
+
+    # 3. Delete page file
+    page_file.unlink()
+
+    # 4. Rebuild derived/
+    rebuild_all(vault_root)
+
+    glossary_status = "removed" if glossary_removed else "kept"
+    typer.echo(f"Deleted {page_id}. Updated {updated_count} pages. Glossary: {glossary_status}.")
+
+
 @app.command(name="sync-glossary")
 def sync_glossary(
     vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
@@ -366,6 +643,70 @@ def evolve(
 ) -> None:
     """Launch the wiki-evolve skill in Claude Code."""
     typer.echo("Run /wiki skill in Claude Code and choose wiki-evolve")
+
+
+@app.command(name="init")
+def init_vault(
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+    domain: str = typer.Option("personal", "--domain", help="Wiki domain name"),
+    model: str = typer.Option("claude-sonnet-4-6", "--model", help="LLM model"),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
+) -> None:
+    """Initialise a new wiki vault: create directory structure and config files."""
+    import subprocess
+
+    import yaml
+
+    vault_root = _resolve_vault(vault)
+
+    dirs = [
+        vault_root / "raw",
+        vault_root / "wiki" / "idea",
+        vault_root / "wiki" / "pattern",
+        vault_root / "wiki" / "tool",
+        vault_root / "derived",
+        vault_root / "runtime" / "cache",
+        vault_root / "runtime" / "tmp",
+        vault_root / ".wiki" / "config",
+        vault_root / ".wiki" / "state",
+    ]
+    for d in dirs:
+        d.mkdir(parents=True, exist_ok=True)
+        typer.echo(f"  [dir]  {d.relative_to(vault_root)}")
+
+    config_path = vault_root / ".wiki" / "config" / "wiki_config.yaml"
+    if config_path.exists() and not force:
+        typer.echo(f"\n[SKIP] {config_path} already exists (use --force to overwrite)")
+    else:
+        config = {
+            "domain": domain,
+            "llm_model": model,
+            "small_page_threshold": 1000,
+            "vault_root": str(vault_root),
+        }
+        config_path.write_text(yaml.dump(config, allow_unicode=True), encoding="utf-8")
+        typer.echo(f"\n  [cfg]  .wiki/config/wiki_config.yaml")
+
+    glossary_path = vault_root / ".wiki" / "config" / "glossary.yaml"
+    if not glossary_path.exists():
+        glossary_path.write_text("[]\n", encoding="utf-8")
+        typer.echo(f"  [cfg]  .wiki/config/glossary.yaml")
+
+    for name in ("ingest_log.jsonl", "query_log.jsonl"):
+        p = vault_root / ".wiki" / "state" / name
+        if not p.exists():
+            p.touch()
+            typer.echo(f"  [log]  .wiki/state/{name}")
+
+    git_dir = vault_root / ".git"
+    if not git_dir.exists():
+        subprocess.run(["git", "init", str(vault_root)], check=True, capture_output=True)
+        typer.echo(f"  [git]  initialized repository")
+    else:
+        typer.echo(f"  [git]  already a git repo")
+
+    typer.echo(f"\n[OK] Vault ready at {vault_root}")
+    typer.echo(f"     Drop files into raw/ then run: wiki ingest --pending")
 
 
 if __name__ == "__main__":

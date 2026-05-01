@@ -4,28 +4,18 @@ import json
 import sys
 from pathlib import Path
 
-import yaml
-
-from models import ApplyResult, ExtractionResult, PageType, RewriteOp, WikiDiff
+from models import ApplyResult, ExtractionResult, PageMeta, PageType, RewriteOp, WikiDiff
 from repo import WikiRepo
 
 _OPS = ("create", "diff", "rewrite")
 
 
-def _parse_frontmatter(text: str) -> tuple[dict, str]:
-    """Return (frontmatter_dict, body) splitting YAML --- blocks."""
-    if text.startswith("---"):
-        end = text.find("\n---", 3)
-        if end != -1:
-            fm_text = text[3:end].strip()
-            body = text[end + 4:].lstrip("\n")
-            return yaml.safe_load(fm_text) or {}, body
-    return {}, text
-
 
 def validate_extraction(vault_root: Path) -> ExtractionResult:
     """Read runtime/tmp/extraction.json and validate via pydantic (I-WIKI-EXTRACT-1)."""
-    extraction_path = vault_root / "runtime" / "tmp" / "extraction.json"
+    tmp_dir = vault_root / "runtime" / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    extraction_path = tmp_dir / "extraction.json"
     if not extraction_path.exists():
         print(f"[ERROR] extraction.json not found: {extraction_path}", file=sys.stderr)
         sys.exit(1)
@@ -60,11 +50,17 @@ def apply_drafts(vault_root: Path, repo: WikiRepo) -> list[ApplyResult]:
 
     for page_id, op, path in draft_files:
         text = path.read_text(encoding="utf-8")
-        fm, body = _parse_frontmatter(text)
+        fm, body = WikiRepo._parse_frontmatter(text)
 
         if op == "create":
             page_type: PageType = fm.get("page_type", "idea")
-            result = repo.create_page(page_id, page_type, body)
+            meta = PageMeta(
+                tags=fm.get("tags", []),
+                sources=fm.get("sources", []),
+                domain=fm.get("domain", ""),
+                layer=fm.get("layer", ""),
+            )
+            result = repo.create_page(page_id, page_type, body, meta=meta)
 
         elif op == "diff":
             base_sha256: str = fm.get("base_sha256", "")
@@ -73,8 +69,14 @@ def apply_drafts(vault_root: Path, repo: WikiRepo) -> list[ApplyResult]:
 
         elif op == "rewrite":
             reason = fm.get("reason", "structural_change")
+            meta = PageMeta(
+                tags=fm.get("tags", []),
+                sources=fm.get("sources", []),
+                domain=fm.get("domain", ""),
+                layer=fm.get("layer", ""),
+            )
             rewrite_op = RewriteOp(page_id=page_id, page_content=body, reason=reason)
-            result = repo.rewrite_page(rewrite_op)
+            result = repo.rewrite_page(rewrite_op, meta=meta)
 
         else:
             continue
