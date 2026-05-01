@@ -117,3 +117,7 @@ def nav_session_file() -> Path:
 
 def nav_session_lock_file() -> Path:
     return get_sdd_root() / "state" / "nav_session.lock"
+
+
+def graph_calls_file() -> Path:
+    return get_sdd_root() / "runtime" / "graph_calls.jsonl"

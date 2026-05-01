@@ -256,6 +256,17 @@ class InvariantRegistered(DomainEvent):
     timestamp:    str
 
 
+@dataclass(frozen=True)
+class MetricRecorded(DomainEvent):
+    """Phase 56: domain metric event emitted by sdd record-metric (BC-56-A2)."""
+    EVENT_TYPE: ClassVar[str] = "MetricRecorded"
+    metric_key: str
+    value:      float
+    phase_id:   int
+    task_id:    str
+    context:    str   # free-text reason (≤140 chars)
+
+
 class EventLevel:
     L1 = "L1"  # domain truth — replay forever
     L2 = "L2"  # operational — 90 days
@@ -301,6 +312,8 @@ V1_L1_EVENT_TYPES: frozenset[str] = frozenset({
     # Phase 32 — DB schema events (PostgresMigration)
     "TaskDefined",
     "InvariantRegistered",
+    # Phase 56 — domain metric event (BC-56-A2)
+    "MetricRecorded",
 })
 
 V2_L1_EVENT_TYPES: frozenset[str] = V1_L1_EVENT_TYPES  # must be identical (I-EL-6)

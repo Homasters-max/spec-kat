@@ -473,12 +473,22 @@ def enrich_trace_cmd(args: tuple[str, ...]) -> None:
     sys.exit(main(list(args)))
 
 
-@cli.command("graph-guard")
-@click.option("--session-id", "session_id", required=True, help="Graph session ID to check")
-def graph_guard_cmd(session_id: str) -> None:
-    """Check graph protocol compliance for a session (I-GRAPH-PROTOCOL-1, I-GRAPH-GUARD-1)."""
-    from sdd.graph_navigation.cli.graph_guard import run
-    sys.exit(run(session_id))
+@cli.command("graph-guard", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def graph_guard_cmd(args: tuple[str, ...]) -> None:
+    """Check graph protocol compliance for a session (I-GRAPH-GUARD-1, BC-56-G1)."""
+    from sdd.graph_navigation.cli.graph_guard import main
+    sys.exit(main(list(args)))
+
+
+@cli.command("graph-stats")
+@click.option("--edge-type", "edge_type", default=None, help="Filter by edge kind (e.g. imports, emits)")
+@click.option("--node-type", "node_type", default=None, help="Filter by node kind (e.g. FILE, COMMAND)")
+@click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
+def graph_stats_cmd(edge_type: str | None, node_type: str | None, fmt: str) -> None:
+    """Show graph node/edge statistics (BC-56-G2)."""
+    from sdd.graph_navigation.cli.graph_stats import run
+    sys.exit(run(node_type=node_type, edge_type=edge_type, fmt=fmt))
 
 
 @cli.command("write")

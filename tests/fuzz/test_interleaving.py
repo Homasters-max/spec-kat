@@ -7,12 +7,13 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import uuid
 from dataclasses import asdict as _asdict
-from types import SimpleNamespace
 
 from hypothesis import HealthCheck, given, settings
 
 from sdd.commands.registry import REGISTRY
+from sdd.core.types import Command
 from tests.harness.api import execute_sequence
 from tests.harness.fixtures import db_factory  # noqa: F401 — pytest fixture
 from tests.harness.generators import independent_command_pair
@@ -37,13 +38,17 @@ def _state_hash(state) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-def _wrap(payload) -> SimpleNamespace:
-    """Wrap a _CmdPayload so execute_command sees cmd.payload (dict) and cmd.command_type.
+def _wrap(payload) -> Command:
+    """Wrap a _CmdPayload into a Command for sync-state execution.
 
-    _extract_task_id expects payload.get("task_id") — so payload must be a dict.
-    compute_command_id expects cmd.command_type for the hash envelope.
+    Uses only phase_id from the payload (SyncStatePayload fields).
+    Each call gets a unique command_id so idempotency dedup doesn't suppress events.
     """
-    return SimpleNamespace(payload=_asdict(payload), command_type="sync-state")
+    return Command(
+        command_id=uuid.uuid4().hex,
+        command_type="sync_state",
+        payload={"phase_id": payload.phase_id},
+    )
 
 
 @given(independent_command_pair())

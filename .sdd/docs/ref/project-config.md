@@ -63,7 +63,7 @@ Config MUST NOT override core SDD paths:
 - `tasks` → `.sdd/tasks/TaskSet_vN.md`
 - `specs` → `.sdd/specs/`
 - `plans` → `.sdd/plans/`
-- `db` → `.sdd/state/sdd_events.duckdb`
+- `db` → `SDD_DATABASE_URL` (PostgreSQL connection URL; enforced by I-NO-DUCKDB-1)
 
 ## I-CONTEXT-1..4 (build_context.py scoping)
 

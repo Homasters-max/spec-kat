@@ -7,10 +7,13 @@ I-INTENT-HEURISTIC-1:    EXPLAIN intent is set by CLI routing, not parse_query_i
 I-GRAPH-IMPLEMENTS-2:    fallback to FILE handler seed when COMMAND BFS returns empty context.
 I-PHASE-ISOLATION-1:     no direct sdd.graph.cache or sdd.graph.builder imports.
 I-RUNTIME-ORCHESTRATOR-1: no domain logic beyond pipeline calls and arg parsing.
+I-GRAPH-CALL-LOG-1:      log_graph_call() called after every engine.query().
 """
 from __future__ import annotations
 
+import os
 import sys
+from datetime import datetime, timezone
 from typing import Any
 
 from sdd.context_kernel.assembler import ContextAssembler
@@ -19,6 +22,7 @@ from sdd.context_kernel.intent import QueryIntent
 from sdd.context_kernel.runtime import ContextRuntime
 from sdd.graph.service import GraphService
 from sdd.graph_navigation.cli.formatting import debug_output, emit_error, format_json, format_text
+from sdd.infra.graph_call_log import GraphCallEntry, log_graph_call
 from sdd.policy.resolver import PolicyResolver
 from sdd.spatial.index import IndexBuilder
 
@@ -68,6 +72,13 @@ def run(
     except Exception as exc:
         emit_error("INTERNAL_ERROR", str(exc))
         return 1
+    log_graph_call(GraphCallEntry(
+        command="explain",
+        args={"node_id": node_id, "edge_types": sorted(edge_types) if edge_types else None},
+        session_id=os.environ.get("SDD_SESSION_ID"),
+        ts=datetime.now(timezone.utc).isoformat(),
+        result_size=dict(getattr(response.context, "budget_used", {})),
+    ))
 
     # I-GRAPH-IMPLEMENTS-2: COMMAND node with empty BFS → seed from FILE handler node.
     seed_node_id = node_id
@@ -91,6 +102,13 @@ def run(
             except Exception as exc:
                 emit_error("INTERNAL_ERROR", str(exc))
                 return 1
+            log_graph_call(GraphCallEntry(
+                command="explain",
+                args={"node_id": handler_node_id, "edge_types": sorted(edge_types) if edge_types else None},
+                session_id=os.environ.get("SDD_SESSION_ID"),
+                ts=datetime.now(timezone.utc).isoformat(),
+                result_size=dict(getattr(response.context, "budget_used", {})),
+            ))
 
     dbg: dict[str, Any] | None = None
     if debug:

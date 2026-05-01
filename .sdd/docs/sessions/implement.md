@@ -233,8 +233,12 @@ anchor-phase plan and spec via `sdd show-*` CLI before any implementation begins
 ## Post-Execution
 
 ```
-8. sdd complete T-NNN
+8. sdd graph-guard check --task T-NNN
+9. sdd complete T-NNN
 ```
+
+Step 8 verifies I-GRAPH-GUARD-1: ≥1 valid graph navigation call must exist for the session.
+Exit 1 from graph-guard → STOP; do not run sdd complete until violation is resolved.
 
 Events emitted: `TaskImplemented`, `StateSynced`, `MetricRecorded(task.lead_time)`
 

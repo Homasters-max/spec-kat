@@ -38,7 +38,7 @@ Replay built ONLY from L1. Metrics are L2.
 
 | Rule | Statement |
 |------|-----------|
-| EV-1 | DuckDB migrations additive-only: only `ADD COLUMN IF NOT EXISTS` in `SDD_MIGRATION_REGISTRY` |
+| EV-1 | PostgreSQL migrations additive-only: only `ADD COLUMN IF NOT EXISTS` in `SDD_MIGRATION_REGISTRY` |
 | EV-2 | Event payload fields additive-only; removing/renaming V1_L1_EVENT_TYPES fields = breaking |
 | EV-3 | `schema_version` always 1; upcast mechanism requires new spec |
 | EV-4 | Reducer MUST replay ALL historical events without error (production guarantee) |
@@ -60,7 +60,7 @@ Mode: `SDD_C1_MODE=strict` (AssertionError) in CI; `warn` in production.
 
 ## Metrics Layer (§0.14)
 
-All metrics → DuckDB (`partition_key='metrics'`). Only path: `record_metric.py` (auto-called).
+All metrics → PostgreSQL (`partition_key='metrics'`). Only path: `record_metric.py` (auto-called).
 
 | Category | Examples |
 |----------|----------|

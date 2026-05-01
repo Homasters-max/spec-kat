@@ -109,7 +109,8 @@ code_rules:
       message: "I-PATH-1: hardcoded .sdd/ paths forbidden in src/sdd/ — use sdd.infra.paths"
 
 event_log:
-  path: .sdd/state/sdd_events.duckdb
+  # Connection via SDD_DATABASE_URL (PostgreSQL). Legacy DuckDB path deprecated since Phase 45.
+  url_env: SDD_DATABASE_URL
   meta_source: meta
   runtime_source: runtime
 

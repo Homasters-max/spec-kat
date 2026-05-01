@@ -36,6 +36,7 @@ from sdd.core.events import (
     DomainEvent,
     EventLevel,
     InvariantRegistered,
+    MetricRecorded,
     PhaseCompletedEvent,
     PhaseInitializedEvent,
     PhaseStartedEvent,
@@ -216,6 +217,11 @@ def _lazy_sync_invariants_handler() -> type[CommandHandlerBase]:
 def _lazy_analytics_refresh_handler() -> type[CommandHandlerBase]:
     from sdd.commands.analytics_refresh import AnalyticsRefreshHandler
     return AnalyticsRefreshHandler
+
+
+def _lazy_record_metric_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.record_metric import RecordMetricHandler
+    return RecordMetricHandler
 
 
 REGISTRY: dict[str, CommandSpec] = {
@@ -447,6 +453,19 @@ REGISTRY: dict[str, CommandSpec] = {
             "analytics.all_invariants FROM references p_{name}",
         ),
         description="Refresh analytics views for a project schema (BC-32-4, I-DB-SCHEMA-1)",
+    ),
+    "record-metric": CommandSpec(
+        name="record-metric",
+        handler_class=_lazy_record_metric_handler(),
+        actor="llm",
+        action="record_metric",
+        projection=ProjectionType.STAMP,   # audit-only; accessible via sdd query-events (BC-56-A2)
+        uses_task_id=False,
+        requires_active_phase=True,
+        event_schema=(MetricRecorded,),
+        preconditions=("metric_key is non-empty", "value is numeric"),
+        postconditions=("MetricRecorded in EventLog",),
+        description="Record a named metric into EventLog as MetricRecorded event (BC-56-A2)",
     ),
 }
 

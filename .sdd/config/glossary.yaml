@@ -24,7 +24,7 @@ terms:
 
   - id: "query_events"
     label: "Query Events"
-    definition: "Inspect the event log stored in DuckDB. Returns events in chronological order with filtering support."
+    definition: "Inspect the event log stored in PostgreSQL. Returns events in chronological order with filtering support."
     aliases: ["sdd query-events", "event log", "inspect events", "event history"]
     links: ["COMMAND:query-events"]
 

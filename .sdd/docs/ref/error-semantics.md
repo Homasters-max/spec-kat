@@ -31,11 +31,11 @@ Fallback when `head_seq is None`: `sha256(command_type + str(payload))[:16]` (I-
 
 **context_hash:**
 - GUARD/EXECUTE/COMMIT: `sha256(reducer_state_repr)[:32]` — 32-hex chars
-- BUILD_CONTEXT failure: `f"FAIL:{exc_type}"` sentinel (e.g. `"FAIL:duckdb.IOException"`)
+- BUILD_CONTEXT failure: `f"FAIL:{exc_type}"` sentinel (e.g. `"FAIL:psycopg2.OperationalError"`)
 - PROJECT failure: `"FAIL:PROJECTION"` (I-CONTEXT-HASH-SENTINEL-1)
 
 **ErrorEvent emission rules:**
-- GUARD/EXECUTE/COMMIT errors → append to EventLog (DuckDB)
+- GUARD/EXECUTE/COMMIT errors → append to EventLog (PostgreSQL)
 - BUILD_CONTEXT errors → write to `audit_log.jsonl` (EventLog unavailable)
 - PROJECT errors → write to `audit_log.jsonl` (wrapped by execute_and_project)
 - `ErrorEvent.phase_id` is always `None` (I-ERROR-PHASE-NULL-1)
@@ -63,7 +63,7 @@ Fallback when `head_seq is None`: `sha256(command_type + str(payload))[:16]` (I-
 
 | Rule | Statement |
 |------|-----------|
-| CON-1 | Single-writer assumption per DuckDB file |
+| CON-1 | Single-writer assumption per PostgreSQL connection |
 | CON-2 | Optimistic locking: `head_seq` captured at BUILD_CONTEXT; verified before INSERT |
 | CON-3 | `StaleStateError` (error_code=6) raised when `MAX(seq) != head_seq` |
 | CON-4 | Retry policy: up to 3 attempts, exponential backoff 100ms→200ms→400ms; safe via I-IDEM-1 |

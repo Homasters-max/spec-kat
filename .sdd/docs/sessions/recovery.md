@@ -14,11 +14,11 @@ Read `error_type`, `stage`, `error_code` from JSON stderr output.
 
 | Rule | Condition | → Action |
 |------|-----------|----------|
-| RD-1 | `error_type=Inconsistency` AND DuckDB reachable | RP-1 |
+| RD-1 | `error_type=Inconsistency` AND PostgreSQL reachable | RP-1 |
 | RD-2 | `error_type=StaleStateError` (error_code=6) | CLI retry (CON-4); on terminal → `sdd report-error --type StaleStateError` |
 | RD-3 | `error_type=MissingState` OR `error_type=ProjectionError` | RP-1 |
 | RD-4 | `stage=BUILD_CONTEXT` (error_code=5) | RP-3 |
-| RD-5 | DuckDB inaccessible (connection error) | RP-2 |
+| RD-5 | PostgreSQL inaccessible (connection error) | RP-2 |
 
 If no RD-* matches → FSM-3: STOP + `sdd report-error --type Inconsistency --message "unclassified"`.
 
@@ -33,7 +33,7 @@ sdd sync-state --phase N
 Idempotent. No EventLog mutation. Bypasses PhaseGuard (I-SYNC-NO-PHASE-GUARD-1).
 Rebuilds State_index.yaml and TaskSet.md from full EventLog replay.
 
-**RP-2** — sync-state fails OR DuckDB inaccessible:
+**RP-2** — sync-state fails OR PostgreSQL inaccessible:
 ```
 sdd report-error --type Inconsistency --message "recovery-failed"
 STOP → human operator required
@@ -44,7 +44,7 @@ STOP → human operator required
 sdd report-error --type MissingState
 STOP → error written to audit_log.jsonl
 ```
-LLM MUST NOT proceed; human investigates DuckDB state.
+LLM MUST NOT proceed; human investigates PostgreSQL event log.
 
 **RP-4** — Complete EventLog loss (break-glass — HUMAN ONLY):
 ```
@@ -59,8 +59,8 @@ LLM MUST NOT execute RP-4. I-REBUILD-EMERGENCY-2.
 
 | Scenario | Signal | Action |
 |----------|--------|--------|
-| FS-1: Projection drift | `error_type=Inconsistency`, DuckDB OK | RD-1 → RP-1 |
-| FS-2: sync-state fails | DuckDB error during sync | RD-5 → RP-2 |
+| FS-1: Projection drift | `error_type=Inconsistency`, PostgreSQL OK | RD-1 → RP-1 |
+| FS-2: sync-state fails | PostgreSQL error during sync | RD-5 → RP-2 |
 | FS-3: Missing/corrupt YAML | `MissingState` OR YAML parse fail | RD-3 → RP-1 |
 | FS-4: StaleStateError | `stage=COMMIT`, error_code=6 | RD-2 → CLI retry |
 | FS-5: Guard rejection | `stage=GUARD`, error_code=1 | STOP; do NOT retry; `sdd report-error --type GuardViolationError --message "<reason>"` |
@@ -70,7 +70,7 @@ LLM MUST NOT execute RP-4. I-REBUILD-EMERGENCY-2.
 | FS-8: BUILD_CONTEXT fail | `stage=BUILD_CONTEXT`, error_code=5 | RD-4 → RP-3 |
 | FS-9: Missing task I/O | `MissingContext` OR `ScopeViolation` | STOP; `sdd report-error --type MissingContext` |
 | FS-10: EventLog replay crash | BUILD_CONTEXT fail during replay | RD-4 → RP-3 |
-| FS-11: EventLog missing | DuckDB file missing | RD-5 → RP-2; human break-glass |
+| FS-11: EventLog missing | PostgreSQL connection lost / data unavailable | RD-5 → RP-2; human break-glass |
 | FS-12: Invariant FAIL | `validate-invariants` returns FAIL | STOP; `sdd validate T-NNN` + `sdd report-error --type InvariantViolationError` |
 | FS-13: Test failure | `tests.status=FAIL` | STOP; `sdd validate T-NNN` + `sdd report-error --type Inconsistency` |
 | FS-14: SLA violation | Metric exceeds threshold | Continue (non-blocking); `sdd metrics-report --phase N --anomalies` |

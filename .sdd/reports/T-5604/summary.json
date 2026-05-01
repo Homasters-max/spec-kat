@@ -1,0 +1,31 @@
+{
+  "task_id": "T-5604",
+  "session_id": "6cfcba4c-9067-4ccf-95e5-0d0dc628eb9a",
+  "total_events": 35,
+  "graph_calls": 7,
+  "file_reads": 6,
+  "file_writes": 11,
+  "commands": 11,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/explain.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/trace.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/resolve.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/infra/graph_call_log.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/infra/test_graph_call_log.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/infra/paths.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/explain.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/explain.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/explain.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/explain.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/trace.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/trace.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/trace.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/resolve.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/resolve.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/resolve.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/resolve.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [],
+  "behavioral_warnings": []
+}

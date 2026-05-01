@@ -62,7 +62,7 @@ sdd query-events --phase N --include-bash --json --save
 Output: .sdd/reports/EL_PhaseN_events.json
 ```
 
-Source: DuckDB `sdd_events.duckdb` — единственный источник.
+Source: PostgreSQL `event_log` table — единственный источник.
 Idempotent: re-run overwrites previous snapshot.
 
 ---

@@ -7,7 +7,7 @@ Plan: plans/Plan_v56.md
 
 T-5601: M0 — Edge kinds + meta keys in types.py
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §4 — Edge Kinds Phase 56
 Invariants:           I-GRAPH-PRIORITY-1
 spec_refs:            [Spec_v56 §4, I-GRAPH-PRIORITY-1]
@@ -26,7 +26,7 @@ Navigation:
 
 T-5602: M0 — graph_calls_file() в paths.py + sdd_config.yaml
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §2 BC-56-A1, §2 BC-56-BC, BC-56-LAYER
 Invariants:           I-GRAPH-CALL-LOG-1, I-BC-DETERMINISTIC-1, I-LAYER-DETERMINISTIC-1
 spec_refs:            [Spec_v56 §2, I-GRAPH-CALL-LOG-1]
@@ -45,7 +45,7 @@ Navigation:
 
 T-5603: M1 — GraphCallLog модуль + unit tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §2 BC-56-A1
 Invariants:           I-GRAPH-CALL-LOG-1, I-AUDIT-SESSION-1
 spec_refs:            [Spec_v56 §2 BC-56-A1, I-GRAPH-CALL-LOG-1, I-AUDIT-SESSION-1]
@@ -64,7 +64,7 @@ Navigation:
 
 T-5604: M1 — Интеграция log_graph_call() в CLI explain/trace/resolve
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §2 BC-56-A1
 Invariants:           I-GRAPH-CALL-LOG-1
 spec_refs:            [Spec_v56 §2 BC-56-A1, I-GRAPH-CALL-LOG-1]
@@ -82,7 +82,7 @@ Navigation:
 
 T-5605: M2 — MetricRecorded event + record-metric команда + tests
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §2 BC-56-A2
 Invariants:           I-2, I-EREG-SCOPE-1
 spec_refs:            [Spec_v56 §2 BC-56-A2, I-2]
@@ -100,7 +100,7 @@ Navigation:
 
 T-5606: M3 — graph-guard команда + регистрация в cli.py
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §2 BC-56-G1
 Invariants:           I-GRAPH-GUARD-1
 spec_refs:            [Spec_v56 §2 BC-56-G1, I-GRAPH-GUARD-1]
@@ -119,7 +119,7 @@ Navigation:
 
 T-5607: M3 — graph-stats команда + обновление docs
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §2 BC-56-G2
 Invariants:           I-GRAPH-GUARD-1
 spec_refs:            [Spec_v56 §2 BC-56-G2]
@@ -138,7 +138,7 @@ Navigation:
 
 T-5608: M3 — Integration test: test_graph_guard.py
 
-Status:               TODO
+Status:               DONE
 Spec ref:             Spec_v56 §11 Step 56-C
 Invariants:           I-GRAPH-GUARD-1
 spec_refs:            [Spec_v56 §11, I-GRAPH-GUARD-1]

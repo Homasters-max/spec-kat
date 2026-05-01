@@ -69,7 +69,7 @@ Removing/renaming positional args or required params = breaking → requires new
 | I-FAIL-1: SDDError → exit 1 + JSON stderr; Exception → exit 2 + JSON stderr | `pytest tests/unit/test_cli_exec_contract.py` |
 | I-CLI-API-1: JSON error fields `error_type`, `message`, `exit_code` frozen | `pytest tests/unit/test_cli_exec_contract.py` |
 | I-ENV-1: `sdd --help` with minimal env (no PYTHONPATH) | `pytest tests/integration/test_env_independence.py` |
-| I-EXEC-ISOL-1: tests use `tmp_path`-isolated DuckDB; project DB never touched | `pytest tests/integration/test_pipeline_deterministic.py` |
+| I-EXEC-ISOL-1: tests use isolated PostgreSQL schema (`pg_test_db` fixture); project DB never touched | `pytest tests/integration/test_pipeline_deterministic.py` |
 | I-PURE-1: `compute_trend()` and `detect_anomalies()` make zero I/O | `pytest tests/unit/infra/test_metrics_purity.py` |
 | I-LEGACY-0a: no `sys.path` mutation toward `.sdd/` in `src/sdd/**/*.py` | `sdd validate-invariants --check I-LEGACY-0a` |
 | I-LEGACY-0b: no `subprocess` calls to `.sdd/tools/` in `src/sdd/**/*.py` | `sdd validate-invariants --check I-LEGACY-0b` |
@@ -96,7 +96,7 @@ Removing/renaming positional args or required params = breaking → requires new
 
 ## Event Schema Rules (EV-1..4)
 
-- EV-1: DuckDB schema migrations additive-only (`ADD COLUMN IF NOT EXISTS`)
+- EV-1: PostgreSQL schema migrations additive-only (`ADD COLUMN IF NOT EXISTS`)
 - EV-2: Event payload fields additive-only; removing/renaming V1_L1_EVENT_TYPES fields = breaking
 - EV-3: `schema_version` is always 1; upcast mechanism requires new spec
 - EV-4: Reducer MUST replay all historical events without error (production guarantee)

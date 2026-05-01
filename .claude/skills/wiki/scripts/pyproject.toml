@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wiki-cli"
+version = "0.1.0"
+dependencies = ["typer>=0.12", "pydantic>=2", "pyyaml", "rank_bm25>=0.2"]
+
+[project.scripts]
+wiki = "cli:app"
+
+[tool.setuptools]
+py-modules = ["cli", "models", "config", "state", "repo", "search", "git", "ingest", "apply", "rebuild", "lint"]

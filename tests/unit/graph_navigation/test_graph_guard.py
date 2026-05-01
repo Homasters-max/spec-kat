@@ -381,3 +381,88 @@ class TestGraphSessionStateMethods:
         assert "FILE:src/bar.py" in new_state.trace_path
         assert len(new_state.trace_path) == 2
         assert new_state.session_id == state.session_id
+
+
+class TestGraphGuardMain:
+    """BC-56-G1 tests for main(args) — uses query_graph_calls (I-GRAPH-GUARD-1)."""
+
+    def _make_entry(self, session_id: str = "sess-1") -> "GraphCallEntry":
+        from sdd.infra.graph_call_log import GraphCallEntry
+        return GraphCallEntry(
+            command="explain",
+            args={"node_id": "FILE:src/foo.py"},
+            session_id=session_id,
+            ts="2026-01-01T00:00:00+00:00",
+            result_size={"nodes": 1, "edges": 0},
+        )
+
+    def test_exit_0_when_calls_found(self, capsys) -> None:
+        """Exit 0 when ≥1 valid GraphCallEntry for session (I-GRAPH-GUARD-1 satisfied)."""
+        from unittest.mock import patch
+        from sdd.graph_navigation.cli import graph_guard
+
+        entry = self._make_entry("sess-abc")
+        with patch.object(graph_guard, "query_graph_calls", return_value=[entry]):
+            with patch.object(graph_guard, "get_current_session_id", return_value="sess-abc"):
+                result = graph_guard.main(["check", "--task", "T-5606"])
+        assert result == 0
+
+    def test_exit_1_no_calls(self, capsys) -> None:
+        """Exit 1 with I-GRAPH-GUARD-1 when no graph calls found."""
+        from unittest.mock import patch
+        from sdd.graph_navigation.cli import graph_guard
+
+        with patch.object(graph_guard, "query_graph_calls", return_value=[]):
+            with patch.object(graph_guard, "get_current_session_id", return_value="sess-empty"):
+                result = graph_guard.main(["check", "--task", "T-5606"])
+        assert result == 1
+        captured = capsys.readouterr()
+        err = json.loads(captured.err)
+        assert err["violated_invariant"] == "I-GRAPH-GUARD-1"
+        assert err["error_type"] == "GRAPH_GUARD_VIOLATION"
+
+    def test_exit_1_no_session_id(self, capsys) -> None:
+        """Exit 1 when no session_id available and none provided."""
+        from unittest.mock import patch
+        from sdd.graph_navigation.cli import graph_guard
+
+        with patch.object(graph_guard, "get_current_session_id", return_value=None):
+            result = graph_guard.main(["check", "--task", "T-5606"])
+        assert result == 1
+        captured = capsys.readouterr()
+        err = json.loads(captured.err)
+        assert err["violated_invariant"] == "I-GRAPH-GUARD-1"
+
+    def test_explicit_session_id_takes_priority(self, capsys) -> None:
+        """--session-id arg overrides get_current_session_id()."""
+        from unittest.mock import patch
+        from sdd.graph_navigation.cli import graph_guard
+
+        entry = self._make_entry("explicit-sess")
+        with patch.object(graph_guard, "query_graph_calls", return_value=[entry]) as mock_q:
+            with patch.object(graph_guard, "get_current_session_id", return_value="other-sess"):
+                result = graph_guard.main(["check", "--task", "T-5606", "--session-id", "explicit-sess"])
+        assert result == 0
+        mock_q.assert_called_once_with(session_id="explicit-sess")
+
+    def test_missing_check_subcommand(self, capsys) -> None:
+        """Exit 1 with USAGE_ERROR when 'check' subcommand missing."""
+        from sdd.graph_navigation.cli import graph_guard
+
+        result = graph_guard.main(["--task", "T-5606"])
+        assert result == 1
+        captured = capsys.readouterr()
+        err = json.loads(captured.err)
+        assert err["error_type"] == "USAGE_ERROR"
+
+    def test_missing_task_arg(self, capsys) -> None:
+        """Exit 1 with USAGE_ERROR when --task T-NNN missing."""
+        from unittest.mock import patch
+        from sdd.graph_navigation.cli import graph_guard
+
+        with patch.object(graph_guard, "get_current_session_id", return_value="sess-x"):
+            result = graph_guard.main(["check"])
+        assert result == 1
+        captured = capsys.readouterr()
+        err = json.loads(captured.err)
+        assert err["error_type"] == "USAGE_ERROR"

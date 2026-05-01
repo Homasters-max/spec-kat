@@ -3,12 +3,15 @@
 Canonical pipeline (I-RUNTIME-ORCHESTRATOR-1):
   IndexBuilder → GraphService → parse_query_intent → PolicyResolver → ContextRuntime → format
 
-I-PHASE-ISOLATION-1: no direct sdd.graph.cache or sdd.graph.builder imports.
+I-PHASE-ISOLATION-1:    no direct sdd.graph.cache or sdd.graph.builder imports.
 I-RUNTIME-ORCHESTRATOR-1: no domain logic beyond pipeline calls and arg parsing.
-I-SEARCH-DIRECT-1: --node-id bypasses BM25 — exact lookup via graph.nodes dict.
+I-SEARCH-DIRECT-1:      --node-id bypasses BM25 — exact lookup via graph.nodes dict.
+I-GRAPH-CALL-LOG-1:     log_graph_call() called after every engine.query().
 """
 from __future__ import annotations
 
+import os
+from datetime import datetime, timezone
 from typing import Any
 
 from sdd.context_kernel.assembler import ContextAssembler
@@ -17,6 +20,7 @@ from sdd.context_kernel.intent import QueryIntent, parse_query_intent
 from sdd.context_kernel.runtime import ContextRuntime
 from sdd.graph.service import GraphService
 from sdd.graph_navigation.cli.formatting import debug_output, emit_error, format_json, format_text
+from sdd.infra.graph_call_log import GraphCallEntry, log_graph_call
 from sdd.policy.resolver import PolicyResolver
 from sdd.spatial.index import IndexBuilder
 
@@ -64,6 +68,13 @@ def run(
         except Exception as exc:
             emit_error("INTERNAL_ERROR", str(exc))
             return 1
+        log_graph_call(GraphCallEntry(
+            command="resolve",
+            args={"node_id": node_id},
+            session_id=os.environ.get("SDD_SESSION_ID"),
+            ts=datetime.now(timezone.utc).isoformat(),
+            result_size=dict(getattr(response.context, "budget_used", {})),
+        ))
     else:
         # I-INTENT-CANONICAL-1: intent determined by parse_query_intent for resolve command.
         intent = parse_query_intent(query)  # type: ignore[arg-type]
@@ -81,6 +92,13 @@ def run(
         except Exception as exc:
             emit_error("INTERNAL_ERROR", str(exc))
             return 1
+        log_graph_call(GraphCallEntry(
+            command="resolve",
+            args={"query": query},
+            session_id=os.environ.get("SDD_SESSION_ID"),
+            ts=datetime.now(timezone.utc).isoformat(),
+            result_size=dict(getattr(response.context, "budget_used", {})),
+        ))
 
         # I-CLI-ERROR-CODES-1: NOT_FOUND when SEARCH returns 0 candidates.
         if intent is QueryIntent.SEARCH and not response.candidates:

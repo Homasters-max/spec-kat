@@ -46,6 +46,7 @@ RULE: `tool-reference.md` is NOT an authoritative contract.
 | `sdd resolve` | `<QUERY>` (positional) | `--format json\|text`, `--rebuild`, `--debug` | graph | — |
 | `sdd explain` | `<NODE_ID>` (positional) | `--edge-types TYPE1,...`, `--format json\|text`, `--rebuild`, `--debug` | graph | — |
 | `sdd trace` | `<NODE_ID>` (positional) | `--edge-types TYPE1,...`, `--format json\|text`, `--rebuild`, `--debug` | graph | — |
+| `sdd graph-stats` | — | `--edge-type KIND`, `--node-type KIND`, `--format json\|text` | graph | — |
 
 **Notes:**
 - ⚠ `resolve --format json`: REQUIRED in STEP 4.5 anchor discovery; text format is human-only
@@ -105,7 +106,7 @@ sdd show-state --state "$STATE"
 | `sdd show-plan --phase N` | Full plan content for phase N |
 | `sdd validate-config --phase N` | Validate project_profile.yaml + phase_N.yaml |
 | `sdd validate-invariants --phase N [--task T-NNN] [--check I-XXX]` | Check I-SDD invariants + record quality metrics |
-| `sdd query-events --phase N [--step T-NNN] [--event TYPE] [--include-bash] [--json] [--save]` | Query EventLog (DuckDB single source) |
+| `sdd query-events --phase N [--step T-NNN] [--event TYPE] [--include-bash] [--json] [--save]` | Query EventLog (PostgreSQL single source) |
 | `sdd metrics-report --phase N [--trend] [--anomalies]` | Generate Metrics_PhaseN.md |
 | `sdd report-error --type T --message M` | Structured violation reporter |
 | `sdd phase-guard check --command "Implement T-NNN"` | PhaseGuard + SDDEventRejected emitter |
@@ -179,13 +180,32 @@ sdd trace FILE:src/sdd/tasks/navigation.py --edge-types imports
 
 **I-IMPLEMENT-TRACE-1:** every dependent returned by `sdd trace` MUST receive an explicit decision before writing (keep read-only, escalate, or open a new task for dependent changes).
 
+### `sdd graph-stats [--node-type KIND] [--edge-type KIND] [--format json|text]`
+
+Shows aggregate statistics about the knowledge graph: node counts by kind, edge counts by kind.
+Optionally filter to a single node kind or edge kind.
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--node-type` | no | Show only nodes of this kind (e.g. `FILE`, `COMMAND`, `TASK`) |
+| `--edge-type` | no | Show only edges of this kind (e.g. `imports`, `emits`, `guards`) |
+| `--format` | no | `json` or `text` (default: `text`) |
+
+**Example:**
+```bash
+sdd graph-stats                          # total nodes + edges
+sdd graph-stats --node-type FILE         # FILE node count only
+sdd graph-stats --edge-type imports      # imports edge count only
+sdd graph-stats --format json            # JSON output
+```
+
 ---
 
 ## Hook Commands (console_scripts)
 
 | Command | Purpose |
 |---------|---------|
-| `sdd-hook-log pre\|post` | Claude Code PreToolUse/PostToolUse hook → emits ToolUse* to DuckDB |
+| `sdd-hook-log pre\|post` | Claude Code PreToolUse/PostToolUse hook → emits ToolUse* to PostgreSQL |
 
 ## Querying EventLog
 
@@ -215,7 +235,7 @@ sdd query-events --list-types
 SDD_SEQ_CHECKPOINT = 85   # floor; update when manually resetting sequence
 ```
 
-Update ONLY when DuckDB file is recreated or events manually deleted.
+Update ONLY when PostgreSQL schema is reset or events manually deleted.
 Set to `MAX(seq) + 1` from new DB state.
 Update both `sdd_db.py` AND CLAUDE.md §0.12 simultaneously.
 

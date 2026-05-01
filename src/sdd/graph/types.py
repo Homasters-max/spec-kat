@@ -13,16 +13,20 @@ logger = logging.getLogger(__name__)
 # Canonical edge-kind priority table (I-GRAPH-PRIORITY-1).
 # Each EdgeExtractor MUST assign priority = EDGE_KIND_PRIORITY[edge.kind].
 EDGE_KIND_PRIORITY: dict[str, float] = {
-    "emits":         0.95,
-    "guards":        0.90,
-    "implements":    0.85,
-    "tested_by":     0.80,
-    "verified_by":   0.75,
-    "depends_on":    0.70,
-    "introduced_in": 0.65,
-    "imports":       0.60,
-    "means":         0.50,
-    "contains":      0.45,
+    "emits":               0.95,
+    "guards":              0.90,
+    "implements":          0.85,
+    "tested_by":           0.80,
+    "verified_by":         0.75,
+    "depends_on":          0.70,
+    "introduced_in":       0.65,
+    "cross_bc_dependency": 0.63,
+    "imports":             0.60,
+    "calls":               0.58,
+    "belongs_to":          0.55,
+    "means":               0.50,
+    "contains":            0.45,
+    "in_layer":            0.35,
 }
 
 # Allowlist for meta keys copied from SpatialNode (I-GRAPH-META-1).
@@ -30,7 +34,7 @@ EDGE_KIND_PRIORITY: dict[str, float] = {
 ALLOWED_META_KEYS: frozenset[str] = frozenset({
     "path", "language", "line_start", "line_end", "links", "phase",
     "verified_by", "introduced_in", "depends_on", "implements",
-    "module_path",
+    "module_path", "path_prefix", "description", "path_patterns",
 })
 
 

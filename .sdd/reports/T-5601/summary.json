@@ -1,0 +1,18 @@
+{
+  "task_id": "T-5601",
+  "session_id": "0e59b032-c503-408a-b5c7-d4aeef6214d0",
+  "total_events": 22,
+  "graph_calls": 2,
+  "file_reads": 2,
+  "file_writes": 2,
+  "commands": 16,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph/types.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph/types.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph/types.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph/types.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [],
+  "behavioral_warnings": []
+}

@@ -3,12 +3,15 @@
 Canonical pipeline (I-RUNTIME-ORCHESTRATOR-1):
   IndexBuilder → GraphService → TRACE intent → PolicyResolver → ContextRuntime → format
 
-I-INTENT-HEURISTIC-1: TRACE intent is set by CLI routing, not parse_query_intent.
-I-PHASE-ISOLATION-1:  no direct sdd.graph.cache or sdd.graph.builder imports.
+I-INTENT-HEURISTIC-1:   TRACE intent is set by CLI routing, not parse_query_intent.
+I-PHASE-ISOLATION-1:    no direct sdd.graph.cache or sdd.graph.builder imports.
 I-RUNTIME-ORCHESTRATOR-1: no domain logic beyond pipeline calls and arg parsing.
+I-GRAPH-CALL-LOG-1:     log_graph_call() called after every engine.query().
 """
 from __future__ import annotations
 
+import os
+from datetime import datetime, timezone
 from typing import Any
 
 from sdd.context_kernel.assembler import ContextAssembler
@@ -17,6 +20,7 @@ from sdd.context_kernel.intent import QueryIntent
 from sdd.context_kernel.runtime import ContextRuntime
 from sdd.graph.service import GraphService
 from sdd.graph_navigation.cli.formatting import debug_output, emit_error, format_json, format_text
+from sdd.infra.graph_call_log import GraphCallEntry, log_graph_call
 from sdd.policy.resolver import PolicyResolver
 from sdd.spatial.index import IndexBuilder
 
@@ -64,6 +68,13 @@ def run(
     except Exception as exc:
         emit_error("INTERNAL_ERROR", str(exc))
         return 1
+    log_graph_call(GraphCallEntry(
+        command="trace",
+        args={"node_id": node_id, "edge_types": sorted(edge_types) if edge_types else None},
+        session_id=os.environ.get("SDD_SESSION_ID"),
+        ts=datetime.now(timezone.utc).isoformat(),
+        result_size=dict(getattr(response.context, "budget_used", {})),
+    ))
 
     # I-CLI-ERROR-CODES-1: NOT_FOUND when node_id absent from graph.
     if node_id not in graph.nodes:

@@ -30,6 +30,7 @@ _EXPECTED_REGISTRY_KEYS: frozenset[str] = frozenset({
     "init-project",
     "sync-invariants",
     "analytics-refresh",
+    "record-metric",
 })
 
 _READ_ONLY_COMMANDS: frozenset[str] = frozenset({

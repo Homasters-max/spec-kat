@@ -30,9 +30,9 @@ class ValidateTaskPayload:
 
 @dataclass(frozen=True)
 class SyncStatePayload:
-    phase_id:             int
-    taskset_path:         str
-    state_path:           str
+    phase_id:             int = 0
+    taskset_path:         str = ""
+    state_path:           str = ""
     current_tasks_total:  int = 0
 
 

@@ -1,0 +1,40 @@
+{
+  "task_id": "T-5608",
+  "session_id": "78ae4d46-3ce7-4a0f-bcb7-9b61ead134ce",
+  "total_events": 39,
+  "graph_calls": 2,
+  "file_reads": 13,
+  "file_writes": 5,
+  "commands": 19,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/.sdd/docs/sessions/implement.md' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/infra/graph_call_log.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/graph_navigation/test_graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/integration/test_graph_navigation_cli.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/property/__init__.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/core/payloads.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/_base.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/fuzz/test_interleaving.py' not in allowed_files",
+    "I-TRACE-COMPLETE-1: FILE_WRITE on '/root/project/tests/integration/test_graph_guard.py' without prior GRAPH_CALL in session '78ae4d46-3ce7-4a0f-bcb7-9b61ead134ce'",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/integration/test_graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/update_state.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/core/types.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/test_registry_contract.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/core/payloads.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/core/payloads.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/unit/test_registry_contract.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/fuzz/test_interleaving.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/fuzz/test_interleaving.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/tests/integration/test_graph_guard.py' without GRAPH_CALL in session history",
+    "BLIND_WRITE: '/root/project/src/sdd/core/payloads.py' without GRAPH_CALL in session history",
+    "BLIND_WRITE: '/root/project/tests/unit/test_registry_contract.py' without GRAPH_CALL in session history",
+    "BLIND_WRITE: '/root/project/tests/fuzz/test_interleaving.py' without GRAPH_CALL in session history",
+    "BLIND_WRITE: '/root/project/tests/fuzz/test_interleaving.py' without GRAPH_CALL in session history",
+    "LOOP_DETECTED: 'sdd graph-guard check --task T-5608 2>&1; echo \"EXIT: $?\"' ×3"
+  ],
+  "behavioral_warnings": []
+}

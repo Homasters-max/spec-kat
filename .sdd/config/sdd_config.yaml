@@ -1,2 +1,52 @@
 anomaly_zscore_threshold: 2.0
 trend_epsilon: 1.0e-9
+
+bounded_contexts:
+  - id: graph
+    path_prefix: src/sdd/graph/
+    description: "Graph build pipeline (extractors, cache, service)"
+  - id: context_kernel
+    path_prefix: src/sdd/context_kernel/
+    description: "Pure functional query pipeline (engine, assembler, selection)"
+  - id: graph_navigation
+    path_prefix: src/sdd/graph_navigation/
+    description: "CLI navigation layer (explain, trace, resolve)"
+  - id: governance
+    path_prefix: src/sdd/commands/
+    description: "Write Kernel (REGISTRY, handlers, command pipeline)"
+  - id: spatial
+    path_prefix: src/sdd/spatial/
+    description: "SpatialIndex, IndexBuilder, navigator"
+  - id: infra
+    path_prefix: src/sdd/infra/
+    description: "Infrastructure (audit, db, paths, event_log)"
+  - id: tasks
+    path_prefix: src/sdd/tasks/
+    description: "TaskSet parser, TaskNavigationSpec"
+  - id: policy
+    path_prefix: src/sdd/policy/
+    description: "NavigationPolicy, PolicyResolver"
+
+layers:
+  interface:
+    path_patterns:
+      - src/sdd/cli.py
+      - src/sdd/graph_navigation/cli/
+  application:
+    path_patterns:
+      - src/sdd/commands/
+      - src/sdd/spatial/commands/
+  domain:
+    path_patterns:
+      - src/sdd/context_kernel/engine.py
+      - src/sdd/context_kernel/assembler.py
+      - src/sdd/context_kernel/selection.py
+      - src/sdd/graph/types.py
+      - src/sdd/graph/builder.py
+      - src/sdd/tasks/navigation.py
+  infrastructure:
+    path_patterns:
+      - src/sdd/infra/
+      - src/sdd/graph/service.py
+      - src/sdd/graph/cache.py
+      - src/sdd/spatial/index.py

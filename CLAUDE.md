@@ -294,7 +294,7 @@ For all other commands → load `.sdd/docs/ref/tool-reference.md` (§HARD-LOAD R
     /ref/          → 8 reference files (kernel-contracts, recovery, etc.)
   /norms/          → SENAR norm catalog
   /config/         → project_profile.yaml, sdd_config.yaml, phases/
-  /state/          → DuckDB event store (sdd_events.duckdb)
+  /state/          → legacy (deprecated DuckDB file; PostgreSQL is current backend via SDD_DATABASE_URL)
   /runtime/        → State_index.yaml (SSOT projection), audit_log.jsonl
   /specs/          → Formal specs (immutable after approval)
   /specs_draft/    → Draft specs (editable)

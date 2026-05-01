@@ -11,10 +11,10 @@ update_trigger: when hook mechanism changes or SDD_SEQ_CHECKPOINT needs updating
 
 ```
 PreToolUse  (.*)  → sdd-hook-log pre  → sdd.hooks.log_tool.main()
-                                        → emits ToolUseStarted → sdd_events.duckdb only
+                                        → emits ToolUseStarted → PostgreSQL event_log only
 
 PostToolUse (.*)  → sdd-hook-log post → sdd.hooks.log_tool.main()
-                                        → emits ToolUseCompleted → sdd_events.duckdb only
+                                        → emits ToolUseCompleted → PostgreSQL event_log only
 ```
 
 Hook is configured in `~/.claude/settings.json`. Matcher: `.*` (all tools).
@@ -44,14 +44,12 @@ Hook NEVER blocks execution (exit 0) — informational only (NORM-AUDIT-BASH).
 SDD_SEQ_CHECKPOINT = 85   # floor; update when manually resetting sequence
 ```
 
-DuckDB does not always persist sequence state across connections. `sdd_db.py` compensates:
-```python
-next_seq = max(SDD_SEQ_CHECKPOINT, current_max + 1)
-CREATE OR REPLACE SEQUENCE sdd_event_seq START {next_seq}
-```
+PostgreSQL persists sequence state natively across connections. The `SDD_SEQ_CHECKPOINT` floor
+is a legacy safety value from the DuckDB era; it remains as a no-op floor in the current code
+but no longer compensates for sequence loss.
 
 **When to update SDD_SEQ_CHECKPOINT:**
-- ONLY when DuckDB file is recreated or events manually deleted
+- ONLY when PostgreSQL schema is reset or events manually deleted
 - Set to `MAX(seq) + 1` from new DB state
 - Update BOTH `sdd_db.py` AND CLAUDE.md §0.12 simultaneously
 
@@ -78,4 +76,4 @@ applies_to:  every tool call (matcher: ".*"), regardless of phase
 
 ## Legacy Note
 
-Before Phase 13 M1: matcher was `Bash` → `log_bash.py` → emitted `BashCommandStarted`/`BashCommandCompleted` → DuckDB + audit_log.jsonl. These events remain as historical record.
+Before Phase 13 M1: matcher was `Bash` → `log_bash.py` → emitted `BashCommandStarted`/`BashCommandCompleted` → PostgreSQL event_log + audit_log.jsonl. These events remain as historical record.

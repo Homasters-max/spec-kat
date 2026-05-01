@@ -13,11 +13,11 @@ Classify from JSON stderr BEFORE selecting RP-*. Primary signal: `stage`. Second
 
 | Rule | Condition | Action |
 |------|-----------|--------|
-| RD-1 | `error_type=Inconsistency` AND DuckDB reachable | RP-1 |
+| RD-1 | `error_type=Inconsistency` AND PostgreSQL reachable | RP-1 |
 | RD-2 | `error_type=StaleStateError` (error_code=6) | CLI retry (CON-4); terminal → `sdd report-error` |
 | RD-3 | `error_type=MissingState` OR `error_type=ProjectionError` | RP-1 |
 | RD-4 | `stage=BUILD_CONTEXT` (error_code=5) | RP-3 |
-| RD-5 | DuckDB inaccessible (connection error at any stage) | RP-2 |
+| RD-5 | PostgreSQL inaccessible (connection error at any stage) | RP-2 |
 
 ## Recovery Protocols (RP-1..4)
 
@@ -30,7 +30,7 @@ sdd sync-state --phase N
 - Available in any phase status (PLANNED/ACTIVE/COMPLETE)
 - Full EventLog replay → rebuilds State_index.yaml + TaskSet.md in STRICT mode
 
-**RP-2** — sync-state fails OR DuckDB inaccessible:
+**RP-2** — sync-state fails OR PostgreSQL inaccessible:
 ```bash
 sdd report-error --type Inconsistency --message "recovery-failed"
 # STOP — human operator required
@@ -41,7 +41,7 @@ sdd report-error --type Inconsistency --message "recovery-failed"
 sdd report-error --type MissingState
 # STOP — error in audit_log.jsonl
 ```
-No execution attempted. Human investigates DuckDB.
+No execution attempted. Human investigates PostgreSQL event log.
 
 **RP-4** — Complete EventLog loss (break-glass, HUMAN ONLY):
 ```bash
@@ -56,8 +56,8 @@ LLM MUST NOT execute this path (I-REBUILD-EMERGENCY-2).
 
 | FS | Signal | Classification | Action | Command | Guarantees |
 |----|--------|----------------|--------|---------|------------|
-| FS-1 | `error_type=Inconsistency` AND DuckDB OK | Projection divergence | RD-1 → RP-1 | `sdd sync-state --phase N` | Idempotent; no EventLog mutation |
-| FS-2 | `sdd sync-state` throws DuckDB error | Infra failure | RD-5 → RP-2 | `sdd report-error --type Inconsistency --message "sync-state failed"` | No partial writes |
+| FS-1 | `error_type=Inconsistency` AND PostgreSQL OK | Projection divergence | RD-1 → RP-1 | `sdd sync-state --phase N` | Idempotent; no EventLog mutation |
+| FS-2 | `sdd sync-state` throws PostgreSQL error | Infra failure | RD-5 → RP-2 | `sdd report-error --type Inconsistency --message "sync-state failed"` | No partial writes |
 | FS-3 | `MissingState` OR YAML parse fail | Projection missing | RD-3 → RP-1 | `sdd sync-state --phase N` | YAML fully from EventLog |
 
 ### 2. Concurrency
@@ -87,7 +87,7 @@ LLM MUST NOT execute this path (I-REBUILD-EMERGENCY-2).
 | FS | Signal | Classification | Action | Command |
 |----|--------|----------------|--------|---------|
 | FS-10 | BUILD_CONTEXT fail during replay | Critical corruption | RD-4 → RP-3 | `sdd report-error --type Inconsistency` |
-| FS-11 | DuckDB file missing/unreadable | Total data loss | STOP + human break-glass | *(human only)* `SDD_EMERGENCY=1` |
+| FS-11 | PostgreSQL connection lost / data unavailable | Total data loss | STOP + human break-glass | *(human only)* `SDD_EMERGENCY=1` |
 
 ### 6. Validation / Quality
 

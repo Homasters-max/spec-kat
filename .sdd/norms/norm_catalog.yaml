@@ -73,6 +73,7 @@ norms:
       - declare_session
       - sync_invariants
       - refresh_analytics
+      - record_metric
     conditions:
       task_status_must_be: TODO
       phase_must_be_active: true
