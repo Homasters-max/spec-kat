@@ -230,6 +230,7 @@ def test_reemit_after_invalidation_creates_new_event(tmp_db_path: str) -> None:
     mock_cmd = MagicMock()
     mock_cmd.session_type = "IMPLEMENT"
     mock_cmd.phase_id = 49
+    mock_cmd.task_id = "T-4909"
 
     with psycopg.connect(tmp_db_path) as conn:
         # Step 1: emit first SessionDeclared

@@ -1,4 +1,4 @@
-"""Integration-level tests for ContextEngine (T-5118).
+"""Integration-level tests for ContextEngine (T-5118, T-5504).
 
 Covers:
   - DoD 3: ContextEngine instantiable with mocks
@@ -7,6 +7,7 @@ Covers:
   - I-SEARCH-AUTO-EXACT-1: SEARCH with single candidate → upgrade to RESOLVE_EXACT
   - I-SEARCH-NO-EMBED-1: fuzzy_score via BM25
   - I-CONTEXT-DETERMINISM-1: identical inputs → identical assembler call args
+  - I-ENGINE-EDGE-FILTER-1: edge_types BFS filter applied inside expand, not as post-filter
 """
 from __future__ import annotations
 
@@ -18,9 +19,10 @@ import pytest
 
 from sdd.context_kernel.assembler import AssembledContext, ContextAssembler
 from sdd.context_kernel.documents import DocProvider
-from sdd.context_kernel.engine import ContextEngine
+from sdd.context_kernel.engine import ContextEngine, _expand_trace
 from sdd.context_kernel.intent import QueryIntent
 from sdd.context_kernel.rag_types import LightRAGProjection, RAGResult
+from sdd.context_kernel.selection import Selection
 from sdd.graph.types import DeterministicGraph, Edge, Node
 from sdd.policy import Budget, NavigationPolicy, RagMode
 
@@ -358,3 +360,104 @@ class TestRagPipeline:
         engine.query(_graph("FILE:t"), _policy(rag_mode=RagMode.OFF), _doc_provider(), "FILE:t")
 
         rag_projection.query.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# I-ENGINE-EDGE-FILTER-1: edge_types BFS filter correctness (Spec_v55 §9 #1-4)
+# ---------------------------------------------------------------------------
+
+class TestEdgeTypesBFSFilter:
+    """I-ENGINE-EDGE-FILTER-1: edge_types filter applied inside BFS expand functions."""
+
+    def _graph_with_mixed_out_edges(self) -> DeterministicGraph:
+        """CMD:A --emits--> EVT:B, CMD:A --uses--> FILE:C"""
+        nodes = {
+            "CMD:A": _node("CMD:A", kind="COMMAND"),
+            "EVT:B": _node("EVT:B", kind="EVENT"),
+            "FILE:C": _node("FILE:C", kind="FILE"),
+        }
+        e_emits = Edge(
+            edge_id="e1", src="CMD:A", dst="EVT:B", kind="emits",
+            priority=1.0, source="test", meta={},
+        )
+        e_uses = Edge(
+            edge_id="e2", src="CMD:A", dst="FILE:C", kind="uses",
+            priority=1.0, source="test", meta={},
+        )
+        return DeterministicGraph(
+            nodes=nodes,
+            edges_out={"CMD:A": [e_emits, e_uses]},
+            edges_in={"EVT:B": [e_emits], "FILE:C": [e_uses]},
+            source_snapshot_hash="mixed_hash",
+        )
+
+    def test_bfs_excludes_node_reachable_via_non_allowed_edge(self) -> None:
+        """(Spec_v55 §9 #1) Hop=1 node reachable only via non-allowed edge is excluded from selection."""
+        engine, assembler = _make_engine()
+        graph = self._graph_with_mixed_out_edges()
+
+        engine.query(
+            graph, _policy(), _doc_provider(), "CMD:A",
+            QueryIntent.EXPLAIN,
+            edge_types=frozenset({"emits"}),
+        )
+
+        selection: Selection = assembler.build.call_args.kwargs["selection"]
+        assert "EVT:B" in selection.nodes, "EVT:B reachable via allowed 'emits' must be included"
+        assert "FILE:C" not in selection.nodes, "FILE:C via non-allowed 'uses' must be excluded"
+
+    def test_backward_compat_edge_types_none_matches_default(self) -> None:
+        """(Spec_v55 §9 #2) edge_types=None produces identical output to calling without edge_types."""
+        nodes = {
+            "CMD:do": _node("CMD:do", kind="COMMAND"),
+            "EVT:done": _node("EVT:done", kind="EVENT"),
+        }
+        e = Edge(
+            edge_id="e1", src="CMD:do", dst="EVT:done", kind="emits",
+            priority=0.95, source="test", meta={},
+        )
+        graph = DeterministicGraph(
+            nodes=nodes,
+            edges_out={"CMD:do": [e]},
+            edges_in={"EVT:done": [e]},
+            source_snapshot_hash="compat_hash",
+        )
+
+        engine1, asm1 = _make_engine()
+        engine1.query(graph, _policy(), _doc_provider(), "CMD:do", QueryIntent.EXPLAIN)
+        sel_default: Selection = asm1.build.call_args.kwargs["selection"]
+
+        engine2, asm2 = _make_engine()
+        engine2.query(graph, _policy(), _doc_provider(), "CMD:do", QueryIntent.EXPLAIN, edge_types=None)
+        sel_none: Selection = asm2.build.call_args.kwargs["selection"]
+
+        assert set(sel_default.nodes.keys()) == set(sel_none.nodes.keys()), (
+            "edge_types=None must produce the same node set as calling without edge_types"
+        )
+
+    def test_expand_trace_allowed_kinds_filters_in_edges(self) -> None:
+        """(Spec_v55 §9 #3) _expand_trace with allowed_kinds returns only matching in-edges."""
+        e_imports = Edge(
+            edge_id="e1", src="FILE:a", dst="FILE:dst", kind="imports",
+            priority=1.0, source="test", meta={},
+        )
+        e_uses = Edge(
+            edge_id="e2", src="FILE:b", dst="FILE:dst", kind="uses",
+            priority=1.0, source="test", meta={},
+        )
+        nodes = {
+            "FILE:dst": _node("FILE:dst"),
+            "FILE:a": _node("FILE:a"),
+            "FILE:b": _node("FILE:b"),
+        }
+        graph = DeterministicGraph(
+            nodes=nodes,
+            edges_out={"FILE:a": [e_imports], "FILE:b": [e_uses]},
+            edges_in={"FILE:dst": [e_imports, e_uses]},
+            source_snapshot_hash="trace_filter_hash",
+        )
+
+        result = _expand_trace(graph, "FILE:dst", 0, allowed_kinds=frozenset({"imports"}))
+
+        assert len(result) == 1, f"Expected 1 edge, got {len(result)}"
+        assert result[0].kind == "imports", "Only 'imports' in-edges must be returned"

@@ -1,0 +1,23 @@
+{
+  "task_id": "T-6210",
+  "session_id": "925889a1-6682-44ab-b884-1f3815939ce3",
+  "total_events": 18,
+  "graph_calls": 3,
+  "file_reads": 3,
+  "file_writes": 3,
+  "commands": 9,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/session_state.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/graph_navigation/test_graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/unit/graph_navigation/test_graph_guard.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/src/sdd/graph_navigation/cli/graph_guard.py' without GRAPH_CALL in last 5 events",
+    "BLIND_WRITE: '/root/project/tests/unit/graph_navigation/test_graph_guard.py' without GRAPH_CALL in last 5 events",
+    "THRASHING: >3 COMMAND without GRAPH_CALL"
+  ]
+}

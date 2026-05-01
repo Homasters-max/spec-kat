@@ -20,6 +20,7 @@ from sdd.core.events import (
     DomainEvent,
     PhaseCompletedEvent,
     TaskImplementedEvent,
+    TaskSetDefinedEvent,
     TaskValidatedEvent,
     classify_event_level,
 )
@@ -81,19 +82,21 @@ class ValidateTaskCommand:
 
 @dataclass(frozen=True)
 class SyncStateCommand:
-    command_id:   str
-    command_type: str
-    payload:      Mapping[str, Any]
-    phase_id:     int
-    taskset_path: str
-    state_path:   str
+    command_id:           str
+    command_type:         str
+    payload:              Mapping[str, Any]
+    phase_id:             int
+    taskset_path:         str
+    state_path:           str
+    current_tasks_total:  int = 0
 
     def __post_init__(self) -> None:
         if not self.payload:
             object.__setattr__(self, "payload", {
-                "phase_id":     self.phase_id,
-                "taskset_path": self.taskset_path,
-                "state_path":   self.state_path,
+                "phase_id":             self.phase_id,
+                "taskset_path":         self.taskset_path,
+                "state_path":           self.state_path,
+                "current_tasks_total":  self.current_tasks_total,
             })
 
 
@@ -270,10 +273,9 @@ class _StateSyncedEvent(DomainEvent):
 
 
 class SyncStateHandler(CommandHandlerBase):
-    """Pure handler: returns [StateSynced] with no I/O (I-HANDLER-PURE-1, I-KERNEL-WRITE-1).
+    """Emits TaskSetDefined when TaskSet tasks_total diverges from EventLog (I-ST-4).
 
-    Superseded by NoOpHandler in REGISTRY["sync-state"]; retained for backward compat.
-    Caller (execute_and_project) is responsible for EventLog.append and projection rebuild.
+    Also emits StateSynced for audit. Caller (execute_and_project) rebuilds projections.
     """
 
     def handle(self, command: Any) -> list[DomainEvent]:
@@ -284,6 +286,28 @@ class SyncStateHandler(CommandHandlerBase):
 
         now_ms = int(time.time() * 1000)
         now_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        events: list[DomainEvent] = []
+
+        # Emit TaskSetDefined when TaskSet tasks_total diverges from EventLog (I-ST-4).
+        # EventLog freezes tasks_total at decompose time; tasks added post-decompose cause drift.
+        # current_tasks_total is pre-computed by CLI layer (state I/O is forbidden in handle()).
+        try:
+            taskset_total = len(parse_taskset(p.taskset_path))
+            current_total = int(command.payload.get("current_tasks_total", 0))
+            if taskset_total != current_total:
+                events.append(TaskSetDefinedEvent(
+                    event_type="TaskSetDefined",
+                    event_id=str(uuid.uuid4()),
+                    appended_at=now_ms,
+                    level=classify_event_level("TaskSetDefined"),
+                    event_source="runtime",
+                    caused_by_meta_seq=None,
+                    phase_id=p.phase_id,
+                    tasks_total=taskset_total,
+                ))
+        except Exception:
+            pass  # best-effort; StateSynced still emitted for audit
 
         synced_event = _StateSyncedEvent(
             event_type="StateSynced",
@@ -296,8 +320,8 @@ class SyncStateHandler(CommandHandlerBase):
             phase_id=p.phase_id,
             timestamp=now_iso,
         )
-
-        return [synced_event]
+        events.append(synced_event)
+        return events
 
 
 # ---------------------------------------------------------------------------
@@ -481,10 +505,16 @@ def main(args: list[str] | None = None) -> int:
                     taskset_path=taskset,
                 )
         elif parsed.cmd == "sync":
-            from sdd.commands.registry import REGISTRY, execute_and_project
+            from sdd.commands.registry import REGISTRY, execute_and_project  # noqa: PLC0415
+            from sdd.infra.projections import get_current_state  # noqa: PLC0415
+            try:
+                _cur_total = get_current_state(db_path).tasks_total
+            except Exception:
+                _cur_total = 0
             execute_and_project(
                 REGISTRY["sync-state"],
-                build_command("SyncState", phase_id=phase_id, taskset_path=taskset, state_path=state_path),
+                build_command("SyncState", phase_id=phase_id, taskset_path=taskset,
+                              state_path=state_path, current_tasks_total=_cur_total),
                 db_path=db_path,
                 state_path=state_path,
                 taskset_path=taskset,

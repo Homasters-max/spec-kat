@@ -43,8 +43,14 @@ RULE: `tool-reference.md` is NOT an authoritative contract.
 | `sdd report-error` | `--type`, `--message` | — | — | — |
 | `sdd validate-config` | `--phase N` | `--config <path>` | — | — |
 | `sdd validate-invariants` | `--phase N` | `--task T-NNN`, `--check I-XXX`, `--scope` | — | — |
+| `sdd resolve` | `<QUERY>` (positional) | `--format json\|text`, `--rebuild`, `--debug` | graph | — |
+| `sdd explain` | `<NODE_ID>` (positional) | `--edge-types TYPE1,...`, `--format json\|text`, `--rebuild`, `--debug` | graph | — |
+| `sdd trace` | `<NODE_ID>` (positional) | `--edge-types TYPE1,...`, `--format json\|text`, `--rebuild`, `--debug` | graph | — |
 
 **Notes:**
+- ⚠ `resolve --format json`: REQUIRED in STEP 4.5 anchor discovery; text format is human-only
+- ⚠ `explain --edge-types`: comma-separated, no spaces (e.g. `implements,guards,emits`); `""` → non-zero exit; omit → default BFS kinds
+- ⚠ `trace --edge-types`: comma-separated; omit → all in-edges (backward compat)
 - ⚠ `phase-guard check`: `--state` REQUIRED — guard does NOT auto-detect paths (see `cli.schema.yaml`)
 - ⚠ `task-guard check`: `--taskset` REQUIRED — guard does NOT auto-detect paths (see `cli.schema.yaml`)
 - ⚠ `check-scope read <path> --inputs f1,f2,...`: `--inputs` required for any `src/` path — without it guard assumes no declared inputs and denies access; pass ALL Task Inputs comma-joined
@@ -106,6 +112,74 @@ sdd show-state --state "$STATE"
 | `sdd task-guard check --task T-NNN` | Verify task Status == TODO |
 | `sdd check-scope read <path>` | Validate file access against SENAR norms |
 | `sdd norm-guard check --actor llm --action implement_task` | Machine-readable norm enforcement |
+
+## Graph Navigation Commands (IMPLEMENT-allowed)
+
+> NORM-GRAPH-001: LLM MAY invoke these commands during IMPLEMENT and DECOMPOSE sessions.
+> Purpose: deterministic file scope discovery (I-IMPLEMENT-GRAPH-1). See `implement.md` STEP 4.5.
+
+### `sdd resolve <QUERY> --format json`
+
+Searches graph nodes by free-text keyword. Returns ranked candidates with `node_id`, `kind`, `score`.
+
+**STEP 4.5 usage — anchor discovery (Sub-step 4.5-A):**
+```bash
+sdd resolve "TaskNavigationSpec" --format json
+# → exit 0 required (I-DECOMPOSE-RESOLVE-1)
+# → top-1 candidate.kind ∈ expected_kinds (I-DECOMPOSE-RESOLVE-2)
+# Repeat per each resolve_keyword in task.navigation
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `<QUERY>` | yes | Free-text search term (keyword from task.navigation) |
+| `--format json` | **yes in STEP 4.5** | Machine-readable output for anchor extraction; text is human-only |
+| `--rebuild` | no | Force graph rebuild (ignore GraphCache) |
+| `--debug` | no | Show selection debug info |
+
+### `sdd explain <NODE_ID> [--edge-types TYPE1,TYPE2,...]`
+
+BFS traversal from anchor node following out-edges. Returns FILE nodes reachable via whitelisted edge kinds.
+
+**STEP 4.5 usage — dependency traversal (Sub-step 4.5-B):**
+```bash
+sdd explain TASK:T-5521 --edge-types implements,guards,emits
+# → FILE nodes reachable from anchor via listed edge kinds
+# → these files receive graph justification for reading (I-IMPLEMENT-GRAPH-1, case a)
+# Repeat per each anchor node found in Sub-step 4.5-A
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `<NODE_ID>` | yes | Anchor node id (e.g. `TASK:T-5521`, `FILE:src/sdd/cli.py`, `MODULE:sdd.graph`) |
+| `--edge-types` | no | Comma-separated edge kinds to filter BFS; omit → default kinds (`implements,guards,emits`); `""` → error |
+| `--format` | no | `json` or `text` (default: `text`) |
+| `--rebuild` | no | Force graph rebuild |
+
+**graph_budget warning** (non-blocking): `max_graph_calls_warning: 5`, `max_traversal_depth: 2`
+
+### `sdd trace <NODE_ID> [--edge-types TYPE1,TYPE2,...]`
+
+Reverse BFS from target file. Returns all dependents (who imports / uses the target).
+
+**STEP 4.5 usage — before-write trace (Sub-step 4.5-C):**
+```bash
+sdd trace FILE:src/sdd/tasks/navigation.py --edge-types imports
+# → returns all FILE nodes that import the target
+# → I-IMPLEMENT-TRACE-1: every dependent MUST get an explicit decision
+# Repeat per each file in task.navigation.write_scope
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `<NODE_ID>` | yes | Target file node id (e.g. `FILE:src/sdd/tasks/navigation.py`) |
+| `--edge-types` | no | Comma-separated in-edge kinds to filter; omit → all in-edges (backward compat) |
+| `--format` | no | `json` or `text` (default: `text`) |
+| `--rebuild` | no | Force graph rebuild |
+
+**I-IMPLEMENT-TRACE-1:** every dependent returned by `sdd trace` MUST receive an explicit decision before writing (keep read-only, escalate, or open a new task for dependent changes).
+
+---
 
 ## Hook Commands (console_scripts)
 

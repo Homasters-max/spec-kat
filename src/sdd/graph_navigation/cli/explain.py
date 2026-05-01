@@ -30,8 +30,12 @@ def run(
     fmt: str = "text",
     debug: bool = False,
     project_root: str = ".",
+    edge_types: frozenset[str] | None = None,
 ) -> int:
     """Execute sdd explain pipeline. Returns exit code (0 = success, 1 = error)."""
+    if edge_types is not None and not edge_types:
+        emit_error("INVALID_ARGUMENT", "--edge-types must not be empty; omit flag for default traversal")
+        return 1
     try:
         index = IndexBuilder(project_root).build()
     except Exception as exc:
@@ -60,7 +64,7 @@ def run(
 
     doc_provider = runtime._doc_provider_factory(index)
     try:
-        response = engine.query(graph, policy, doc_provider, node_id, intent=intent)
+        response = engine.query(graph, policy, doc_provider, node_id, intent=intent, edge_types=edge_types)
     except Exception as exc:
         emit_error("INTERNAL_ERROR", str(exc))
         return 1
@@ -83,7 +87,7 @@ def run(
             )
             seed_node_id = handler_node_id
             try:
-                response = engine.query(graph, policy, doc_provider, handler_node_id, intent=intent)
+                response = engine.query(graph, policy, doc_provider, handler_node_id, intent=intent, edge_types=edge_types)
             except Exception as exc:
                 emit_error("INTERNAL_ERROR", str(exc))
                 return 1

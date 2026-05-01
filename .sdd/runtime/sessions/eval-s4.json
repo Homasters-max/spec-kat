@@ -1,0 +1,6 @@
+{
+  "session_id": "eval-s4",
+  "phase_id": 61,
+  "allowed_files": ["src/sdd/context_kernel/runtime.py", "src/sdd/context_kernel/engine.py"],
+  "trace_path": ["FILE:src/sdd/context_kernel/runtime.py", "FILE:src/sdd/context_kernel/engine.py"]
+}

@@ -1,0 +1,21 @@
+{
+  "task_id": "T-6307",
+  "session_id": "8185a611-5302-40e5-955c-81d9e8bf566b",
+  "total_events": 18,
+  "graph_calls": 2,
+  "file_reads": 4,
+  "file_writes": 1,
+  "commands": 11,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/.sdd/docs/sessions/implement.md' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/complete.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/enrich_trace.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/commands/complete.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/complete.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "THRASHING: >3 COMMAND without GRAPH_CALL"
+  ],
+  "behavioral_warnings": []
+}

@@ -1,0 +1,20 @@
+{
+  "task_id": "T-6310",
+  "session_id": "adf3fb1b-6880-4fab-9c24-a1ef3249bbdc",
+  "total_events": 19,
+  "graph_calls": 4,
+  "file_reads": 2,
+  "file_writes": 2,
+  "commands": 11,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/tracing/summary.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/tracing/test_summary.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/tracing/summary.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/unit/tracing/test_summary.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/tests/unit/tracing/test_summary.py' without GRAPH_CALL in session history"
+  ],
+  "behavioral_warnings": []
+}

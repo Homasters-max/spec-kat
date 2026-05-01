@@ -6,7 +6,8 @@
 **Tools:** `sdd` CLI (src/sdd/ — pip install -e .)  
 **Docs:** .sdd/docs/sessions/ (session files) · .sdd/docs/ref/ (reference files)
 
-> **Язык ответов:** все ответы LLM в чате — **только на русском языке**. Код, команды, пути, идентификаторы — на языке оригинала (английский).
+> **Язык ответов:** все ответы LLM в чате — **только на русском языке**. Код, команды, пути, идентификаторы — на языке оригинала (английский).  
+> **ЗАПРЕТ:** ответы на украинском языке **строго запрещены**. Если модель начинает отвечать по-украински — это нарушение протокола. Переключиться на русский немедленно.
 
 ---
 
@@ -79,7 +80,7 @@ Planner sequence:
 IMPLEMENT/VALIDATE cycle:
 
   IMPLEMENT T-NNN
-    → LLM AUTO: sdd record-session --type IMPLEMENT --phase N    (I-SESSION-DECLARED-1)
+    → LLM AUTO: sdd record-session --type IMPLEMENT --phase N --task T-NNN    (I-SESSION-DECLARED-1)
     → LLM: implements code
     → LLM AUTO: sdd complete T-NNN
     → suggests next TODO task or VALIDATE

@@ -192,3 +192,42 @@ class TestRuntimeQueryPipeline:
 
         kwargs = engine.query.call_args.kwargs
         assert kwargs.get("rag_client") is None
+
+    def test_edge_types_forwarded_to_engine(self) -> None:
+        """I-ENGINE-EDGE-FILTER-1: edge_types passed to runtime.query() is forwarded to engine.query()."""
+        engine = _mock_engine()
+        runtime = ContextRuntime(engine=engine)
+        edge_types = frozenset({"imports", "uses"})
+
+        runtime.query(_graph("FILE:e"), _policy(), _mock_index(), "FILE:e", edge_types=edge_types)
+
+        kwargs = engine.query.call_args.kwargs
+        assert kwargs.get("edge_types") == edge_types
+
+    def test_edge_types_none_forwarded_to_engine(self) -> None:
+        """edge_types=None (default) is forwarded as None to engine.query()."""
+        engine = _mock_engine()
+        runtime = ContextRuntime(engine=engine)
+
+        runtime.query(_graph("FILE:f"), _policy(), _mock_index(), "FILE:f")
+
+        kwargs = engine.query.call_args.kwargs
+        assert kwargs.get("edge_types") is None
+
+
+# ---------------------------------------------------------------------------
+# I-ENGINE-EDGE-FILTER-1: edge_types validation at ContextRuntime boundary
+# ---------------------------------------------------------------------------
+
+class TestEdgeTypesValidation:
+    """I-ENGINE-EDGE-FILTER-1: ContextRuntime validates edge_types before passing to engine."""
+
+    def test_empty_edge_types_frozenset_raises_value_error(self) -> None:
+        """(Spec_v55 §9 #4) edge_types=frozenset() raises ValueError — empty allowlist is caller error."""
+        runtime = ContextRuntime(engine=_mock_engine())
+
+        with pytest.raises(ValueError):
+            runtime.query(
+                _graph("FILE:x"), _policy(), _mock_index(), "FILE:x",
+                edge_types=frozenset(),
+            )

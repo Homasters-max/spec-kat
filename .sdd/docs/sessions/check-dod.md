@@ -3,6 +3,13 @@
 
 ## Preconditions
 
+```bash
+# Step 0: graph-guard check — enforce I-GRAPH-PROTOCOL-1 before DoD gate
+sdd graph-guard check --session <session_id>
+# exit 0: protocol satisfied → proceed
+# exit 1: GRAPH_PROTOCOL_VIOLATION in JSON stderr → STOP
+```
+
 - All tasks in TaskSet_vN.md have Status: DONE
 - `invariants.status = PASS`
 - `tests.status = PASS`

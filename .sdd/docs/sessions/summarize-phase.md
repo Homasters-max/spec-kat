@@ -17,6 +17,17 @@ sdd show-state                     ← phase/task counts
 
 ---
 
+## Preconditions
+
+```bash
+# Step 0: graph-guard check — enforce I-GRAPH-PROTOCOL-1 before summarize (I-GRAPH-PROTOCOL-1)
+sdd graph-guard check --session <session_id>
+# exit 0: protocol satisfied → proceed
+# exit 1: GRAPH_PROTOCOL_VIOLATION in JSON stderr → STOP
+```
+
+---
+
 ## Mandatory Steps (IN ORDER)
 
 ### Step 1 — PhaseN_Summary.md

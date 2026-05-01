@@ -14,6 +14,9 @@ norm_resolution_policy:
   overrides:
     TASK_INPUT_OVERRIDE:
       allowed_norms: [NORM-SCOPE-001, NORM-SCOPE-002]
+    GRAPH_NAVIGATION_OVERRIDE:
+      allowed_norms: [NORM-SCOPE-002]
+      requires_norm: NORM-GRAPH-001
   non_overridable: [NORM-SCOPE-003, NORM-SCOPE-004]
 
 norms:
@@ -187,13 +190,13 @@ norms:
     enforcement: hard
 
   - norm_id: NORM-SCOPE-002
-    description: "LLM MUST NOT read src/** unless the file is listed in Task Inputs"
+    description: "LLM MUST NOT read src/** unless the file is listed in Task Inputs or justified by graph navigation (NORM-GRAPH-001)"
     actor: llm
     applies_to_phases: []
     forbidden_read_patterns:
       - "src/**"
-    exception: "files explicitly listed in the task Inputs field"
-    overridable_by: TASK-INPUT-LAYER
+    exception: "files explicitly listed in the task Inputs field; OR files resolved via graph navigation actions (graph_resolve, graph_explain, graph_trace) authorized by NORM-GRAPH-001 (GRAPH_NAVIGATION_OVERRIDE)"
+    overridable_by: [TASK-INPUT-LAYER, GRAPH-NAVIGATION-LAYER]
     senar_category: ScopeViolation
     enforcement: hard
 
@@ -317,6 +320,25 @@ norms:
     applies_to_phases: []
     rule: "For each task with Status==DONE in TaskSet_vN.md, every path listed under Outputs: must exist."
     check_mechanism: "pytest tests/integration/test_task_output_invariant.py"
+    enforcement: hard
+
+  # ─────────────────────────────────────────────────────────────────────
+  # GRAPH NAVIGATION NORMS  (graph-guided implementation — Phase 55)
+  # ─────────────────────────────────────────────────────────────────────
+
+  - norm_id: NORM-GRAPH-001
+    description: "LLM MAY perform graph navigation actions (resolve, explain, trace) during IMPLEMENT and DECOMPOSE sessions"
+    actor: llm
+    applies_to_phases: []
+    applies_to_sessions: [IMPLEMENT, DECOMPOSE]
+    allowed_actions:
+      - graph_resolve
+      - graph_explain
+      - graph_trace
+    sdd_invariant_refs:
+      - I-RRL-1
+      - I-RRL-2
+      - I-RRL-3
     enforcement: hard
 
   # ─────────────────────────────────────────────────────────────────────

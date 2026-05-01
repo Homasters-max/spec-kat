@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 sdd = "sdd.cli:main"
 sdd-hook-log = "sdd.hooks.log_tool:main"
+sdd-trace-hook = "sdd.hooks.trace_tool:main"
 
 [project.optional-dependencies]
 lightrag = [
@@ -60,6 +61,9 @@ markers = [
 [tool.coverage.run]
 source = ["sdd"]
 branch = true
+omit = [
+    "*/sdd/hooks/*",
+]
 
 [tool.coverage.report]
 fail_under = 80

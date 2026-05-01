@@ -12,6 +12,7 @@ from sdd.graph.extractors.ast_edges import ASTEdgeExtractor
 from sdd.graph.extractors.glossary_edges import GlossaryEdgeExtractor
 from sdd.graph.extractors.implements_edges import ImplementsEdgeExtractor
 from sdd.graph.extractors.invariant_edges import InvariantEdgeExtractor
+from sdd.graph.extractors.module_edges import ModuleEdgeExtractor
 from sdd.graph.extractors.task_deps import TaskDepsExtractor
 from sdd.graph.types import EDGE_KIND_PRIORITY
 from sdd.spatial.index import SpatialIndex
@@ -253,6 +254,91 @@ def test_graph_fingerprint_changes_on_extractor_code_change() -> None:
     hash_v2 = _extractor_hash([_BumpedAST(), GlossaryEdgeExtractor()])
 
     assert hash_v1 != hash_v2
+
+
+# ---------------------------------------------------------------------------
+# Test 57: fs_root_only_spatial_index — I-GRAPH-FS-ROOT-1 (grep-test)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Tests for ModuleEdgeExtractor (T-5515, Acceptance #9 + I-MODULE-COHESION-1)
+# ---------------------------------------------------------------------------
+
+def test_module_edge_extractor_version() -> None:
+    """I-GRAPH-FINGERPRINT-1: ModuleEdgeExtractor.EXTRACTOR_VERSION is set."""
+    assert ModuleEdgeExtractor.EXTRACTOR_VERSION == "1.0.0"
+
+
+def test_module_edge_extractor_produces_contains_edges() -> None:
+    """(9) ModuleEdgeExtractor.extract() produces contains edges from MODULE:sdd.graph to FILE nodes."""
+    module_node = _make_node("MODULE:sdd.graph", "MODULE", "sdd.graph", path="src/sdd/graph")
+    file1 = _make_node("FILE:src/sdd/graph/types.py", "FILE", "types.py", path="src/sdd/graph/types.py")
+    file2 = _make_node("FILE:src/sdd/graph/builder.py", "FILE", "builder.py", path="src/sdd/graph/builder.py")
+    index = _make_index([module_node, file1, file2])
+
+    edges = ModuleEdgeExtractor().extract(index)
+
+    contains_edges = [e for e in edges if e.kind == "contains"]
+    assert len(contains_edges) == 2
+    assert all(e.src == "MODULE:sdd.graph" for e in contains_edges)
+    assert {e.dst for e in contains_edges} == {
+        "FILE:src/sdd/graph/types.py",
+        "FILE:src/sdd/graph/builder.py",
+    }
+    assert all(e.priority == EDGE_KIND_PRIORITY["contains"] for e in contains_edges)
+    assert all(e.source == "module_edge_extractor" for e in contains_edges)
+
+
+def test_module_edge_extractor_most_specific_match() -> None:
+    """(9) nested collision: src/sdd/graph/extractors/module_edges.py → MODULE:sdd.graph.extractors, not MODULE:sdd.graph."""
+    module_graph = _make_node("MODULE:sdd.graph", "MODULE", "sdd.graph", path="src/sdd/graph")
+    module_extractors = _make_node(
+        "MODULE:sdd.graph.extractors", "MODULE", "sdd.graph.extractors",
+        path="src/sdd/graph/extractors",
+    )
+    file_in_extractors = _make_node(
+        "FILE:src/sdd/graph/extractors/module_edges.py",
+        "FILE", "module_edges.py",
+        path="src/sdd/graph/extractors/module_edges.py",
+    )
+    file_in_graph = _make_node(
+        "FILE:src/sdd/graph/types.py", "FILE", "types.py",
+        path="src/sdd/graph/types.py",
+    )
+    index = _make_index([module_graph, module_extractors, file_in_extractors, file_in_graph])
+
+    edges = ModuleEdgeExtractor().extract(index)
+
+    dst_to_src = {e.dst: e.src for e in edges if e.kind == "contains"}
+    assert dst_to_src["FILE:src/sdd/graph/extractors/module_edges.py"] == "MODULE:sdd.graph.extractors"
+    assert dst_to_src["FILE:src/sdd/graph/types.py"] == "MODULE:sdd.graph"
+
+
+def test_module_edge_extractor_no_module_match_skipped() -> None:
+    """FILE with no matching MODULE is gracefully skipped — no edge emitted."""
+    file_orphan = _make_node(
+        "FILE:src/sdd/orphan.py", "FILE", "orphan.py", path="src/sdd/orphan.py",
+    )
+    index = _make_index([file_orphan])
+
+    edges = ModuleEdgeExtractor().extract(index)
+
+    assert edges == []
+
+
+def test_module_edge_extractor_no_open_call() -> None:
+    """I-GRAPH-EXTRACTOR-2: ModuleEdgeExtractor.extract() must not call open()."""
+    module_node = _make_node("MODULE:sdd.graph", "MODULE", "sdd.graph", path="src/sdd/graph")
+    file_node = _make_node(
+        "FILE:src/sdd/graph/types.py", "FILE", "types.py", path="src/sdd/graph/types.py",
+    )
+    index = _make_index([module_node, file_node])
+
+    def _fail_open(*args: object, **kwargs: object) -> object:
+        raise AssertionError(f"open() called from ModuleEdgeExtractor: args={args!r}")
+
+    with patch.object(builtins, "open", side_effect=_fail_open):
+        ModuleEdgeExtractor().extract(index)
 
 
 # ---------------------------------------------------------------------------

@@ -30,6 +30,14 @@ def cli() -> None:
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def complete(args: tuple[str, ...]) -> None:
     """Mark task T-NNN as DONE."""
+    # BC-62-L5: run trace-summary as mandatory informational pre-step before complete
+    if args:
+        task_id = args[0]
+        try:
+            from sdd.commands.trace_summary import main as _trace_main
+            _trace_main([task_id])
+        except Exception:
+            pass  # trace-summary is informational; never block complete
     from sdd.commands.update_state import main
     sys.exit(main(["complete", *args]))
 
@@ -286,6 +294,10 @@ def record_session(session_type: str, phase: int | None, task_id: str | None, pl
     """Declare session type — emits SessionDeclaredEvent for audit trail (I-SESSION-DECLARED-1)."""
     import uuid
 
+    if session_type == "IMPLEMENT" and not task_id:
+        click.echo("ERROR: --task T-NNN is required for IMPLEMENT sessions (I-SESSION-TASK-1)", err=True)
+        sys.exit(1)
+
     from sdd.commands.record_session import RecordSessionCommand
     from sdd.commands.registry import REGISTRY, execute_and_project, event_store_url, get_current_state
 
@@ -375,14 +387,15 @@ def rebuild_state_cmd(full: bool) -> None:
 
 
 @cli.command("resolve")
-@click.argument("query")
+@click.argument("query", required=False, default=None)
+@click.option("--node-id", "node_id", default=None, help="Exact node ID for direct lookup — bypass BM25 (I-SEARCH-DIRECT-1)")
 @click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
 @click.option("--debug", is_flag=True, default=False, help="Show debug selection info")
 @click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
-def resolve_cmd(query: str, rebuild: bool, debug: bool, fmt: str) -> None:
-    """Search graph nodes by free-text query (BC-36-7)."""
+def resolve_cmd(query: str | None, node_id: str | None, rebuild: bool, debug: bool, fmt: str) -> None:
+    """Search graph nodes by free-text query or exact node ID (BC-36-7)."""
     from sdd.graph_navigation.cli.resolve import run
-    sys.exit(run(query, rebuild=rebuild, fmt=fmt, debug=debug))
+    sys.exit(run(query, rebuild=rebuild, fmt=fmt, debug=debug, node_id=node_id))
 
 
 @cli.command("explain")
@@ -390,10 +403,14 @@ def resolve_cmd(query: str, rebuild: bool, debug: bool, fmt: str) -> None:
 @click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
 @click.option("--debug", is_flag=True, default=False, help="Show debug selection info")
 @click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
-def explain_cmd(node_id: str, rebuild: bool, debug: bool, fmt: str) -> None:
+@click.option("--edge-types", "edge_types_raw", default=None, help="Comma-separated edge kinds to filter BFS (e.g. implements,guards)")
+def explain_cmd(node_id: str, rebuild: bool, debug: bool, fmt: str, edge_types_raw: str | None) -> None:
     """Explain how a graph node works — out-edges, emits, guards (BC-36-7)."""
     from sdd.graph_navigation.cli.explain import run
-    sys.exit(run(node_id, rebuild=rebuild, fmt=fmt, debug=debug))
+    edge_types: frozenset[str] | None = None
+    if edge_types_raw is not None:
+        edge_types = frozenset(p.strip() for p in edge_types_raw.split(",") if p.strip())
+    sys.exit(run(node_id, rebuild=rebuild, fmt=fmt, debug=debug, edge_types=edge_types))
 
 
 @cli.command("trace")
@@ -401,10 +418,14 @@ def explain_cmd(node_id: str, rebuild: bool, debug: bool, fmt: str) -> None:
 @click.option("--rebuild", is_flag=True, default=False, help="Force graph rebuild (ignore GraphCache)")
 @click.option("--debug", is_flag=True, default=False, help="Show debug selection info")
 @click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text", help="Output format")
-def trace_cmd(node_id: str, rebuild: bool, debug: bool, fmt: str) -> None:
+@click.option("--edge-types", "edge_types_raw", default=None, help="Comma-separated edge kinds to filter reverse BFS (e.g. imports,calls)")
+def trace_cmd(node_id: str, rebuild: bool, debug: bool, fmt: str, edge_types_raw: str | None) -> None:
     """Trace reverse references of a graph node — reverse BFS (BC-36-7)."""
     from sdd.graph_navigation.cli.trace import run
-    sys.exit(run(node_id, rebuild=rebuild, fmt=fmt, debug=debug))
+    edge_types: frozenset[str] | None = None
+    if edge_types_raw is not None:
+        edge_types = frozenset(p.strip() for p in edge_types_raw.split(",") if p.strip())
+    sys.exit(run(node_id, rebuild=rebuild, fmt=fmt, debug=debug, edge_types=edge_types))
 
 
 @cli.command("invariant")
@@ -434,6 +455,39 @@ def test_filter_cmd(node_id: str, tier: str, rebuild: bool) -> None:
     """Run only tests that cover NODE_ID via tested_by edges (I-TEST-FILTER-1)."""
     from sdd.graph_navigation.cli.test_filter import run
     sys.exit(run(node_id, tier=tier, rebuild=rebuild))
+
+
+@cli.command("trace-summary", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def trace_summary_cmd(args: tuple[str, ...]) -> None:
+    """Replay trace.jsonl → summary.json + violations (BC-62-L4)."""
+    from sdd.commands.trace_summary import main
+    sys.exit(main(list(args)))
+
+
+@cli.command("enrich-trace", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def enrich_trace_cmd(args: tuple[str, ...]) -> None:
+    """Enrich trace.jsonl COMMAND events from conversation transcript (BC-63-P3)."""
+    from sdd.commands.enrich_trace import main
+    sys.exit(main(list(args)))
+
+
+@cli.command("graph-guard")
+@click.option("--session-id", "session_id", required=True, help="Graph session ID to check")
+def graph_guard_cmd(session_id: str) -> None:
+    """Check graph protocol compliance for a session (I-GRAPH-PROTOCOL-1, I-GRAPH-GUARD-1)."""
+    from sdd.graph_navigation.cli.graph_guard import run
+    sys.exit(run(session_id))
+
+
+@cli.command("write")
+@click.argument("file_path")
+@click.option("--session-id", "session_id", required=True, help="Graph session ID gating write access")
+def write_cmd(file_path: str, session_id: str) -> None:
+    """Gate write access to FILE_PATH — requires trace_path in session (I-TRACE-BEFORE-WRITE)."""
+    from sdd.graph_navigation.cli.write_gate import run
+    sys.exit(run(file_path, session_id))
 
 
 def _emit_json_error(error_type: str, message: str, exit_code: int) -> None:

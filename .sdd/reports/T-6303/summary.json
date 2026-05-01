@@ -1,0 +1,25 @@
+{
+  "task_id": "T-6303",
+  "session_id": "5072c60b-0143-4605-80ca-1053707152b6",
+  "total_events": 24,
+  "graph_calls": 0,
+  "file_reads": 4,
+  "file_writes": 2,
+  "commands": 18,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/record_session.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/transcript/parser.py' not in allowed_files",
+    "I-TRACE-COMPLETE-1: FILE_WRITE on '/root/project/src/sdd/commands/record_session.py' without prior GRAPH_CALL in session '5072c60b-0143-4605-80ca-1053707152b6'",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/commands/record_session.py' not in allowed_files",
+    "I-TRACE-COMPLETE-1: FILE_WRITE on '/root/project/src/sdd/commands/record_session.py' without prior GRAPH_CALL in session '5072c60b-0143-4605-80ca-1053707152b6'",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/commands/record_session.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/record_session.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/commands/test_record_session.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/src/sdd/commands/record_session.py' without GRAPH_CALL in last 5 events",
+    "BLIND_WRITE: '/root/project/src/sdd/commands/record_session.py' without GRAPH_CALL in last 5 events",
+    "THRASHING: >3 COMMAND without GRAPH_CALL"
+  ]
+}

@@ -8,6 +8,8 @@ Invariants enforced:
   I-CONTEXT-EXPLAIN-KIND-1: EXPLAIN with empty S1 → TRACE fallback + warning.
   I-SEARCH-AUTO-EXACT-1:   SEARCH with single candidate → upgrade to RESOLVE_EXACT.
   I-SEARCH-NO-EMBED-1:     fuzzy_score via BM25 over (label + summary) corpus.
+  I-ENGINE-EDGE-FILTER-1:  edge_types filter MUST be applied inside BFS expand functions,
+                            never as post-filter after engine.query().
 """
 from __future__ import annotations
 
@@ -39,23 +41,51 @@ def _expand_resolve_exact(graph: DeterministicGraph, node_id: str, hop: int) -> 
     return list(graph.edges_out.get(node_id, [])) + list(graph.edges_in.get(node_id, []))
 
 
-def _expand_explain(graph: DeterministicGraph, node_id: str, hop: int) -> list[Edge]:
-    """Out-edges in {emits, guards, implements, tested_by}; TASK seed also in-edges {depends_on}."""
+def _expand_explain(
+    graph: DeterministicGraph,
+    node_id: str,
+    hop: int,
+    *,
+    allowed_kinds: frozenset[str] | None = None,
+) -> list[Edge]:
+    """Out-edges filtered by allowed_kinds (default: _EXPLAIN_OUT_KINDS); TASK seed also in-edges.
+
+    allowed_kinds=None → backward-compat default (_EXPLAIN_OUT_KINDS for out-edges,
+    _EXPLAIN_TASK_IN_KINDS for TASK in-edges at hop=0).
+    allowed_kinds=frozenset({...}) → both out-edges and TASK in-edges use the same allowlist
+    (I-ENGINE-EDGE-FILTER-1).
+    """
+    effective_out_kinds = allowed_kinds if allowed_kinds is not None else _EXPLAIN_OUT_KINDS
     edges: list[Edge] = [
-        e for e in graph.edges_out.get(node_id, []) if e.kind in _EXPLAIN_OUT_KINDS
+        e for e in graph.edges_out.get(node_id, []) if e.kind in effective_out_kinds
     ]
     if hop == 0:
         seed = graph.nodes.get(node_id)
         if seed and seed.kind == "TASK":
-            edges += [e for e in graph.edges_in.get(node_id, []) if e.kind in _EXPLAIN_TASK_IN_KINDS]
+            effective_in_kinds = allowed_kinds if allowed_kinds is not None else _EXPLAIN_TASK_IN_KINDS
+            edges += [e for e in graph.edges_in.get(node_id, []) if e.kind in effective_in_kinds]
     return edges
 
 
-def _expand_trace(graph: DeterministicGraph, node_id: str, hop: int) -> list[Edge]:
-    """Reverse neighbors (in-edges) up to hop ≤ 2."""
+def _expand_trace(
+    graph: DeterministicGraph,
+    node_id: str,
+    hop: int,
+    *,
+    allowed_kinds: frozenset[str] | None = None,
+) -> list[Edge]:
+    """Reverse neighbors (in-edges) up to hop ≤ 2; filtered by allowed_kinds if provided.
+
+    allowed_kinds=None → all in-edges (backward-compat default).
+    allowed_kinds=frozenset({...}) → only in-edges whose kind is in the allowlist
+    (I-ENGINE-EDGE-FILTER-1).
+    """
     if hop >= 2:
         return []
-    return list(graph.edges_in.get(node_id, []))
+    in_edges = graph.edges_in.get(node_id, [])
+    if allowed_kinds is None:
+        return list(in_edges)
+    return [e for e in in_edges if e.kind in allowed_kinds]
 
 
 def _expand_invariant(graph: DeterministicGraph, node_id: str, hop: int) -> list[Edge]:
@@ -174,13 +204,17 @@ class ContextEngine:
         node_id: str,
         intent: QueryIntent = QueryIntent.RESOLVE_EXACT,
         rag_client: LightRAGClient | None = None,
+        edge_types: frozenset[str] | None = None,
     ) -> NavigationResponse:
         """Execute the pure context pipeline (I-ENGINE-PURE-1).
 
-        node_id: graph node identifier for all intents except SEARCH.
-                 For SEARCH, node_id is treated as the raw free-text query.
-        intent:  defaults to RESOLVE_EXACT; caller is responsible for resolving
-                 via parse_query_intent() + PolicyResolver before invoking engine.
+        node_id:    graph node identifier for all intents except SEARCH.
+                    For SEARCH, node_id is treated as the raw free-text query.
+        intent:     defaults to RESOLVE_EXACT; caller is responsible for resolving
+                    via parse_query_intent() + PolicyResolver before invoking engine.
+        edge_types: when provided, overrides allowed edge kinds for EXPLAIN/TRACE BFS
+                    traversal (I-ENGINE-EDGE-FILTER-1). Applied inside expand function,
+                    not as a post-filter. None = use strategy defaults.
         """
         candidates: list[SearchCandidate] | None = None
         effective_intent = intent
@@ -205,7 +239,16 @@ class ContextEngine:
             else:
                 selection = _search_selection(graph, search_candidates)
         else:
-            expand = _STRATEGY_EXPAND[intent]
+            if intent is QueryIntent.EXPLAIN and edge_types is not None:
+                # I-ENGINE-EDGE-FILTER-1: filter applied inside BFS, not as post-filter
+                _allowed = edge_types
+                expand = lambda g, n, h: _expand_explain(g, n, h, allowed_kinds=_allowed)
+            elif intent is QueryIntent.TRACE and edge_types is not None:
+                # I-ENGINE-EDGE-FILTER-1: same contract for TRACE in-edges
+                _allowed = edge_types
+                expand = lambda g, n, h: _expand_trace(g, n, h, allowed_kinds=_allowed)
+            else:
+                expand = _STRATEGY_EXPAND[intent]
             selection = _build_selection(graph, policy.budget, node_id, expand)
 
             # I-CONTEXT-EXPLAIN-KIND-1: EXPLAIN with empty S1 → TRACE fallback

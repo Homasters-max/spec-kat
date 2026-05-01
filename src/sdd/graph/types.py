@@ -22,6 +22,7 @@ EDGE_KIND_PRIORITY: dict[str, float] = {
     "introduced_in": 0.65,
     "imports":       0.60,
     "means":         0.50,
+    "contains":      0.45,
 }
 
 # Allowlist for meta keys copied from SpatialNode (I-GRAPH-META-1).
@@ -29,6 +30,7 @@ EDGE_KIND_PRIORITY: dict[str, float] = {
 ALLOWED_META_KEYS: frozenset[str] = frozenset({
     "path", "language", "line_start", "line_end", "links", "phase",
     "verified_by", "introduced_in", "depends_on", "implements",
+    "module_path",
 })
 
 

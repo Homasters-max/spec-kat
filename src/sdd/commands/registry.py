@@ -143,6 +143,11 @@ def _lazy_check_dod_handler() -> type[CommandHandlerBase]:
     return CheckDoDHandler
 
 
+def _lazy_sync_state_handler() -> type[CommandHandlerBase]:
+    from sdd.commands.update_state import SyncStateHandler
+    return SyncStateHandler
+
+
 def _lazy_activate_phase_handler() -> type[CommandHandlerBase]:
     from sdd.commands.activate_phase import ActivatePhaseHandler
     return ActivatePhaseHandler
@@ -224,7 +229,7 @@ REGISTRY: dict[str, CommandSpec] = {
         event_schema=(TaskImplementedEvent, DomainEvent),
         preconditions=("phase.status == ACTIVE", "task.status == TODO"),
         postconditions=("task.status == DONE", "tasks.completed += 1"),
-        description="Mark a task DONE after implementation",
+        description="Mark a task DONE after implementation (BC-62-L5: runs trace-summary pre-step)",
     ),
     "validate": CommandSpec(
         name="validate",
@@ -270,16 +275,16 @@ REGISTRY: dict[str, CommandSpec] = {
     ),
     "sync-state": CommandSpec(
         name="sync-state",
-        handler_class=NoOpHandler,
-        actor="any",
+        handler_class=_lazy_sync_state_handler(),
+        actor="llm",
         action="sync_state",
         projection=ProjectionType.FULL,
         uses_task_id=False,
         requires_active_phase=False,   # A-20: recovery; PhaseGuard skipped (I-SYNC-NO-PHASE-GUARD-1)
         event_schema=(),
         preconditions=(),
-        postconditions=("State_index.yaml rebuilt from EventLog",),
-        description="Rebuild State_index.yaml from EventLog (recovery utility)",
+        postconditions=("State_index.yaml rebuilt from EventLog", "tasks_total synced from TaskSet"),
+        description="Rebuild State_index.yaml from EventLog; syncs tasks_total from TaskSet (I-ST-4)",
     ),
     "record-decision": CommandSpec(
         name="record-decision",

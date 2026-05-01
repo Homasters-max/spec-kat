@@ -38,11 +38,20 @@ def _detect_phase() -> int:
         raise RuntimeError(f"Cannot detect phase from State_index.yaml: {exc}") from exc
 
 
-def _parse_taskset(content: str, task_id: str) -> dict[str, str] | None:
-    """Extract field dict for task_id from TaskSet markdown, or None if not found."""
+def _parse_taskset(content: str, task_id: str) -> dict[str, object] | None:
+    """Extract field dict for task_id from TaskSet markdown, or None if not found.
+
+    Navigation block sub-fields are stored under key "_navigation" as a nested dict.
+    """
     lines = content.splitlines()
     in_task = False
-    fields: dict[str, str] = {}
+    in_navigation = False
+    fields: dict[str, object] = {}
+    nav_fields: dict[str, str] = {}
+
+    def _flush_nav() -> None:
+        if nav_fields:
+            fields["_navigation"] = dict(nav_fields)
 
     for line in lines:
         m = _TASK_HDR.match(line)
@@ -50,20 +59,41 @@ def _parse_taskset(content: str, task_id: str) -> dict[str, str] | None:
             if m.group(1) == task_id:
                 in_task = True
                 fields = {}
+                nav_fields = {}
+                in_navigation = False
             elif in_task:
-                break  # next task header → done
+                _flush_nav()
+                break
             continue
 
         if line.strip() == "---":
             if in_task:
+                _flush_nav()
                 break
             continue
 
         if in_task:
+            if in_navigation:
+                if line and line[0] in (" ", "\t"):
+                    fm = _FIELD_RE.match(line)
+                    if fm:
+                        nav_fields[fm.group(1).strip().lower()] = fm.group(2).strip()
+                    continue
+                else:
+                    _flush_nav()
+                    in_navigation = False
+
             fm = _FIELD_RE.match(line)
             if fm:
                 key = fm.group(1).strip().lower()
-                fields[key] = fm.group(2).strip()
+                if key == "navigation":
+                    in_navigation = True
+                    nav_fields = {}
+                else:
+                    fields[key] = fm.group(2).strip()
+
+    if in_task:
+        _flush_nav()
 
     return fields if (in_task and fields) else None
 
@@ -75,16 +105,26 @@ def _bullets(raw: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
-def _render(task_id: str, fields: dict[str, str]) -> str:
-    status = fields.get("status", "UNKNOWN")
-    inputs = _bullets(fields.get("inputs", ""))
-    outputs = _bullets(fields.get("outputs", ""))
-    invariants = _bullets(fields.get("invariants", ""))
-    acceptance = fields.get("acceptance", "").strip()
+def _render(task_id: str, fields: dict[str, object]) -> str:
+    status = str(fields.get("status", "UNKNOWN"))
+    spec_ref = str(fields.get("spec ref", "")).strip()
+    inputs = _bullets(str(fields.get("inputs", "")))
+    outputs = _bullets(str(fields.get("outputs", "")))
+    invariants = _bullets(str(fields.get("invariants", "")))
+    spec_refs = str(fields.get("spec_refs", "")).strip()
+    produces = str(fields.get("produces_invariants", "")).strip()
+    requires = str(fields.get("requires_invariants", "")).strip()
+    acceptance = str(fields.get("acceptance", "")).strip()
+    depends_on = str(fields.get("depends on", "")).strip()
+    nav = fields.get("_navigation")
 
     lines: list[str] = []
     lines.append(f"## Task: {task_id}")
     lines.append(f"Status: {status}")
+    if spec_ref:
+        lines.append(f"Spec ref: {spec_ref}")
+    if depends_on and depends_on != "—":
+        lines.append(f"Depends on: {depends_on}")
     lines.append("")
 
     lines.append("### Inputs")
@@ -106,11 +146,23 @@ def _render(task_id: str, fields: dict[str, str]) -> str:
         lines.extend(f"- {inv}" for inv in invariants)
     else:
         lines.append("- (none)")
+    if produces:
+        lines.append(f"Produces: {produces}")
+    if requires:
+        lines.append(f"Requires: {requires}")
+    if spec_refs:
+        lines.append(f"Spec refs: {spec_refs}")
     lines.append("")
 
     lines.append("### Acceptance Criteria")
     lines.append(acceptance)
     lines.append("")
+
+    if nav and isinstance(nav, dict):
+        lines.append("### Navigation")
+        for k, v in nav.items():
+            lines.append(f"- {k}: {v}")
+        lines.append("")
 
     return "\n".join(lines)
 

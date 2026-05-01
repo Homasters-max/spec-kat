@@ -1,0 +1,27 @@
+{
+  "task_id": "T-6301",
+  "session_id": "e7673371-ef44-45da-8585-b6684136fd84",
+  "total_events": 31,
+  "graph_calls": 5,
+  "file_reads": 7,
+  "file_writes": 2,
+  "commands": 17,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/hooks/trace_tool.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/tracing/trace_event.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/tracing/writer.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/.sdd/docs/ref/tool-reference.md' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/hooks/log_tool.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/tracing/test_hook.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/hooks/trace_tool.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/hooks/trace_tool.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/hooks/trace_tool.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/src/sdd/hooks/trace_tool.py' without GRAPH_CALL in last 5 events",
+    "BLIND_WRITE: '/root/project/src/sdd/hooks/trace_tool.py' without GRAPH_CALL in last 5 events",
+    "THRASHING: >3 COMMAND without GRAPH_CALL",
+    "THRASHING: >3 COMMAND without GRAPH_CALL"
+  ]
+}

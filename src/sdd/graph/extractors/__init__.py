@@ -27,6 +27,7 @@ from sdd.graph.extractors.ast_edges import ASTEdgeExtractor
 from sdd.graph.extractors.glossary_edges import GlossaryEdgeExtractor
 from sdd.graph.extractors.implements_edges import ImplementsEdgeExtractor
 from sdd.graph.extractors.invariant_edges import InvariantEdgeExtractor
+from sdd.graph.extractors.module_edges import ModuleEdgeExtractor
 from sdd.graph.extractors.task_deps import TaskDepsExtractor
 
 _DEFAULT_EXTRACTORS: list[EdgeExtractor] = [
@@ -34,5 +35,6 @@ _DEFAULT_EXTRACTORS: list[EdgeExtractor] = [
     GlossaryEdgeExtractor(),
     ImplementsEdgeExtractor(),
     InvariantEdgeExtractor(),
+    ModuleEdgeExtractor(),
     TaskDepsExtractor(),
 ]

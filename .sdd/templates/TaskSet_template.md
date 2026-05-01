@@ -17,6 +17,9 @@ Inputs:               <existing files/modules/events this task consumes>
 Outputs:              <files created or modified — defines allowed modification scope>
 Acceptance:           <specific verifiable criterion, usually a test name>
 Depends on:           —
+Navigation:
+    resolve_keywords: <KeySymbol1>, <KeySymbol2>
+    write_scope:      <path/to/output1.py>, <path/to/output2.py>
 
 ---
 
@@ -32,6 +35,9 @@ Inputs:               <inputs>
 Outputs:              <outputs>
 Acceptance:           <acceptance criterion>
 Depends on:           T-001
+Navigation:
+    resolve_keywords: <KeySymbol>
+    write_scope:      <path/to/output.py>
 
 ---
 
@@ -47,6 +53,9 @@ Inputs:               <inputs>
 Outputs:              <outputs>
 Acceptance:           <acceptance criterion>
 Depends on:           T-001, T-002
+Navigation:
+    resolve_keywords: <KeySymbol>
+    write_scope:      <path/to/output.py>
 
 ---
 

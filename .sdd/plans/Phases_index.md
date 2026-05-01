@@ -49,7 +49,10 @@
 | 52 | CLI + LightRAG + Migration Window Close | .sdd/specs/Spec_v52_CLIMigrationLightRAG.md | .sdd/plans/Plan_v52.md | COMPLETE |
 | 53 | Graph-Based Test Filtering         | .sdd/specs/Spec_v53_GraphTestFilter.md                 | .sdd/plans/Plan_v53.md | PLANNED |
 | 54 | Real System Validation | .sdd/specs/Spec_v54_RealSystemValidation.md | .sdd/plans/Plan_v54.md | PLANNED |
-| 55 | Graph-Guided Implement             | .sdd/specs_draft/Spec_v55_GraphGuidedImplement.md      | — | PLANNED |
-| 56 | Graph-First + Architecture Context | .sdd/specs_draft/Spec_v56_GraphFirst.md                | — | PLANNED |
+| 55 | Graph-Guided Implement             | .sdd/specs/Spec_v55_GraphGuidedImplement.md            | .sdd/plans/Plan_v55.md | PLANNED |
+| 56 | Graph-First + Architecture Context | .sdd/specs/Spec_v56_GraphFirst.md                | .sdd/plans/Plan_v56.md | PLANNED |
 | 57 | Graph as Architectural SSOT        | .sdd/specs_draft/Spec_v57_ArchitecturalSSOT.md         | — | PLANNED |
 | 58 | Module API Boundary & Calls Refinement | .sdd/specs_draft/Spec_v58_ModuleAPIAndCallsRefinement.md | — | PLANNED |
+| 61 | Graph-Guided Implement Enforcement + Evaluation | .sdd/specs/Spec_v61_GraphEnforcement.md | .sdd/plans/Plan_v61.md | PLANNED |
+| 62 | Execution Trace Layer (L-TRACE) + Graph Semantic Hardening | .sdd/specs/Spec_v62_ExecutionTraceLayer.md | .sdd/plans/Plan_v62.md | PLANNED |
+| 63 | Behavioral Trace Analysis (L-TRACE Phase 2) | .sdd/specs/Spec_v63_BehavioralTraceAnalysis.md | .sdd/plans/Plan_v63.md | PLANNED |

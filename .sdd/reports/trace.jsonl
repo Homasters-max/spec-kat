@@ -1,0 +1,21 @@
+{"ts": 1777578875.299282, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/hooks/trace_tool.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777578894.7266934, "type": "FILE_READ", "payload": {"file_path": "/root/project/.sdd/docs/sessions/implement.md"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777578937.0501478, "type": "GRAPH_CALL", "payload": {"command": "sdd resolve \"complete\" --format json 2>&1"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777578942.7378788, "type": "GRAPH_CALL", "payload": {"command": "sdd explain COMMAND:complete --edge-types implements,guards,emits 2>&1 | tail -60"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777578947.4799383, "type": "GRAPH_CALL", "payload": {"command": "sdd resolve \"_check_deps\" --format json 2>&1 | grep -A30 '\"candidates\"'"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777578953.8780909, "type": "GRAPH_CALL", "payload": {"command": "sdd trace FILE:src/sdd/commands/complete.py --edge-types imports 2>&1 | tail -30"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777578957.6767774, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/commands/trace_summary.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777578957.7144735, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/commands/complete.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579107.1910245, "type": "FILE_READ", "payload": {"file_path": "/root/project/tests/unit/commands/test_complete_task.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579137.1227973, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/src/sdd/commands/complete.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579160.1290996, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/tests/unit/commands/test_complete_trace_integration.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579452.1766522, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/commands/record_session.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579620.7049172, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/commands/record_session.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579635.9555707, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/cli.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579654.9981024, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/src/sdd/commands/record_session.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579658.560351, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/commands/record_session.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579688.5428963, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/domain/session/policy.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579705.9484143, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/src/sdd/commands/record_session.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579714.4125981, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/src/sdd/domain/session/policy.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579722.5449402, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/src/sdd/cli.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}
+{"ts": 1777579731.232762, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/infra/projector.py"}, "session_id": "cf7526c6-f2ce-4e81-ad63-f715af0b0edf", "task_id": ""}

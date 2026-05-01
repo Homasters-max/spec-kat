@@ -60,6 +60,7 @@ class IndexBuilder:
         all_nodes += self._build_task_nodes()
         all_nodes += self._build_invariant_nodes()
         all_nodes += self._build_term_nodes()
+        all_nodes += self._collect_modules()
 
         # I-SI-1: unique node_ids
         nodes: dict[str, SpatialNode] = {}
@@ -329,6 +330,49 @@ class IndexBuilder:
                 ))
         except Exception:
             pass
+        return nodes
+
+    def _collect_modules(self) -> list[SpatialNode]:
+        """I-MODULE-COHESION-1: one MODULE node per sub-package of src/sdd/."""
+        nodes: list[SpatialNode] = []
+        src_root = os.path.join(self._root, "src", "sdd")
+        if not os.path.isdir(src_root):
+            return nodes
+
+        candidates: list[tuple[str, str]] = []  # (dotted_path, rel_path)
+        for dirpath, dirnames, filenames in os.walk(src_root):
+            dirnames[:] = sorted(d for d in dirnames if d != "__pycache__")
+            if "__init__.py" not in filenames:
+                continue
+            # Exclude the root sdd package itself — only sub-packages
+            if os.path.abspath(dirpath) == os.path.abspath(src_root):
+                continue
+            rel_path = os.path.relpath(dirpath, self._root).replace(os.sep, "/")
+            rel_from_src = os.path.relpath(dirpath, os.path.join(self._root, "src")).replace(os.sep, "/")
+            dotted_path = rel_from_src.replace("/", ".")
+            candidates.append((dotted_path, rel_path))
+
+        # Most specific module wins — sort by dotted-path length descending
+        candidates.sort(key=lambda x: len(x[0]), reverse=True)
+
+        seen: set[str] = set()
+        for dotted_path, rel_path in candidates:
+            node_id = f"MODULE:{dotted_path}"
+            if node_id in seen:
+                continue
+            seen.add(node_id)
+            init_rel = f"{rel_path}/__init__.py"
+            nodes.append(SpatialNode(
+                node_id=node_id,
+                kind="MODULE",
+                label=dotted_path,
+                path=rel_path,
+                summary=self._extract_summary(init_rel, "MODULE"),
+                signature="",
+                meta={"path": rel_path},
+                git_hash=self._blob_hash(init_rel),
+                indexed_at=self._now,
+            ))
         return nodes
 
     # ------------------------------------------------------------------

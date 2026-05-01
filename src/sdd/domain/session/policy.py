@@ -23,7 +23,8 @@ class SessionDedupPolicy:
         """Return True iff a new SessionDeclared event should be emitted.
 
         False iff sessions_view contains a non-invalidated session with
-        matching (session_type, phase_id).
+        matching (session_type, phase_id, task_id).
+        task_id is included so each T-NNN gets its own session even on the same day.
         """
         if sessions_view is None:
             return True
@@ -31,4 +32,9 @@ class SessionDedupPolicy:
         phase_id = getattr(cmd, "phase_id", None)
         if session_type is None:
             return True
-        return sessions_view.get_last(cast(str, session_type), phase_id) is None
+        last = sessions_view.get_last(cast(str, session_type), phase_id)
+        if last is None:
+            return True
+        cmd_task_id = getattr(cmd, "task_id", None)
+        last_task_id = getattr(last, "task_id", None)
+        return cmd_task_id != last_task_id

@@ -5,6 +5,7 @@ Canonical pipeline (I-RUNTIME-ORCHESTRATOR-1):
 
 I-PHASE-ISOLATION-1: no direct sdd.graph.cache or sdd.graph.builder imports.
 I-RUNTIME-ORCHESTRATOR-1: no domain logic beyond pipeline calls and arg parsing.
+I-SEARCH-DIRECT-1: --node-id bypasses BM25 — exact lookup via graph.nodes dict.
 """
 from __future__ import annotations
 
@@ -21,14 +22,19 @@ from sdd.spatial.index import IndexBuilder
 
 
 def run(
-    query: str,
+    query: str | None,
     *,
     rebuild: bool = False,
     fmt: str = "text",
     debug: bool = False,
     project_root: str = ".",
+    node_id: str | None = None,
 ) -> int:
     """Execute sdd resolve pipeline. Returns exit code (0 = success, 1 = error)."""
+    if query is None and node_id is None:
+        emit_error("USAGE_ERROR", "Either QUERY argument or --node-id must be provided")
+        return 1
+
     try:
         index = IndexBuilder(project_root).build()
     except Exception as exc:
@@ -43,27 +49,43 @@ def run(
         emit_error(err, str(exc))
         return 1
 
-    # I-INTENT-CANONICAL-1: intent determined by parse_query_intent for resolve command.
-    intent = parse_query_intent(query)
-    policy = PolicyResolver().resolve(intent)
+    if node_id is not None:
+        # I-SEARCH-DIRECT-1: bypass BM25, exact node lookup by ID.
+        if node_id not in graph.nodes:
+            emit_error("NOT_FOUND", f"Node not found: {node_id!r}")
+            return 1
+        intent = QueryIntent.RESOLVE_EXACT
+        policy = PolicyResolver().resolve(intent)
+        engine = ContextEngine(ContextAssembler())
+        runtime = ContextRuntime(engine)
+        doc_provider = runtime._doc_provider_factory(index)
+        try:
+            response = engine.query(graph, policy, doc_provider, node_id, intent=intent)
+        except Exception as exc:
+            emit_error("INTERNAL_ERROR", str(exc))
+            return 1
+    else:
+        # I-INTENT-CANONICAL-1: intent determined by parse_query_intent for resolve command.
+        intent = parse_query_intent(query)  # type: ignore[arg-type]
+        policy = PolicyResolver().resolve(intent)
 
-    engine = ContextEngine(ContextAssembler())
-    runtime = ContextRuntime(engine)
+        engine = ContextEngine(ContextAssembler())
+        runtime = ContextRuntime(engine)
 
-    # ContextRuntime.query() does not forward intent to ContextEngine (Phase 51 limitation).
-    # Use _doc_provider_factory to construct DocProvider, then call engine directly with
-    # explicit SEARCH intent so BM25 candidate ranking runs (I-SEARCH-NO-EMBED-1).
-    doc_provider = runtime._doc_provider_factory(index)
-    try:
-        response = engine.query(graph, policy, doc_provider, query, intent=intent)
-    except Exception as exc:
-        emit_error("INTERNAL_ERROR", str(exc))
-        return 1
+        # ContextRuntime.query() does not forward intent to ContextEngine (Phase 51 limitation).
+        # Use _doc_provider_factory to construct DocProvider, then call engine directly with
+        # explicit SEARCH intent so BM25 candidate ranking runs (I-SEARCH-NO-EMBED-1).
+        doc_provider = runtime._doc_provider_factory(index)
+        try:
+            response = engine.query(graph, policy, doc_provider, query, intent=intent)
+        except Exception as exc:
+            emit_error("INTERNAL_ERROR", str(exc))
+            return 1
 
-    # I-CLI-ERROR-CODES-1: NOT_FOUND when SEARCH returns 0 candidates.
-    if intent is QueryIntent.SEARCH and not response.candidates:
-        emit_error("NOT_FOUND", f"No candidates found for query: {query!r}")
-        return 1
+        # I-CLI-ERROR-CODES-1: NOT_FOUND when SEARCH returns 0 candidates.
+        if intent is QueryIntent.SEARCH and not response.candidates:
+            emit_error("NOT_FOUND", f"No candidates found for query: {query!r}")
+            return 1
 
     dbg: dict[str, Any] | None = None
     if debug:
@@ -71,7 +93,7 @@ def run(
         dbg = debug_output(
             intent=intent.value,
             selection={
-                "start_node": None,
+                "start_node": node_id,
                 "strategy": f"{intent.value}_DEFAULT_V1",
                 "steps": [],
             },

@@ -17,6 +17,10 @@ The package has no `__main__.py`; `python3 -m sdd` fails with exit 1 (SEM-1: no 
 ## Preconditions (EXECUTION ORDER CONTRACT — run as strict linear chain, SEM-13)
 
 ```bash
+# Step -1: declare session (I-SESSION-DECLARED-1) — MUST include --task T-NNN
+# --task is mandatory for IMPLEMENT; omitting it causes exit 1 (I-SESSION-TASK-1)
+sdd record-session --type IMPLEMENT --phase N --task T-NNN
+
 # Step 0: resolve paths (FS-direct, no state dependency — §BOOTSTRAP STATE RULE)
 STATE=$(sdd path state)
 TASKSET=$(sdd path taskset)
@@ -73,6 +77,74 @@ Modify ONLY files listed in Task Outputs (exact paths). Nothing else.
 FORBIDDEN write targets:
 - `.sdd/specs/**` — immutable (NORM-SCOPE-004, SDD-9)
 - Any file not in Task Outputs
+
+---
+
+## STEP 4.5 — Graph Discovery (MANDATORY if task.navigation ≠ None)
+
+**FORBIDDEN:** grep-based file navigation (`grep -r`, `find`, glob scanning). Use graph commands only (NORM-GRAPH-001).
+
+**Fallback (task.navigation is None):** если TaskSet не содержит секции `resolve_keywords` / `anchor_nodes` — пропустить STEP 4.5, перейти к STEP 5 (только Task Inputs, original-era behavior).
+
+Two modes depending on `task.navigation.is_anchor_mode()`:
+
+**Mode A — resolve_keywords** (`anchor_nodes` empty, v55 era):
+
+Sequential chain per SEM-13 — ONE tool call per sub-step, stop on first non-zero exit:
+
+```bash
+# Sub-step 4.5-A: Anchor discovery (per resolve_keyword in task.navigation)
+sdd resolve "<keyword>" --format json
+  # → exit 0 required (I-DECOMPOSE-RESOLVE-1)
+  # → top-1 candidate kind ∈ expected_kinds (I-DECOMPOSE-RESOLVE-2)
+  # → repeat per each resolve_keyword entry
+  # → on NOT_FOUND: log fallback decision, use Task Inputs for that keyword
+
+# Sub-step 4.5-B: Dependency traversal (per anchor node from 4.5-A)
+sdd explain <anchor_node_id> --edge-types implements,guards,emits
+  # → returns FILE nodes reachable from anchor via whitelist edges
+  # → these files receive graph justification for reading (I-IMPLEMENT-GRAPH-1 case a)
+  # → repeat per each anchor node found
+
+# Sub-step 4.5-C: Before-write trace (per file in task.navigation.write_scope)
+sdd trace FILE:<target> --edge-types imports
+  # → returns all dependents (who imports target)
+  # → I-IMPLEMENT-TRACE-1: every dependent MUST get an explicit decision
+  # → repeat per each file in write_scope
+  # → if write_scope empty: skip 4.5-C entirely
+```
+
+**Mode B — anchor_nodes** (`anchor_nodes` non-empty, v56+ era):
+
+Skip 4.5-A entirely. Use node IDs from `task.navigation.anchor_nodes` directly:
+
+```bash
+# Sub-step 4.5-B: Dependency traversal (per node_id in task.navigation.anchor_nodes)
+sdd explain <node_id> --edge-types <task.navigation.allowed_traversal or "implements,guards,emits">
+  # → node_id is exact graph ID — no resolve needed
+  # → repeat per each anchor_node entry
+
+# Sub-step 4.5-C: Before-write trace (per file in task.navigation.write_scope)
+sdd trace FILE:<target> --edge-types imports
+  # → same as Mode A
+  # → if write_scope empty: skip 4.5-C entirely
+```
+
+**File read rule (I-IMPLEMENT-GRAPH-1):** файл MAY быть прочитан ТОЛЬКО если:
+- (a) появился в выводе resolve/explain/trace в текущей сессии, ИЛИ
+- (b) явно в Task Inputs AND `sdd explain FILE:X` вернул 0 edges → fallback + лог решения
+
+**File write rule (I-IMPLEMENT-SCOPE-1):** файлы вне `write_scope` = read-only.
+Если dependent требует изменений → LLM MUST FLAG и остановить запись до разрешения (новая задача или escalate).
+
+**graph_budget** (предупреждение, не блокировка — execution продолжается):
+```yaml
+graph_budget:
+  max_graph_calls_warning: 5
+  max_nodes_per_query: 20
+  max_traversal_depth: 2
+  traversal_edge_types_default: [implements, guards, emits]
+```
 
 ---
 

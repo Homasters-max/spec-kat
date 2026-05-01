@@ -45,6 +45,7 @@ class ContextRuntime:
         policy: NavigationPolicy,
         index: SpatialIndex,
         node_id: str,
+        edge_types: frozenset[str] | None = None,
     ) -> NavigationResponse:
         """Execute full context pipeline.
 
@@ -52,7 +53,13 @@ class ContextRuntime:
         DocProvider is created here from index (I-ENGINE-INPUTS-1: ContextEngine receives
         DocProvider ready, never SpatialIndex directly).
         LightRAGProjection degrades to OFF (returns None) when self._rag_client is None (DoD 4).
+        edge_types: when provided, forwarded to ContextEngine.query() to filter edge kinds
+                    for EXPLAIN/TRACE BFS traversal (I-ENGINE-EDGE-FILTER-1).
         """
+        if edge_types is not None and len(edge_types) == 0:
+            raise ValueError(
+                "edge_types must not be empty frozenset; pass None to use strategy defaults"
+            )
         doc_provider = self._doc_provider_factory(index)
         return self._engine.query(
             graph,
@@ -60,4 +67,5 @@ class ContextRuntime:
             doc_provider,
             node_id,
             rag_client=self._rag_client,
+            edge_types=edge_types,
         )

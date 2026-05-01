@@ -59,6 +59,52 @@ If any field missing → ERROR (MissingContext) → DO NOT PROCEED (§R.8).
 
 ---
 
+## Navigation Section (STEP 4.5 readiness — I-DECOMPOSE-RESOLVE-1)
+
+Every task whose `Outputs` include ≥1 `src/` file SHOULD declare a `Navigation:` block.
+Tasks with no `src/` outputs MAY still declare `Navigation:` to guide anchor discovery.
+Absence of `Navigation:` triggers STEP 4.5 fallback (Task Inputs only) in IMPLEMENT — valid but suboptimal.
+
+### Format
+
+```
+Navigation:
+    resolve_keywords: <KeySymbol1>, <KeySymbol2>
+    write_scope:      <path/to/output1.py>, <path/to/output2.py>
+```
+
+Indented by 4 spaces. Parsed by `TaskNavigationSpec.parse()` (navigation.py).
+
+### Rules for `resolve_keywords`
+
+- List 1–3 domain symbols the task primarily implements or modifies
+- Use class names, invariant IDs, or guard names — whatever is indexed in the graph
+- Keywords MUST be validated via `sdd resolve "<keyword>" --format json` after TaskSet is written (I-DECOMPOSE-RESOLVE-1)
+- If `sdd resolve` returns NOT_FOUND → replace keyword before committing TaskSet
+- Prefer specific symbols (`GraphSessionState`, `scope_policy`) over generic words (`handler`, `utils`)
+
+### Rules for `write_scope`
+
+- Copy `Outputs` paths that are `src/` files (exact same paths, comma-separated)
+- Exclude `.sdd/` artifacts, test files, config files — only implementation targets
+- If `Outputs` has no `src/` files → leave `write_scope:` empty (valid: STEP 4.5-C skipped)
+
+### v56+ anchor mode (anchor_nodes)
+
+When exact graph node IDs are known (e.g. after a previous `sdd resolve` in a related task):
+
+```
+Navigation:
+    anchor_nodes:      GUARD:scope_policy, FILE:src/sdd/graph_navigation/session_state.py
+    allowed_traversal: implements, guards
+    write_scope:       src/sdd/guards/scope_policy.py
+```
+
+Use `anchor_nodes` instead of `resolve_keywords` when `is_anchor_mode()` should return True.
+Do NOT mix both fields in the same task — choose one mode.
+
+---
+
 ## Phase Isolation (PIR-1..4 + APG-1..3)
 
 - PIR-1: MUST NOT read TaskSet_vM or Plan_vM where M ≠ N
@@ -84,6 +130,27 @@ Anti-patterns — CRITICAL:
 - SDD-2: every Task MUST reference exactly one Spec section + ≥1 invariant
 - SDD-3: TaskSet MUST cover all Plan milestones (no gaps)
 - SDD-4: Tasks MUST NOT introduce entities absent in Spec
+
+---
+
+## Keyword Validation (I-DECOMPOSE-RESOLVE-1 / I-DECOMPOSE-RESOLVE-2)
+
+After writing `TaskSet_vN.md`, validate every `resolve_keywords` entry across all tasks.
+If no task contains a `navigation` section → skip this step entirely.
+
+For each `resolve_keyword` entry (strict sequential chain, SEM-13 — one tool call per keyword):
+
+```bash
+sdd resolve "<keyword>" --format json
+# → exit 0 required (I-DECOMPOSE-RESOLVE-1)
+# → candidates[0].kind ∈ expected_kinds for this entry (I-DECOMPOSE-RESOLVE-2)
+```
+
+On failure:
+- exit non-zero → ERROR (KeywordResolveError) → STOP → `sdd report-error --type KeywordResolveError --message "Keyword '<keyword>' failed to resolve"`
+- `candidates[0].kind` ∉ `expected_kinds` → ERROR (KeywordKindMismatch) → STOP → `sdd report-error --type KeywordKindMismatch --message "Keyword '<keyword>' resolved to unexpected kind '<actual_kind>'"`
+
+Invalid or unresolvable keyword MUST NOT be committed to TaskSet — fix the keyword before proceeding.
 
 ---
 

@@ -1,0 +1,21 @@
+{
+  "task_id": "T-6309",
+  "session_id": "e2c6f227-c66e-4d4d-997b-e0d8b0e2cea5",
+  "total_events": 18,
+  "graph_calls": 1,
+  "file_reads": 4,
+  "file_writes": 1,
+  "commands": 12,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/enrich_trace.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/transcript/parser.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/tracing/writer.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/tracing/test_writer.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/unit/tracing/test_enrich_trace.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/tests/unit/tracing/test_enrich_trace.py' without GRAPH_CALL in session history"
+  ],
+  "behavioral_warnings": []
+}

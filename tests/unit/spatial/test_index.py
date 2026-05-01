@@ -642,3 +642,81 @@ class TestReadContent:
         for node in index.nodes.values():
             if node.kind == "FILE":
                 assert index.read_content(node) == index._content_map[node.path]
+
+
+# ---------------------------------------------------------------------------
+# Helpers for MODULE node tests (T-5515, Acceptance #8 + I-MODULE-COHESION-1)
+# ---------------------------------------------------------------------------
+
+def _write_project_with_graph_module(root: Path) -> None:
+    """Extend minimal project with src/sdd/graph/ and src/sdd/graph/extractors/."""
+    _write_minimal_project(root)
+    graph = root / "src" / "sdd" / "graph"
+    graph.mkdir()
+    (graph / "__init__.py").write_text('"""Graph module."""\n')
+    (graph / "types.py").write_text('"""Graph types."""\n')
+    (graph / "builder.py").write_text('"""Graph builder."""\n')
+
+    extractors = graph / "extractors"
+    extractors.mkdir()
+    (extractors / "__init__.py").write_text('"""Graph extractors."""\n')
+    (extractors / "module_edges.py").write_text('"""Module edge extractor."""\n')
+
+
+@pytest.fixture
+def project_with_graph(tmp_path: Path) -> str:
+    _write_project_with_graph_module(tmp_path)
+    return str(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# Tests for _collect_modules() / MODULE node presence
+# ---------------------------------------------------------------------------
+
+class TestCollectModules:
+    def test_module_node_sdd_graph_present_after_build(self, project_with_graph):
+        """(8) MODULE:sdd.graph node exists in SpatialIndex after build."""
+        index = build_index(project_with_graph)
+        assert "MODULE:sdd.graph" in index.nodes
+
+    def test_module_node_kind_and_label(self, project_with_graph):
+        """MODULE node has kind='MODULE' and label equal to dotted path."""
+        index = build_index(project_with_graph)
+        node = index.nodes["MODULE:sdd.graph"]
+        assert node.kind == "MODULE"
+        assert node.label == "sdd.graph"
+
+    def test_nested_module_nodes_present(self, project_with_graph):
+        """Both MODULE:sdd.graph and MODULE:sdd.graph.extractors exist."""
+        index = build_index(project_with_graph)
+        assert "MODULE:sdd.graph" in index.nodes
+        assert "MODULE:sdd.graph.extractors" in index.nodes
+
+    def test_module_node_path_is_relative_dir(self, project_with_graph):
+        """MODULE node path is the relative directory path."""
+        index = build_index(project_with_graph)
+        node = index.nodes["MODULE:sdd.graph"]
+        assert node.path == "src/sdd/graph"
+
+    def test_root_sdd_package_excluded(self, project_with_graph):
+        """The root sdd package (src/sdd/) itself is NOT a MODULE node."""
+        index = build_index(project_with_graph)
+        assert "MODULE:sdd" not in index.nodes
+
+    def test_dir_without_init_not_a_module(self, tmp_path):
+        """Directories without __init__.py do not become MODULE nodes."""
+        src = tmp_path / "src" / "sdd"
+        subdir = src / "not_a_package"
+        subdir.mkdir(parents=True)
+        (subdir / "some_file.py").write_text("x = 1\n")
+        (tmp_path / ".sdd" / "tasks").mkdir(parents=True)
+        (tmp_path / "CLAUDE.md").write_text("")
+
+        index = build_index(str(tmp_path))
+        assert "MODULE:sdd.not_a_package" not in index.nodes
+
+    def test_module_meta_contains_path(self, project_with_graph):
+        """MODULE node meta['path'] == node.path (I-MODULE-COHESION-1)."""
+        index = build_index(project_with_graph)
+        node = index.nodes["MODULE:sdd.graph"]
+        assert node.meta.get("path") == node.path
