@@ -1,0 +1,117 @@
+{
+  "automation-over-llm": [
+    "llm-knowledge-base",
+    "context-packet",
+    "extraction-result",
+    "llm-knowledge-base",
+    "skill-cli-architecture",
+    "context-packet"
+  ],
+  "diff-first-updates": [
+    "wiki-evolve",
+    "wiki-evolve",
+    "extraction-result"
+  ],
+  "git-as-ssot": [
+    "llm-knowledge-base",
+    "wiki-evolve",
+    "llm-knowledge-base",
+    "llm-knowledge-base",
+    "wiki-evolve"
+  ],
+  "glossary-discovery": [
+    "extraction-result",
+    "wiki-evolve",
+    "entity-registry",
+    "entity-registry",
+    "extraction-result",
+    "wiki-evolve"
+  ],
+  "context-packet": [
+    "wiki-evolve",
+    "wiki-evolve",
+    "extraction-result",
+    "skill-cli-architecture"
+  ],
+  "entity-registry": [
+    "glossary-discovery",
+    "extraction-result",
+    "glossary-discovery",
+    "extraction-result",
+    "wiki-evolve"
+  ],
+  "extraction-result": [
+    "wiki-evolve",
+    "pydantic",
+    "context-packet",
+    "glossary-discovery",
+    "context-packet",
+    "wiki-evolve",
+    "entity-registry",
+    "pydantic",
+    "glossary-discovery"
+  ],
+  "llm-knowledge-base": [
+    "wiki-evolve",
+    "git-as-ssot",
+    "wiki-query",
+    "wiki-curate",
+    "wiki-evolve",
+    "wiki-query",
+    "wiki-curate",
+    "skill-cli-architecture",
+    "git-as-ssot",
+    "automation-over-llm"
+  ],
+  "skill-cli-architecture": [
+    "context-packet",
+    "extraction-result",
+    "llm-knowledge-base",
+    "automation-over-llm",
+    "context-packet",
+    "extraction-result",
+    "typer"
+  ],
+  "wiki-curate": [
+    "llm-knowledge-base",
+    "wiki-evolve",
+    "diff-first-updates"
+  ],
+  "wiki-evolve": [
+    "context-packet",
+    "extraction-result",
+    "diff-first-updates",
+    "automation-over-llm",
+    "context-packet",
+    "extraction-result",
+    "diff-first-updates",
+    "llm-knowledge-base",
+    "entity-registry"
+  ],
+  "wiki-query": [
+    "wiki-evolve",
+    "wiki-evolve",
+    "llm-knowledge-base",
+    "bm25-search",
+    "wiki-evolve"
+  ],
+  "bm25-search": [
+    "llm-knowledge-base",
+    "wiki-query",
+    "wiki-evolve",
+    "context-packet",
+    "llm-knowledge-base",
+    "wiki-query"
+  ],
+  "pydantic": [
+    "llm-knowledge-base",
+    "extraction-result",
+    "skill-cli-architecture"
+  ],
+  "typer": [
+    "llm-knowledge-base",
+    "skill-cli-architecture",
+    "skill-cli-architecture",
+    "llm-knowledge-base"
+  ]
+}

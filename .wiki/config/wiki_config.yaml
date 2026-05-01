@@ -1,0 +1,4 @@
+domain: personal
+llm_model: claude-sonnet-4-6
+small_page_threshold: 1000
+vault_root: /root/project/obsidian-vault
