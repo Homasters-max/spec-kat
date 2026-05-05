@@ -105,6 +105,23 @@
     "session-orchestrator",
     "audit-engine"
   ],
+  "trace-aligned-test-partitioning": [
+    "test-catalog-projection",
+    "test-catalog-projection",
+    "test-catalog-projection",
+    "replay-based-testing",
+    "replay-engine",
+    "golden-fixture"
+  ],
+  "adversarial-scenario-mutator": [
+    "scenario-gen",
+    "audit-engine",
+    "scenario-gen",
+    "audit-engine",
+    "error-classifier",
+    "replay-based-testing",
+    "task-event-slice"
+  ],
   "agent-handle": [
     "agent-loop",
     "agent-loop",
@@ -139,6 +156,8 @@
   ],
   "audit-engine": [
     "scenario-gen",
+    "test-catalog-projection",
+    "adversarial-scenario-mutator",
     "meta-optimization",
     "scenario-gen",
     "trace-store",
@@ -236,6 +255,15 @@
     "wiki-evolve",
     "context-packet",
     "wiki-cli"
+  ],
+  "golden-fixture": [
+    "test-catalog-projection",
+    "replay-engine",
+    "snapshot-comparator",
+    "task-event-slice",
+    "test-catalog-projection",
+    "scenario-gen",
+    "replay-based-testing"
   ],
   "graph-query-engine": [
     "execution-guard",
@@ -383,10 +411,30 @@
     "sdd-meta-harness"
   ],
   "replay-based-testing": [
+    "replay-engine",
+    "task-event-slice",
+    "golden-fixture",
+    "snapshot-comparator",
+    "test-catalog-projection",
+    "adversarial-scenario-mutator",
+    "replay-engine",
+    "task-event-slice",
+    "golden-fixture",
+    "snapshot-comparator",
+    "test-catalog-projection",
+    "adversarial-scenario-mutator",
     "reducer",
     "upcaster-registry",
     "event-sourcing",
-    "sdd-meta-harness"
+    "audit-engine"
+  ],
+  "replay-engine": [
+    "golden-fixture",
+    "reducer",
+    "upcaster-registry",
+    "task-event-slice",
+    "golden-fixture",
+    "replay-based-testing"
   ],
   "sandbox-manager": [
     "scope-guard",
@@ -396,10 +444,12 @@
     "sdd-component-inventory"
   ],
   "scenario-gen": [
+    "adversarial-scenario-mutator",
     "audit-engine",
     "trace-store",
     "replay-based-testing",
-    "session-orchestrator"
+    "session-orchestrator",
+    "adversarial-scenario-mutator"
   ],
   "scope-guard": [
     "trace-store",
@@ -454,6 +504,31 @@
     "audit-engine",
     "classified-recovery",
     "sdd-component-inventory"
+  ],
+  "snapshot-comparator": [
+    "golden-fixture",
+    "replay-engine",
+    "golden-fixture",
+    "replay-based-testing"
+  ],
+  "task-event-slice": [
+    "replay-engine",
+    "replay-engine",
+    "golden-fixture",
+    "event-sourcing",
+    "replay-based-testing"
+  ],
+  "test-catalog-projection": [
+    "projection-registry",
+    "trace-aligned-test-partitioning",
+    "replay-engine",
+    "audit-engine",
+    "projection-registry",
+    "replay-based-testing",
+    "replay-engine",
+    "golden-fixture",
+    "audit-engine",
+    "memory-layer"
   ],
   "trace-projection": [
     "projection-registry",

@@ -9,7 +9,7 @@ tags:
 - pipeline
 - ssot
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -39,6 +39,9 @@ AgentScore =
 - Вычисляется только из [[scenario-gen]] ScenarioSpec checks
 - Если любой `critical=true` check failed → M9 = 0 (hard fail)
 - Детерминирован: одинаковые inputs → одинаковый M9
+- Фильтрация через [[test-catalog-projection]]: только релевантные ScenarioSpecs запускаются при расчёте M9 (AD-9)
+- Adversarial failures ([[adversarial-scenario-mutator]]) — sub-метрика M9 в Tier 3 Regression Suite
+- Tier 3 встроен в Session Orchestrator flow — не отдельный процесс
 
 **Источники данных:**
 

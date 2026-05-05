@@ -9,7 +9,7 @@ tags:
 - pipeline
 - ssot
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -58,6 +58,10 @@ checks:
 
 Вызывается Session Orchestrator'ом после `SandboxManager.commit()`. Если задача failed/discarded → ScenarioGen не вызывается (нет ground truth для неуспешных задач).
 
+**Транзакционность (AD-2):** `complete-task` handler эмитит `ScenarioGenerated` только если `task.status == COMPLETE`. WriteKernel включает `TaskCompleted` + `ScenarioGenerated` в одну PostgreSQL транзакцию — нет окна где задача DONE, но ScenarioSpec ещё нет.
+
+Контраст с [[adversarial-scenario-mutator]]: FAILED задачи → мутации для Tier 3 adversarial suite, не ScenarioSpec.
+
 ## Trade-offs
 
 - ScenarioSpec quality = quality of task artifacts. Плохой trace → слабые checks.
@@ -69,3 +73,4 @@ checks:
 - [[trace-store]]
 - [[replay-based-testing]]
 - [[session-orchestrator]]
+- [[adversarial-scenario-mutator]]

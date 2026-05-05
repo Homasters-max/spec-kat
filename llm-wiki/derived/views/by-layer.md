@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## architecture (51)
+## architecture (58)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -16,6 +16,8 @@ _Generated: 2026-05-05_
 | l1-l2-isolation | idea | sdd | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
+| trace-aligned-test-partitioning | idea | sdd | validation, automation, pipeline, domain/sdd | 2026-05-05 |
+| adversarial-scenario-mutator | pattern | sdd | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | sdd | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
 | agent-loop | pattern | sdd | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
 | audit-engine | pattern | sdd | validation, automation, pipeline, ssot, domain/sdd | 2026-05-05 |
@@ -29,6 +31,7 @@ _Generated: 2026-05-05_
 | eventstore-guard | pattern | sdd | enforcement, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | execution-guard | pattern | sdd | enforcement, pipeline, validation, write-path, domain/sdd | 2026-05-05 |
 | extraction-result | pattern | wiki | seam, pipeline, extraction, pydantic, validation, domain/wiki | 2026-05-05 |
+| golden-fixture | pattern | sdd | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | graph-query-engine | pattern | sdd | search, pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | graph-session-projection | pattern | sdd | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | input-port | pattern | sdd | pipeline, write-path, llm, automation, domain/sdd | 2026-05-05 |
@@ -43,12 +46,16 @@ _Generated: 2026-05-05_
 | projection-registry | pattern | sdd | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | reducer | pattern | sdd | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | replay-based-testing | pattern | sdd | automation, validation, pipeline, ssot, domain/sdd | 2026-05-05 |
+| replay-engine | pattern | sdd | automation, validation, pipeline, domain/sdd | 2026-05-05 |
 | sandbox-manager | pattern | sdd | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | scenario-gen | pattern | sdd | automation, validation, pipeline, ssot, domain/sdd | 2026-05-05 |
 | scope-guard | pattern | sdd | enforcement, write-path, validation, domain/sdd | 2026-05-05 |
 | score-context | pattern | sdd | validation, pipeline, read-only, automation, domain/sdd | 2026-05-05 |
 | sdd-meta-harness | pattern | sdd | event-sourcing, pipeline, ssot, enforcement, llm, domain/sdd | 2026-05-05 |
 | session-orchestrator | pattern | sdd | pipeline, automation, enforcement, write-path, domain/sdd | 2026-05-05 |
+| snapshot-comparator | pattern | sdd | validation, automation, domain/sdd | 2026-05-05 |
+| task-event-slice | pattern | sdd | pipeline, automation, validation, domain/sdd | 2026-05-05 |
+| test-catalog-projection | pattern | sdd | pipeline, automation, validation, ssot, domain/sdd | 2026-05-05 |
 | trace-projection | pattern | sdd | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | upcaster-registry | pattern | sdd | pipeline, validation, automation, domain/sdd | 2026-05-05 |
 | wiki-curate | pattern | wiki | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-05 |
