@@ -55,10 +55,20 @@ obsidian-vault/
 │   └── tool/                   ← инструменты / технологии
 ├── derived/
 │   ├── index.md                ← авто: таблица всех страниц
-│   └── graph.json              ← авто: граф [[wikilinks]]
+│   ├── graph.json              ← авто: граф [[wikilinks]]
+│   └── views/
+│       ├── by-domain.md        ← авто: группировка по domain
+│       ├── by-layer.md         ← авто: группировка по layer
+│       └── by-type.md          ← авто: группировка по page_type
 ├── runtime/
 │   ├── cache/                  ← ContextPackets + BM25-индекс
 │   └── tmp/                    ← черновики LLM (очищается после apply)
+├── templates/
+│   ├── idea.md                 ← шаблон страницы idea
+│   ├── pattern.md              ← шаблон страницы pattern
+│   ├── tool.md                 ← шаблон страницы tool
+│   ├── create-draft.md         ← шаблон черновика .create.md
+│   └── diff-draft.md           ← шаблон черновика .diff.md
 └── .wiki/
     ├── config/
     │   ├── wiki_config.yaml    ← конфигурация vault
@@ -69,14 +79,29 @@ obsidian-vault/
         └── query_log.jsonl     ← лог запросов
 ```
 
-### wiki_config.yaml (минимальный)
+### wiki_config.yaml (полный)
 
 ```yaml
 domain: personal
 llm_model: claude-sonnet-4-6
 small_page_threshold: 1000
 vault_root: /root/project/obsidian-vault
+
+domains:
+  - wiki
+  - llm
+  - sdd
+  - infra
+  - general
+
+layers:
+  - concept
+  - architecture
+  - implementation
+  - integration
 ```
+
+`domains` и `layers` используются командой `wiki lint` для валидации frontmatter страниц (I-WIKI-DOMAIN-1, I-WIKI-LAYER-1).
 
 ---
 
@@ -92,6 +117,43 @@ wiki init --force                    # перезаписать существу
 ```
 
 Создаёт структуру директорий, `wiki_config.yaml`, пустой глоссарий, лог-файлы, инициализирует git. Идемпотентен — безопасно запускать повторно.
+
+---
+
+### Frontmatter wiki-страниц
+
+Каждая страница в `wiki/` ДОЛЖНА иметь YAML frontmatter (I-WIKI-FM-1). CLI проставляет системные поля автоматически, LLM заполняет смысловые в черновике:
+
+```yaml
+---
+id: pattern/wiki-evolve
+page_type: pattern
+domain: wiki
+layer: architecture
+tags: [pipeline, write-path, ingestion]
+version: 1
+created: 2026-05-01
+updated: 2026-05-01
+sources:
+  - raw/LLM_Wiki_Spec_v1.md
+---
+```
+
+| Поле | Кто задаёт | Значения |
+|------|-----------|---------|
+| `id` | CLI (auto) | `{page_type}/{page_id}` |
+| `page_type` | LLM (черновик) | `idea \| pattern \| tool` |
+| `domain` | LLM (черновик) | из `wiki_config.domains` |
+| `layer` | LLM (черновик) | из `wiki_config.layers` |
+| `tags` | LLM (черновик) | kebab-case, ≤5 штук |
+| `version` | CLI (auto) | integer, начиная с 1; инкрементируется при каждом write |
+| `created` | CLI (auto при create) | ISO date |
+| `updated` | CLI (auto при любом write) | ISO date |
+| `sources` | LLM (черновик) | список `raw/*.md` файлов-источников |
+
+**Допустимые значения domain** (из `wiki_config.domains`): `wiki`, `llm`, `sdd`, `infra`, `general`
+
+**Допустимые значения layer** (из `wiki_config.layers`): `concept`, `architecture`, `implementation`, `integration`
 
 ---
 
@@ -144,7 +206,19 @@ wiki show rag-pipeline
 wiki rebuild
 ```
 
-Пересоздаёт `derived/index.md` (таблица всех страниц) и `derived/graph.json` (граф ссылок). Запускать после любого изменения wiki-страниц.
+Пересоздаёт статические таблицы и `derived/graph.json`. Запускать после любого изменения wiki-страниц.
+
+Генерируемые файлы:
+
+| Файл | Содержимое |
+|------|-----------|
+| `derived/index.md` | Все страницы: id, type, domain, layer, tags, updated |
+| `derived/views/by-domain.md` | Группировка по domain |
+| `derived/views/by-layer.md` | Группировка по layer |
+| `derived/views/by-type.md` | Группировка по page_type |
+| `derived/graph.json` | Граф wikilinks |
+
+Страницы без frontmatter попадают в таблицы с `domain=?`, `layer=?`. `derived/synthesis/` rebuild не трогает.
 
 ---
 
@@ -158,6 +232,16 @@ wiki lint          # exit 0 = OK, exit 1 = есть проблемы
 - **Orphans** — страницы без входящих ссылок
 - **Broken links** — `[[ссылки]]` на несуществующие страницы
 - **Duplicates** — пары страниц с similarity > 85%
+- **Frontmatter** — наличие, валидность domain/layer, непустые tags:
+
+| Проверка | Уровень | Условие |
+|----------|---------|---------|
+| Нет frontmatter | WARNING | страница без `---` блока |
+| Неверный `domain` | ERROR | не в `wiki_config.domains` (I-WIKI-DOMAIN-1) |
+| Неверный `layer` | ERROR | не в `wiki_config.layers` (I-WIKI-LAYER-1) |
+| Пустые `tags: []` | WARNING | теги — качество, не корректность |
+
+Обязателен exit 0 до `git commit` (I-WIKI-LINT-1).
 
 ---
 
@@ -186,6 +270,49 @@ wiki apply-drafts    # exit 0 = OK, exit 1 = конфликт
 
 ---
 
+### `wiki save-proposals` — сохранить предложения глоссария
+
+```bash
+wiki save-proposals
+```
+
+Читает `glossary_proposals` из `runtime/tmp/extraction.json` и дозаписывает новые записи в `.wiki/config/glossary_pending.yaml`.
+
+- Если `term` уже есть в pending → `[SKIP] term (already pending)` + предупреждение (не перезаписывает — пользователь мог редактировать вручную)
+- Выводит: `[OK] N added, M skipped`
+
+Запускать **только если `glossary_proposals > 0`** (I-WIKI-SEQ-1), после `git commit`.
+
+---
+
+### `wiki delete` — удалить страницу
+
+```bash
+# Dry-run: показать что будет удалено
+wiki delete <page_id>
+
+# Применить удаление
+wiki delete <page_id> --confirm
+```
+
+**Без `--confirm` (dry-run):**
+- Показывает первые 10 строк страницы
+- Находит все страницы с `[[page_id]]` и показывает список
+- Показывает запись в `glossary.yaml` если есть
+- Выводит: `Run with --confirm to proceed`
+
+**С `--confirm`:**
+1. Находит все `wiki/**/*.md` с `[[page_id]]`
+2. В каждом удаляет строки `- [[page_id]]` (See Also блок) и заменяет inline `[[page_id]]` на `page_id`
+3. Если `page_id` есть в `glossary.yaml` как `page` → удаляет запись
+4. Удаляет файл страницы
+5. Вызывает `wiki rebuild`
+6. Выводит: `Deleted page_id. Updated N pages. Glossary: removed/kept.`
+
+После `--confirm` обязательно запустить `wiki lint` (I-WIKI-DELETE-1).
+
+---
+
 ### `wiki log` — история операций
 
 ```bash
@@ -197,6 +324,19 @@ wiki log --n 50    # последние 50
 
 ---
 
+### `wiki mark-ingested` — пометить файл как обработанный
+
+```bash
+wiki mark-ingested <sha256>
+wiki mark-ingested <sha256> --file raw/my-notes.md
+```
+
+Записывает sha256 в `ingest_log.jsonl`. Запускать как **последний шаг** после `git commit` в pipeline wiki-evolve. Только после этого файл перестаёт появляться в `wiki ingest --pending`.
+
+SHA256 печатается командой `wiki ingest` в строке `sha256 : ...`.
+
+---
+
 ### `wiki promote` — продвинуть query в ContextPacket
 
 ```bash
@@ -204,6 +344,38 @@ wiki promote <query_id>
 ```
 
 Берёт `context_snapshot` из query_log по ID и кэширует как ContextPacket для последующей обработки через `wiki-evolve`.
+
+---
+
+### `wiki log-query` — записать запрос в query_log
+
+```bash
+wiki log-query --query "что такое RAG pipeline?"
+wiki log-query --query "что такое RAG pipeline?" --snapshot /tmp/context.json
+```
+
+Выводит сгенерированный `query_id` в stdout. Использовать перед `wiki promote`:
+
+```bash
+QID=$(wiki log-query --query "что такое RAG pipeline?")
+wiki promote $QID
+```
+
+`--snapshot` — путь к JSON-файлу с объектом контекста (`{}`-формат). Если не указан, `context_snapshot = {}` и `wiki promote` вернёт ошибку "context_snapshot is empty".
+
+---
+
+### `wiki status` — состояние pipeline
+
+```bash
+wiki status
+```
+
+Показывает:
+- Количество необработанных файлов в `raw/`
+- Наличие `runtime/tmp/extraction.json`
+- Черновики в `runtime/tmp/`
+- Количество записей в ingest_log и query_log
 
 ---
 
@@ -227,6 +399,34 @@ wiki curate-apply
 
 ---
 
+### `wiki templates` — список шаблонов
+
+```bash
+wiki templates
+```
+
+Показывает доступные шаблоны страниц и черновиков с путями:
+
+```text
+→ idea      : templates/idea.md
+→ pattern   : templates/pattern.md
+→ tool      : templates/tool.md
+→ drafts    : templates/create-draft.md, templates/diff-draft.md
+```
+
+---
+
+### `wiki evolve` — запустить wiki-evolve в Claude Code
+
+```bash
+wiki evolve
+wiki evolve --vault /path/to/vault
+```
+
+Запускает wiki-evolve skill в Claude Code (аналог `/wiki` → wiki-evolve в чате). Используется для автоматизации pipeline через CLI без ручного запуска skill.
+
+---
+
 ## Работа с Claude Code
 
 Запустить skill: напишите в чате `/wiki` или опишите задачу (Claude сам определит нужный протокол).
@@ -240,14 +440,16 @@ wiki curate-apply
 5. Вы: `wiki validate-extraction` — убедитесь что exit 0
 6. Claude (LLM): пишет черновики страниц в `runtime/tmp/`
 7. Вы: `wiki apply-drafts` → `wiki rebuild` → `wiki lint` → `git commit`
-8. Claude: `wiki sync-glossary` — опциональный review новых терминов
+8. Вы: `wiki mark-ingested <sha256>` — пометить файл как обработанный
+9. Claude: `wiki sync-glossary` — опциональный review новых терминов
 
 ### Сценарий 2: задать вопрос (wiki-query)
 
 1. Запустите `/wiki` → опишите вопрос
 2. Claude: `wiki search <terms>` + `wiki show <ids>` — READ-ONLY
 3. Claude (LLM): синтезирует ответ с цитатами
-4. Опционально: `wiki promote <query_id>` чтобы сохранить контекст для будущей обработки
+4. Опционально: `wiki log-query --query "<вопрос>" [--snapshot ctx.json]` → получить `query_id`
+5. Опционально: `wiki promote <query_id>` — сохранить контекст для wiki-evolve
 
 ### Сценарий 3: навести порядок (wiki-curate)
 
@@ -282,17 +484,95 @@ cd $VAULT && git init
 
 ---
 
+## Несколько проектов (multi-vault)
+
+Wiki поддерживает несколько изолированных vault'ов — для разных проектов, команд или контекстов. Каждый vault полностью независим: свои страницы, glossary, ingest_log, `domains`/`layers`.
+
+### Реестр vault'ов
+
+Глобальный реестр хранится в `~/.wiki/vaults.yaml`. Активный vault — в `~/.wiki/active`.
+
+**Логика разрешения vault (приоритет по убыванию):**
+
+1. `--vault <path>` или `WIKI_VAULT` env — явный override на одну команду
+2. `~/.wiki/active` → lookup в `~/.wiki/vaults.yaml`
+3. Хардкод `/root/project/obsidian-vault`
+
+### `wiki register` — зарегистрировать vault
+
+```bash
+wiki register personal /root/project/obsidian-vault -d "Personal knowledge base"
+wiki register work     /home/user/work-wiki          -d "Work project notes"
+wiki register sdd      /root/project/sdd-wiki
+```
+
+Записывает vault в `~/.wiki/vaults.yaml`. Повторный вызов с тем же именем обновляет путь.
+
+### `wiki vaults` — список vault'ов
+
+```bash
+wiki vaults
+```
+
+Выводит все зарегистрированные vault'ы. Активный помечен `▶`:
+
+```text
+  ▶ personal             /root/project/obsidian-vault  # Personal knowledge base
+    work                 /home/user/work-wiki           # Work project notes
+    sdd                  /root/project/sdd-wiki
+```
+
+### `wiki use` — переключить активный vault
+
+```bash
+wiki use work
+# [OK] Active vault → work  (/home/user/work-wiki)
+```
+
+После этого все команды (`wiki ingest`, `wiki search`, `wiki lint` и т.д.) работают с vault `work` — без `--vault` флага.
+
+### `wiki init --name` — создать и зарегистрировать
+
+```bash
+wiki init --vault /home/user/new-project --name new-project --domain llm
+```
+
+Создаёт структуру vault и сразу регистрирует его в реестре.
+
+### Типичный workflow с несколькими проектами
+
+```bash
+# Первоначальная настройка
+wiki register personal /root/project/obsidian-vault -d "Personal KB"
+wiki register work     /home/user/work-wiki          -d "Work notes"
+
+# Работа с personal
+wiki use personal
+wiki ingest --pending --take 1
+wiki search "rag pipeline"
+
+# Переключиться на work
+wiki use work
+wiki ingest raw/standup-notes.md
+wiki lint
+
+# Временно обратиться к другому vault без переключения
+wiki --vault /root/project/obsidian-vault search "context packet"
+```
+
+---
+
 ## Переменные окружения
 
 | Переменная | По умолчанию | Назначение |
 |------------|-------------|------------|
-| `WIKI_VAULT` | `/root/project/obsidian-vault` | Путь к vault (глобальный override) |
+| `WIKI_VAULT` | активный vault из `~/.wiki/active` | Явный путь к vault (override реестра) |
 
 ```bash
-# Временно использовать другой vault
+# Временно использовать конкретный vault (не меняет ~/.wiki/active)
 WIKI_VAULT=/tmp/other-wiki wiki search "test"
 
-# Постоянно задать в shell profile
+# Постоянно задать конкретный vault в shell profile (отключает реестр)
 echo 'export WIKI_VAULT=/root/project/obsidian-vault' >> ~/.bashrc
 ```
 
@@ -308,3 +588,7 @@ echo 'export WIKI_VAULT=/root/project/obsidian-vault' >> ~/.bashrc
 | `wiki lint` exit 1 — orphan | страница без входящих ссылок | добавить `[[page_id]]` в связанную страницу |
 | `wiki search` — No results | wiki/ пуст или индекс устарел | удалить `runtime/cache/bm25_corpus.json`, повторить |
 | `validate-extraction` exit 1 | невалидный JSON или схема | LLM должен переписать extraction.json |
+| `wiki promote` exit 1 — "context_snapshot is empty" | log-query вызван без --snapshot | повторить с --snapshot |
+| `wiki promote` exit 1 — "query_id not found" | неверный query_id | проверить `wiki log --n 50` |
+| `wiki use` exit 1 — "not found" | имя не в реестре | `wiki vaults` → проверить список, `wiki register` если нужно |
+| команда работает не с тем vault | `WIKI_VAULT` env перекрывает реестр | `unset WIKI_VAULT` или `wiki use <name>` |

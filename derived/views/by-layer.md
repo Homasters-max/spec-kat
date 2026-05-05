@@ -2,12 +2,13 @@
 
 _Generated: 2026-05-05_
 
-## architecture (6)
+## architecture (7)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
 | context-packet | pattern | wiki | seam, pipeline, ingestion, automation | 2026-05-05 |
 | extraction-result | pattern | wiki | seam, pipeline, extraction, pydantic, validation | 2026-05-05 |
+| multi-vault | pattern | wiki | knowledge-base, pipeline, cli, automation | 2026-05-05 |
 | wiki-curate | pattern | wiki | curation, maintenance, pipeline, llm | 2026-05-05 |
 | wiki-evolve | pattern | wiki | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
 | wiki-frontmatter | pattern | wiki | validation, ssot, markdown, yaml | 2026-05-05 |

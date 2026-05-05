@@ -9,7 +9,7 @@ tags:
 - knowledge-base
 - python
 - automation
-version: 3
+version: 4
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -51,6 +51,8 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - `apply_drafts` останавливается на первом конфликте (не откатывает применённые)
 - `wiki mark-ingested` — финальный шаг pipeline: записывает SHA256 в [[ingest-log]] (I-WIKI-INGEST-1)
 - `wiki log-query` — записывает вопрос в [[query-log]], возвращает `query_id` для `wiki promote`
+- `wiki evolve` — запускает wiki-evolve pipeline из CLI (без ручного запуска skill)
+- `wiki register`, `wiki vaults`, `wiki use` — управление [[multi-vault]] реестром
 - `wiki status` — показывает состояние pipeline: pending файлы, черновики, записи логов
 - `wiki save-proposals` — сохраняет `glossary_proposals` из extraction.json в `.wiki/config/glossary_pending.yaml`; skip если term уже есть (I-WIKI-SEQ-1)
 - `wiki delete <page_id> [--confirm]` — dry-run или удаление страницы: чистит входящие wikilinks, glossary entry, вызывает rebuild (I-WIKI-DELETE-1)
@@ -68,3 +70,4 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - [[query-log]]
 - [[wiki-frontmatter]]
 - [[page-meta]]
+- [[multi-vault]]

@@ -44,6 +44,12 @@
     "context-packet",
     "query-log"
   ],
+  "multi-vault": [
+    "wiki-cli",
+    "wiki-cli",
+    "git-as-ssot",
+    "ingest-log"
+  ],
   "page-meta": [
     "wiki-cli",
     "wiki-cli",
@@ -97,6 +103,7 @@
     "context-packet",
     "ingest-log",
     "query-log",
+    "multi-vault",
     "wiki-evolve",
     "wiki-query",
     "wiki-curate",
@@ -107,6 +114,7 @@
     "ingest-log",
     "query-log",
     "wiki-frontmatter",
-    "page-meta"
+    "page-meta",
+    "multi-vault"
   ]
 }

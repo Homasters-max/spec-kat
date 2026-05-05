@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 13 pages_
+_Updated: 2026-05-05 · 14 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -10,6 +10,7 @@ _Updated: 2026-05-05 · 13 pages_
 | context-packet | pattern | wiki | architecture | seam, pipeline, ingestion, automation | 2026-05-05 |
 | extraction-result | pattern | wiki | architecture | seam, pipeline, extraction, pydantic, validation | 2026-05-05 |
 | ingest-log | pattern | wiki | implementation | ingestion, write-path, ssot, automation, pipeline | 2026-05-05 |
+| multi-vault | pattern | wiki | architecture | knowledge-base, pipeline, cli, automation | 2026-05-05 |
 | page-meta | pattern | wiki | implementation | python, pydantic, write-path, validation | 2026-05-05 |
 | query-log | pattern | wiki | implementation | knowledge-base, read-only, pipeline, ingestion | 2026-05-05 |
 | wiki-curate | pattern | wiki | architecture | curation, maintenance, pipeline, llm | 2026-05-05 |
