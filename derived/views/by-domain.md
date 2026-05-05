@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## wiki (9)
+## wiki (11)
 
 | id | type | layer | tags | updated |
 |---|---|---|---|---|
@@ -11,6 +11,8 @@ _Generated: 2026-05-05_
 | git-as-ssot | idea | concept | git, ssot, knowledge-base, ingestion | 2026-05-05 |
 | context-packet | pattern | architecture | seam, pipeline, ingestion, automation | 2026-05-05 |
 | extraction-result | pattern | architecture | seam, pipeline, extraction, pydantic, validation | 2026-05-05 |
+| ingest-log | pattern | implementation | ingestion, write-path, ssot, automation, pipeline | 2026-05-05 |
+| query-log | pattern | implementation | knowledge-base, read-only, pipeline, ingestion | 2026-05-05 |
 | wiki-curate | pattern | architecture | curation, maintenance, pipeline, llm | 2026-05-05 |
 | wiki-evolve | pattern | architecture | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
 | wiki-query | pattern | architecture | read-only, search, llm, knowledge-base | 2026-05-05 |

@@ -35,6 +35,23 @@
     "context-packet",
     "wiki-cli"
   ],
+  "ingest-log": [
+    "context-packet",
+    "wiki-cli",
+    "context-packet",
+    "wiki-cli",
+    "wiki-evolve",
+    "context-packet",
+    "query-log"
+  ],
+  "query-log": [
+    "context-packet",
+    "wiki-query",
+    "wiki-cli",
+    "ingest-log",
+    "context-packet",
+    "wiki-evolve"
+  ],
   "wiki-curate": [
     "wiki-cli",
     "wiki-cli",
@@ -65,12 +82,16 @@
     "wiki-curate",
     "automation-over-llm",
     "context-packet",
+    "ingest-log",
+    "query-log",
     "wiki-evolve",
     "wiki-query",
     "wiki-curate",
     "context-packet",
     "extraction-result",
     "automation-over-llm",
-    "git-as-ssot"
+    "git-as-ssot",
+    "ingest-log",
+    "query-log"
   ]
 }

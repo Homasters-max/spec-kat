@@ -20,8 +20,10 @@ _Generated: 2026-05-05_
 | diff-first-updates | idea | wiki | write-path, dedup, maintenance, git | 2026-05-05 |
 | git-as-ssot | idea | wiki | git, ssot, knowledge-base, ingestion | 2026-05-05 |
 
-## implementation (1)
+## implementation (3)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
+| ingest-log | pattern | wiki | ingestion, write-path, ssot, automation, pipeline | 2026-05-05 |
+| query-log | pattern | wiki | knowledge-base, read-only, pipeline, ingestion | 2026-05-05 |
 | wiki-cli | tool | wiki | cli, pipeline, knowledge-base, python, automation | 2026-05-05 |

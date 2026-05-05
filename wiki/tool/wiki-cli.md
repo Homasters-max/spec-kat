@@ -9,7 +9,7 @@ tags:
 - knowledge-base
 - python
 - automation
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -49,6 +49,9 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - `repo.py` не имеет метода `save_page()` — только `create_page`, `apply_diff`, `rewrite_page`
 - `ingest.py::make_context_packet` — единственный конструктор `ContextPacket`
 - `apply_drafts` останавливается на первом конфликте (не откатывает применённые)
+- `wiki mark-ingested` — финальный шаг pipeline: записывает SHA256 в [[ingest-log]] (I-WIKI-INGEST-1)
+- `wiki log-query` — записывает вопрос в [[query-log]], возвращает `query_id` для `wiki promote`
+- `wiki status` — показывает состояние pipeline: pending файлы, черновики, записи логов
 - `git.py::pending_raw_files` = uncommitted raw/ WHERE sha256 NOT IN ingest_log
 
 ## See Also
@@ -59,3 +62,5 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - [[extraction-result]]
 - [[automation-over-llm]]
 - [[git-as-ssot]]
+- [[ingest-log]]
+- [[query-log]]

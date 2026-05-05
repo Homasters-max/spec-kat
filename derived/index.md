@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 9 pages_
+_Updated: 2026-05-05 · 11 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -9,6 +9,8 @@ _Updated: 2026-05-05 · 9 pages_
 | git-as-ssot | idea | wiki | concept | git, ssot, knowledge-base, ingestion | 2026-05-05 |
 | context-packet | pattern | wiki | architecture | seam, pipeline, ingestion, automation | 2026-05-05 |
 | extraction-result | pattern | wiki | architecture | seam, pipeline, extraction, pydantic, validation | 2026-05-05 |
+| ingest-log | pattern | wiki | implementation | ingestion, write-path, ssot, automation, pipeline | 2026-05-05 |
+| query-log | pattern | wiki | implementation | knowledge-base, read-only, pipeline, ingestion | 2026-05-05 |
 | wiki-curate | pattern | wiki | architecture | curation, maintenance, pipeline, llm | 2026-05-05 |
 | wiki-evolve | pattern | wiki | architecture | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
 | wiki-query | pattern | wiki | architecture | read-only, search, llm, knowledge-base | 2026-05-05 |
