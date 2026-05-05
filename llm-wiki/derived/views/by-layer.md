@@ -2,14 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## ? (2)
-
-| id | type | domain | tags | updated |
-|---|---|---|---|---|
-| graph-session-state | idea | ? |  | 2026-05-05 |
-| trace-store | tool | ? |  | 2026-05-05 |
-
-## architecture (42)
+## architecture (48)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -18,7 +11,9 @@ _Generated: 2026-05-05_
 | context-snapshot | idea | sdd | search, read-only, ssot, domain/sdd | 2026-05-05 |
 | event-sourcing | idea | sdd | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | global-laws | idea | sdd | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
+| graph-session-state | idea | sdd | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
 | graph-structural-offset | idea | sdd | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
+| l1-l2-isolation | idea | sdd | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | sdd | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
@@ -28,6 +23,7 @@ _Generated: 2026-05-05_
 | commit-discard-gate | pattern | sdd | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | pattern | sdd | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | context-packet | pattern | wiki | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
+| embedding-projection | pattern | sdd | pipeline, search, automation, domain/sdd | 2026-05-05 |
 | error-classifier | pattern | sdd | enforcement, validation, pipeline, automation, domain/sdd | 2026-05-05 |
 | eventstore-guard | pattern | sdd | enforcement, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | execution-guard | pattern | sdd | enforcement, pipeline, validation, write-path, domain/sdd | 2026-05-05 |
@@ -35,10 +31,12 @@ _Generated: 2026-05-05_
 | graph-query-engine | pattern | sdd | search, pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | graph-session-projection | pattern | sdd | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | input-port | pattern | sdd | pipeline, write-path, llm, automation, domain/sdd | 2026-05-05 |
+| memory-layer | pattern | sdd | ssot, read-only, pipeline, llm, domain/sdd | 2026-05-05 |
 | meta-optimization | pattern | sdd | automation, pipeline, llm, validation, domain/sdd | 2026-05-05 |
 | metric-collector | pattern | sdd | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
 | multi-vault | pattern | wiki | knowledge-base, pipeline, cli, automation, domain/wiki | 2026-05-05 |
 | policy-kernel | pattern | sdd | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
+| policy-projection | pattern | sdd | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | projection-registry | pattern | sdd | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | reducer | pattern | sdd | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | replay-based-testing | pattern | sdd | automation, validation, pipeline, ssot, domain/sdd | 2026-05-05 |
@@ -55,6 +53,7 @@ _Generated: 2026-05-05_
 | wiki-frontmatter | pattern | wiki | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
 | wiki-query | pattern | wiki | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-session-isolation | pattern | wiki | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
+| trace-store | tool | sdd | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
 
 ## concept (3)
 

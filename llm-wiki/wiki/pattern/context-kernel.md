@@ -9,7 +9,7 @@ tags:
 - llm
 - ssot
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -26,7 +26,7 @@ Push (обязательный базовый контекст):
   - граф текущей задачи (QueryEngine.execute(explain_query(task_id)))
   - write_scope текущей задачи
   - текущий статус фазы + задачи из ReadModel
-  - активные инварианты из L0 Guards
+  - policy (behavioral rules из [[policy-projection]] через memory.read.policy())
 
 Pull (по запросу LLM):
   - LLM вызывает resolve → QueryEngine расширяет контекст
@@ -62,6 +62,8 @@ class ContextKernel:
 ## See Also
 
 - [[graph-query-engine]]
+- [[memory-layer]]
+- [[policy-projection]]
 - [[context-snapshot]]
 - [[execution-guard]]
 - [[input-port]]

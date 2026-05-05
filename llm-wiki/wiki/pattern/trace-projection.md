@@ -9,7 +9,7 @@ tags:
 - pipeline
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -52,6 +52,8 @@ TraceReader.get_steps(task_id)       -> list[TraceEntry]
 **Минусы:** зависимость от PostgreSQL (нет лёгкого fallback на файл); частичная проекция требует дисциплины при добавлении новых команд — нужно явно задать `affects_trace`.
 
 **Инвариант фильтрации:** `CommandSpec.affects_trace` задаётся при регистрации команды в [[command-bus]]. Отсутствие флага = `false` (default). Новая команда, которая должна попадать в Trace, обязана явно объявить `affects_trace = true`.
+
+**Routing vs семантика:** `CommandSpec.affects_trace` — семантическая аннотация для Guards и AuditEngine. Она НЕ используется для маршрутизации в [[projection-registry]]. Routing определяется исключительно `subscribed_commands`, объявленными при регистрации TraceProjection.
 
 ## See Also
 

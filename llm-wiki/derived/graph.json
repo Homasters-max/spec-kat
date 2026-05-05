@@ -81,6 +81,13 @@
     "command-bus",
     "event-sourcing"
   ],
+  "l1-l2-isolation": [
+    "memory-layer",
+    "memory-layer",
+    "embedding-projection",
+    "execution-guard",
+    "context-kernel"
+  ],
   "sdd-actor-model": [
     "agent-handle",
     "sandbox-manager",
@@ -147,7 +154,10 @@
     "score-context"
   ],
   "context-kernel": [
+    "policy-projection",
     "graph-query-engine",
+    "memory-layer",
+    "policy-projection",
     "context-snapshot",
     "execution-guard",
     "input-port",
@@ -158,6 +168,12 @@
     "wiki-evolve",
     "extraction-result",
     "wiki-cli"
+  ],
+  "embedding-projection": [
+    "memory-layer",
+    "memory-layer",
+    "l1-l2-isolation",
+    "projection-registry"
   ],
   "error-classifier": [
     "policy-kernel",
@@ -174,13 +190,14 @@
     "sdd-component-inventory"
   ],
   "execution-guard": [
-    "graph-session-state",
-    "trace-store",
-    "graph-session-state",
-    "graph-query-engine",
-    "trace-store",
+    "graph-session-projection",
+    "policy-projection",
+    "graph-session-projection",
+    "policy-projection",
+    "memory-layer",
+    "l1-l2-isolation",
     "scope-guard",
-    "sdd-meta-harness"
+    "trace-projection"
   ],
   "extraction-result": [
     "wiki-evolve",
@@ -200,14 +217,17 @@
   "graph-session-projection": [
     "projection-registry",
     "execution-guard",
+    "policy-projection",
     "trace-projection",
+    "policy-projection",
     "execution-guard",
+    "policy-projection",
     "execution-guard",
     "projection-registry",
     "execution-guard",
+    "policy-projection",
     "trace-projection",
-    "graph-session-state",
-    "replay-based-testing"
+    "memory-layer"
   ],
   "ingest-log": [
     "context-packet",
@@ -223,6 +243,19 @@
     "agent-handle",
     "context-kernel",
     "sdd-actor-model"
+  ],
+  "memory-layer": [
+    "projection-registry",
+    "l1-l2-isolation",
+    "projection-registry",
+    "embedding-projection",
+    "embedding-projection",
+    "l1-l2-isolation",
+    "policy-projection",
+    "embedding-projection",
+    "projection-registry",
+    "context-kernel",
+    "execution-guard"
   ],
   "meta-optimization": [
     "policy-kernel",
@@ -259,11 +292,22 @@
     "scope-guard",
     "event-sourcing"
   ],
+  "policy-projection": [
+    "projection-registry",
+    "memory-layer",
+    "memory-layer",
+    "execution-guard",
+    "trace-projection",
+    "projection-registry",
+    "graph-session-projection"
+  ],
   "projection-registry": [
-    "event-sourcing",
-    "reducer",
-    "command-bus",
-    "sdd-component-inventory"
+    "embedding-projection",
+    "memory-layer",
+    "policy-projection",
+    "trace-projection",
+    "embedding-projection",
+    "command-bus"
   ],
   "query-log": [
     "context-packet",
@@ -356,6 +400,7 @@
     "graph-session-projection",
     "scope-guard",
     "command-bus",
+    "projection-registry",
     "trace-store",
     "projection-registry",
     "execution-guard",
