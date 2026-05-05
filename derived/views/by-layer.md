@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## architecture (5)
+## architecture (6)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -10,6 +10,7 @@ _Generated: 2026-05-05_
 | extraction-result | pattern | wiki | seam, pipeline, extraction, pydantic, validation | 2026-05-05 |
 | wiki-curate | pattern | wiki | curation, maintenance, pipeline, llm | 2026-05-05 |
 | wiki-evolve | pattern | wiki | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
+| wiki-frontmatter | pattern | wiki | validation, ssot, markdown, yaml | 2026-05-05 |
 | wiki-query | pattern | wiki | read-only, search, llm, knowledge-base | 2026-05-05 |
 
 ## concept (3)
@@ -20,10 +21,11 @@ _Generated: 2026-05-05_
 | diff-first-updates | idea | wiki | write-path, dedup, maintenance, git | 2026-05-05 |
 | git-as-ssot | idea | wiki | git, ssot, knowledge-base, ingestion | 2026-05-05 |
 
-## implementation (3)
+## implementation (4)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
 | ingest-log | pattern | wiki | ingestion, write-path, ssot, automation, pipeline | 2026-05-05 |
+| page-meta | pattern | wiki | python, pydantic, write-path, validation | 2026-05-05 |
 | query-log | pattern | wiki | knowledge-base, read-only, pipeline, ingestion | 2026-05-05 |
 | wiki-cli | tool | wiki | cli, pipeline, knowledge-base, python, automation | 2026-05-05 |

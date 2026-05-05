@@ -44,6 +44,12 @@
     "context-packet",
     "query-log"
   ],
+  "page-meta": [
+    "wiki-cli",
+    "wiki-cli",
+    "wiki-frontmatter",
+    "wiki-evolve"
+  ],
   "query-log": [
     "context-packet",
     "wiki-query",
@@ -70,6 +76,13 @@
     "wiki-query",
     "wiki-curate"
   ],
+  "wiki-frontmatter": [
+    "wiki-cli",
+    "wiki-cli",
+    "wiki-evolve",
+    "page-meta",
+    "ingest-log"
+  ],
   "wiki-query": [
     "wiki-cli",
     "wiki-cli",
@@ -92,6 +105,8 @@
     "automation-over-llm",
     "git-as-ssot",
     "ingest-log",
-    "query-log"
+    "query-log",
+    "wiki-frontmatter",
+    "page-meta"
   ]
 }

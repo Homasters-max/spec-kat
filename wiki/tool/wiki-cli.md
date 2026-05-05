@@ -9,7 +9,7 @@ tags:
 - knowledge-base
 - python
 - automation
-version: 2
+version: 3
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -52,6 +52,8 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - `wiki mark-ingested` — финальный шаг pipeline: записывает SHA256 в [[ingest-log]] (I-WIKI-INGEST-1)
 - `wiki log-query` — записывает вопрос в [[query-log]], возвращает `query_id` для `wiki promote`
 - `wiki status` — показывает состояние pipeline: pending файлы, черновики, записи логов
+- `wiki save-proposals` — сохраняет `glossary_proposals` из extraction.json в `.wiki/config/glossary_pending.yaml`; skip если term уже есть (I-WIKI-SEQ-1)
+- `wiki delete <page_id> [--confirm]` — dry-run или удаление страницы: чистит входящие wikilinks, glossary entry, вызывает rebuild (I-WIKI-DELETE-1)
 - `git.py::pending_raw_files` = uncommitted raw/ WHERE sha256 NOT IN ingest_log
 
 ## See Also
@@ -64,3 +66,5 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - [[git-as-ssot]]
 - [[ingest-log]]
 - [[query-log]]
+- [[wiki-frontmatter]]
+- [[page-meta]]

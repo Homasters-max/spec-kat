@@ -10,16 +10,18 @@ _Generated: 2026-05-05_
 | diff-first-updates | wiki | concept | write-path, dedup, maintenance, git | 2026-05-05 |
 | git-as-ssot | wiki | concept | git, ssot, knowledge-base, ingestion | 2026-05-05 |
 
-## pattern (7)
+## pattern (9)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
 | context-packet | wiki | architecture | seam, pipeline, ingestion, automation | 2026-05-05 |
 | extraction-result | wiki | architecture | seam, pipeline, extraction, pydantic, validation | 2026-05-05 |
 | ingest-log | wiki | implementation | ingestion, write-path, ssot, automation, pipeline | 2026-05-05 |
+| page-meta | wiki | implementation | python, pydantic, write-path, validation | 2026-05-05 |
 | query-log | wiki | implementation | knowledge-base, read-only, pipeline, ingestion | 2026-05-05 |
 | wiki-curate | wiki | architecture | curation, maintenance, pipeline, llm | 2026-05-05 |
 | wiki-evolve | wiki | architecture | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
+| wiki-frontmatter | wiki | architecture | validation, ssot, markdown, yaml | 2026-05-05 |
 | wiki-query | wiki | architecture | read-only, search, llm, knowledge-base | 2026-05-05 |
 
 ## tool (1)
