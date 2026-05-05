@@ -3,32 +3,39 @@ id: pattern/sdd-meta-harness
 page_type: pattern
 domain: sdd
 layer: architecture
-tags:
-- event-sourcing
-- pipeline
-- ssot
-- enforcement
-- llm
-- domain/sdd
-version: 1
+tags: [event-sourcing, pipeline, ssot, enforcement, llm, domain/sdd]
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
 - raw/SDD Meta Harness Core.md
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
 ---
 # SDD Meta Harness
 
-Трёхуровневая архитектура исполнения агентских задач, обеспечивающая детерминизм, replay и контроль поведения.
+Трёхуровневая архитектура исполнения агентских задач: детерминированный runtime для недетерминированного LLM.
 
 ## How It Works
 
-Система построена на трёх слоях:
+**SDD = детерминированный runtime для non-deterministic LLM.** L0 — жёсткий каркас, L1 — контроль поведения, L2 — intelligence extensions.
 
-- **L0 — Execution Core**: `⟨EventLog, Reducer, State, Command, CommandContext, Guard⟩` — единственный источник истины, чистые функции, без side-effects.
-- **L1 — Harness Core**: `⟨Graph, QueryEngine, TraceStore, ExecutionGuard, ScopeGuard⟩` — детерминированные проекции, контроль поведения агента.
-- **L2 — Extensions**: `⟨RAG, Policies, MetaOptimization⟩` — доступ только через `CommandBus + ReadModel`, не нарушает L0.
+```text
+L0 — Execution Core (неизменяемое ядро):
+  EventLog, Reducer, State, Command+CommandContext, L0 Guards,
+  CommandRegistry, CommandBus, WriteKernel, EventStore Guard,
+  UpcasterRegistry, ErrorEvent, ProjectionRegistry,
+  Graph/SpatialIndex  ← проекция EventLog+Code, не behavioral
 
-**Global Laws (неизменяемые):**
+L1 — Harness Core (контроль поведения агента):
+  QueryEngine, ExecutionGuard, ScopeGuard, TraceStore,
+  ErrorClassifier, Session Orchestrator, ContextKernel,
+  InputPort, AgentHandle, SandboxManager, AuditEngine
+
+L2 — Extensions (только через CommandBus + ReadModel):
+  RAG, PolicyKernel, MetaOptimization, ScenarioGen
+```
+
+**Global Laws:**
 
 ```text
 GL-1 Determinism:  StateN = reduce(EventLog₀…N)
@@ -37,37 +44,54 @@ GL-3 Pipeline:     Command → Guard(L0) → Guard(L1) → handle → Event → 
 GL-4 Projection:   Projection := f(EventLog, Code)
 GL-5 Isolation:    L0 не зависит от L1/L2
 GL-6 Write Gate:   write разрешён только после start-task + resolve + explain + file ∈ write_scope
+GL-7 EventStore:   event_store.append() — только из Command handlers
+GL-8 Sandbox:      каждый TaskRun в изолированном окружении
+GL-9 Agent Loop:   нет persistent loop — Session Orchestrator chains stateless sessions
+GL-10 L2 Access:   L2 только через CommandBus + ReadModel
 ```
 
 **Полный execution flow:**
 
 ```python
-guards_L0.check(state, cmd, ctx)        # 1. state invariants
-execution_guard.check(trace, gss, cmd)  # 2. behavior protocol
-events = handle(cmd, state, ctx)        # 3. pure handler
-event_store.append(events)              # 4. atomic commit
-for e in events:
-    state = reduce(state, upcast(e))    # 5. state update
-scope_guard.check(trace, task)          # 6. file scope (write-команды)
+# Session Orchestrator запускает TaskRun:
+sandbox = SandboxManager.create(task_id)
+agent   = AgentHandle.start(model, config)
+context = ContextKernel.build_base(task_id)        # Push
+
+# Цикл:
+tool_call = agent.step(context)                    # LLM → tool call
+result    = CommandBus.dispatch(tool_call)         # Guards → Handler → EventLog
+if result.error:
+    strategy = ErrorClassifier.classify(result.error)
+    # RETRY / RE_EXPLAIN / HUMAN_GATE / ABORT
+TraceStore.record(tool_call, result, model_version)
+
+# По завершению:
+SandboxManager.commit_or_discard(sandbox)
+AuditEngine.calculate(M1_M9)                       # → AgentScore
+ScenarioGen.build(task_artifacts)                  # → ScenarioSpec
 ```
 
 ## When To Use
 
-Когда нужно управлять исполнением агентских задач с гарантиями: детерминизм, объяснимость каждого write, контроль области файлов.
+Читать как архитектурный обзор системы. Для деталей каждого компонента — см. отдельные страницы.
 
 ## Trade-offs
 
 - Каждый write требует цикла `resolve → explain → write` — overhead для тривиальных изменений.
 - L0 не зависит от L1, но L1 guards всегда вызываются после L0 — нельзя обойти порядок.
-- function/class узлы графа отложены до v2.1+.
+- Graph находится в L0 (не L1): это проекция-SSOT, QueryEngine (L1) делает запросы к Graph.
 
 ## See Also
 
+- [[sdd-component-inventory]]
+- [[global-laws]]
 - [[event-sourcing]]
 - [[reducer]]
-- [[graph-query-engine]]
+- [[command-bus]]
+- [[session-orchestrator]]
 - [[execution-guard]]
-- [[scope-guard]]
+- [[audit-engine]]
 - [[trace-store]]
 - [[upcaster-registry]]
 - [[replay-based-testing]]

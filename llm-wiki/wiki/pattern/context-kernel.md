@@ -1,0 +1,68 @@
+---
+id: pattern/context-kernel
+page_type: pattern
+domain: sdd
+layer: architecture
+tags:
+- pipeline
+- search
+- llm
+- ssot
+- domain/sdd
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
+---
+# Context Kernel
+
+L1-компонент: строит контекстный пакет для LLM по гибридной Push+Pull модели.
+
+## How It Works
+
+```text
+Push (обязательный базовый контекст):
+  - граф текущей задачи (QueryEngine.execute(explain_query(task_id)))
+  - write_scope текущей задачи
+  - текущий статус фазы + задачи из ReadModel
+  - активные инварианты из L0 Guards
+
+Pull (по запросу LLM):
+  - LLM вызывает resolve → QueryEngine расширяет контекст
+  - LLM вызывает explain → ExecutionGuard фиксирует graph_fingerprint
+  - RAG (L2): historical traces + extended read context
+```
+
+**Интерфейс:**
+
+```python
+class ContextKernel:
+    def build_base(self, task_id: str) -> ContextPacket: ...
+    def handle_pull(self, cmd: ResolveCommand) -> ContextSnapshot: ...
+```
+
+`ContextPacket` — это то что подаётся в `AgentHandle.step()` как system context. LLM не может запросить контекст вне разрешённых каналов (Pull строго через tool calls).
+
+**Ограничения на Pull:**
+
+- LLM может запросить только то что разрешает scope_policy
+- Запросы логируются в TraceStore
+- L2 RAG вызывается через CommandBus, не напрямую
+
+## When To Use
+
+Вызывается Session Orchestrator'ом при старте сессии (Push) и при каждом `resolve` tool call (Pull).
+
+## Trade-offs
+
+- Push гарантирует минимум контекста, но может содержать избыточное.
+- Pull позволяет LLM уточнить, но каждый Pull = дополнительный round-trip через CommandBus.
+
+## See Also
+
+- [[graph-query-engine]]
+- [[context-snapshot]]
+- [[execution-guard]]
+- [[input-port]]
+- [[session-orchestrator]]

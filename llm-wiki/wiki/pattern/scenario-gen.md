@@ -1,0 +1,71 @@
+---
+id: pattern/scenario-gen
+page_type: pattern
+domain: sdd
+layer: architecture
+tags:
+- automation
+- validation
+- pipeline
+- ssot
+- domain/sdd
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
+---
+# ScenarioGen
+
+L2-компонент: детерминированная генерация ScenarioSpec из завершённых задач. Ground truth для M9 (execution_correctness).
+
+## How It Works
+
+```python
+class ScenarioGen:
+    def build(self, task_artifacts: TaskArtifacts) -> ScenarioSpec:
+        # task_artifacts = trace + summary + outputs
+        checks = self._extract_checks(task_artifacts)
+        return ScenarioSpec(
+            task_id=task_artifacts.task_id,
+            checks=checks,
+            critical_checks=[c for c in checks if c.critical],
+        )
+```
+
+**ScenarioSpec:**
+
+```yaml
+task_id: T-034
+checks:
+  - id: check_01
+    description: "EventLog содержит ровно 3 события"
+    critical: true
+    verifier: "event_count == 3"
+  - id: check_02
+    description: "State.phase_status == COMPLETE"
+    critical: false
+    verifier: "state.phase_status == 'COMPLETE'"
+```
+
+**Детерминизм:** одинаковые `task_artifacts` → идентичный `ScenarioSpec`. Нет рандомности в генерации.
+
+**Использование:** ScenarioSpec хранится как `ScenarioGenerated` event в EventLog. AuditEngine читает через ReadModel при расчёте M9.
+
+**Production → regression:** успешно завершённые задачи автоматически становятся regression suite — следующий раз когда аналогичная задача выполняется, M9 проверяет что она ведёт себя так же.
+
+## When To Use
+
+Вызывается Session Orchestrator'ом после `SandboxManager.commit()`. Если задача failed/discarded → ScenarioGen не вызывается (нет ground truth для неуспешных задач).
+
+## Trade-offs
+
+- ScenarioSpec quality = quality of task artifacts. Плохой trace → слабые checks.
+- Не обнаруживает регрессии если задача решена по-другому но с тем же результатом.
+
+## See Also
+
+- [[audit-engine]]
+- [[trace-store]]
+- [[replay-based-testing]]
+- [[session-orchestrator]]

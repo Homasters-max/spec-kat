@@ -8,6 +8,14 @@
     "extraction-result",
     "git-as-ssot"
   ],
+  "classified-recovery": [
+    "error-classifier",
+    "error-classifier",
+    "error-classifier",
+    "execution-guard",
+    "session-orchestrator",
+    "sdd-meta-harness"
+  ],
   "command-context": [
     "sdd-meta-harness",
     "graph-session-state",
@@ -44,17 +52,89 @@
     "wiki-evolve",
     "automation-over-llm"
   ],
+  "global-laws": [
+    "event-sourcing",
+    "eventstore-guard",
+    "sandbox-manager",
+    "session-orchestrator",
+    "sdd-component-inventory"
+  ],
   "graph-session-state": [
     "execution-guard",
     "execution-guard",
     "graph-query-engine",
     "sdd-meta-harness"
   ],
+  "sdd-actor-model": [
+    "agent-handle",
+    "sandbox-manager",
+    "agent-handle",
+    "input-port",
+    "session-orchestrator",
+    "policy-kernel",
+    "sdd-component-inventory"
+  ],
+  "sdd-component-inventory": [
+    "sdd-meta-harness",
+    "global-laws",
+    "sdd-actor-model",
+    "event-sourcing",
+    "session-orchestrator",
+    "audit-engine"
+  ],
+  "agent-handle": [
+    "audit-engine",
+    "meta-optimization",
+    "session-orchestrator",
+    "input-port",
+    "trace-store",
+    "context-kernel",
+    "graph-session-state"
+  ],
+  "audit-engine": [
+    "scenario-gen",
+    "meta-optimization",
+    "scenario-gen",
+    "trace-store",
+    "meta-optimization",
+    "session-orchestrator",
+    "replay-based-testing"
+  ],
+  "command-bus": [
+    "input-port",
+    "input-port",
+    "eventstore-guard",
+    "execution-guard",
+    "scope-guard",
+    "error-classifier",
+    "projection-registry"
+  ],
+  "context-kernel": [
+    "graph-query-engine",
+    "context-snapshot",
+    "execution-guard",
+    "input-port",
+    "session-orchestrator"
+  ],
   "context-packet": [
     "wiki-evolve",
     "wiki-evolve",
     "extraction-result",
     "wiki-cli"
+  ],
+  "error-classifier": [
+    "policy-kernel",
+    "classified-recovery",
+    "execution-guard",
+    "scope-guard",
+    "session-orchestrator",
+    "policy-kernel"
+  ],
+  "eventstore-guard": [
+    "event-sourcing",
+    "command-bus",
+    "global-laws",
+    "sdd-component-inventory"
   ],
   "execution-guard": [
     "graph-session-state",
@@ -89,6 +169,19 @@
     "context-packet",
     "query-log"
   ],
+  "input-port": [
+    "command-bus",
+    "agent-handle",
+    "context-kernel",
+    "sdd-actor-model"
+  ],
+  "meta-optimization": [
+    "policy-kernel",
+    "audit-engine",
+    "trace-store",
+    "classified-recovery",
+    "sdd-actor-model"
+  ],
   "multi-vault": [
     "wiki-cli",
     "wiki-cli",
@@ -100,6 +193,19 @@
     "wiki-cli",
     "wiki-frontmatter",
     "wiki-evolve"
+  ],
+  "policy-kernel": [
+    "error-classifier",
+    "meta-optimization",
+    "sdd-actor-model",
+    "scope-guard",
+    "event-sourcing"
+  ],
+  "projection-registry": [
+    "event-sourcing",
+    "reducer",
+    "command-bus",
+    "sdd-component-inventory"
   ],
   "query-log": [
     "context-packet",
@@ -122,6 +228,19 @@
     "event-sourcing",
     "sdd-meta-harness"
   ],
+  "sandbox-manager": [
+    "scope-guard",
+    "audit-engine",
+    "session-orchestrator",
+    "global-laws",
+    "sdd-component-inventory"
+  ],
+  "scenario-gen": [
+    "audit-engine",
+    "trace-store",
+    "replay-based-testing",
+    "session-orchestrator"
+  ],
   "scope-guard": [
     "trace-store",
     "trace-store",
@@ -129,14 +248,25 @@
     "sdd-meta-harness"
   ],
   "sdd-meta-harness": [
+    "sdd-component-inventory",
+    "global-laws",
     "event-sourcing",
     "reducer",
-    "graph-query-engine",
+    "command-bus",
+    "session-orchestrator",
     "execution-guard",
-    "scope-guard",
+    "audit-engine",
     "trace-store",
     "upcaster-registry",
     "replay-based-testing"
+  ],
+  "session-orchestrator": [
+    "agent-handle",
+    "context-kernel",
+    "sandbox-manager",
+    "audit-engine",
+    "classified-recovery",
+    "sdd-component-inventory"
   ],
   "upcaster-registry": [
     "reducer",
