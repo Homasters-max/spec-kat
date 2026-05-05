@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## sdd (57)
+## sdd (62)
 
 | id | type | layer | tags | updated |
 |---|---|---|---|---|
@@ -11,12 +11,15 @@ _Generated: 2026-05-05_
 | context-snapshot | idea | architecture | search, read-only, ssot, domain/sdd | 2026-05-05 |
 | event-sourcing | idea | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | global-laws | idea | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
+| graph-impact | idea | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | graph-session-state | idea | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
 | graph-structural-offset | idea | architecture | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
+| idempotency-mode | idea | architecture | dedup, write-path, automation, domain/sdd | 2026-05-05 |
 | l1-l2-isolation | idea | architecture | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | trace-aligned-test-partitioning | idea | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
+| trace-scope | idea | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | adversarial-scenario-mutator | pattern | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | architecture | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
 | agent-loop | pattern | architecture | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
@@ -24,6 +27,7 @@ _Generated: 2026-05-05_
 | bootstrap-policy | pattern | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | classification-result | pattern | architecture | enforcement, validation, pipeline, domain/sdd | 2026-05-05 |
 | command-bus | pattern | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
+| command-spec | pattern | architecture | cli, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | commit-discard-gate | pattern | architecture | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | pattern | architecture | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | embedding-projection | pattern | architecture | pipeline, search, automation, domain/sdd | 2026-05-05 |
@@ -45,6 +49,7 @@ _Generated: 2026-05-05_
 | meta-optimization | pattern | architecture | automation, pipeline, llm, validation, domain/sdd | 2026-05-05 |
 | metric-collector | pattern | architecture | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
 | middleware-pipeline | pattern | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
+| mutation-registry | pattern | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | policy-kernel | pattern | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | policy-projection | pattern | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | projection-registry | pattern | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |

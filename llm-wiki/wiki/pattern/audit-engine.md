@@ -9,29 +9,37 @@ tags:
 - pipeline
 - ssot
 - domain/sdd
-version: 2
+version: 3
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
+- raw/commandspec-deepening-plan.md
 ---
 # AuditEngine
 
-L1-компонент: детерминированный расчёт AgentScore из метрик M1–M9 по завершению каждого TaskRun.
+L1-компонент: детерминированный расчёт AgentScore из метрик M1–M9 по завершению каждого TaskRun. Нормализует приоритеты [[metric-collector]] в веса: `weight_i = collector.priority / Σ(priorities)`.
 
 ## How It Works
 
+**Нормализация приоритетов:**
+
 ```python
-AgentScore =
-  0.20 * M1  # protocol compliance (resolve→explain→write соблюдён?)
-+ 0.20 * M2  # scope adherence (writes только в write_scope?)
-+ 0.20 * M3  # tests (тесты прошли?)
-+ 0.10 * M4  # focus (задача решена без drift?)
-+ 0.10 * M5  # time (в пределах бюджета шагов?)
-+ 0.10 * M6  # behavior (guard violations count?)
-+ 0.05 * M7  # completion (задача DONE?)
-+ 0.05 * M8  # step_correctness (каждый шаг корректен?)
-+ 0.10 * M9  # execution_correctness (ScenarioSpec checks прошли?)
+total = sum(c.priority for c in collectors)
+samples = [c.collect(task_id, context) for c in collectors]
+critical_passed = all(s > 0 for c, s in zip(collectors, samples) if c.metric_id == "M9")
+score = sum((c.priority / total) * s for c, s in zip(collectors, samples))
+return AgentScore(total=score, samples=samples, critical_passed=critical_passed)
+```
+
+`sum(weights) == 1.0` — математическая гарантия нормализации, не отдельный invariant test.
+
+**Начальное распределение (priority → effective weight):**
+
+```text
+M1 (priority=20) → 0.20   M2 (priority=20) → 0.20   M3 (priority=20) → 0.20
+M4 (priority=10) → 0.10   M5 (priority=10) → 0.10   M6 (priority=10) → 0.10
+M7 (priority=5)  → 0.05   M8 (priority=5)  → 0.05   M9 (priority=10) → 0.10
 ```
 
 **M9 — особая метрика:**
@@ -55,13 +63,17 @@ AgentScore =
 
 Вызывается Session Orchestrator'ом после `SandboxManager.commit()/discard()`. Результат используется [[meta-optimization]] для анализа трендов.
 
+Добавление M10: создать новый [[metric-collector]] с `priority=N`, зарегистрировать при сборке — AuditEngine автоматически пересчитает все веса без изменения агрегатора.
+
 ## Trade-offs
 
 - M9 требует ScenarioSpec — если ScenarioGen не сгенерировал spec для задачи, M9 = null.
 - AgentScore агрегирует очень разные метрики — высокий score ≠ идеальная задача.
+- Locality взвешивания концентрируется в AuditEngine, не размазана по 9 коллекторам.
 
 ## See Also
 
+- [[metric-collector]] — интерфейс collectors, содержит priority
 - [[scenario-gen]]
 - [[trace-store]]
 - [[meta-optimization]]

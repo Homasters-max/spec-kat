@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## architecture (65)
+## architecture (70)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -11,12 +11,15 @@ _Generated: 2026-05-05_
 | context-snapshot | idea | sdd | search, read-only, ssot, domain/sdd | 2026-05-05 |
 | event-sourcing | idea | sdd | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | global-laws | idea | sdd | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
+| graph-impact | idea | sdd | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | graph-session-state | idea | sdd | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
 | graph-structural-offset | idea | sdd | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
+| idempotency-mode | idea | sdd | dedup, write-path, automation, domain/sdd | 2026-05-05 |
 | l1-l2-isolation | idea | sdd | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | trace-aligned-test-partitioning | idea | sdd | validation, automation, pipeline, domain/sdd | 2026-05-05 |
+| trace-scope | idea | sdd | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | adversarial-scenario-mutator | pattern | sdd | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | sdd | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
 | agent-loop | pattern | sdd | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
@@ -24,6 +27,7 @@ _Generated: 2026-05-05_
 | bootstrap-policy | pattern | sdd | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | classification-result | pattern | sdd | enforcement, validation, pipeline, domain/sdd | 2026-05-05 |
 | command-bus | pattern | sdd | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
+| command-spec | pattern | sdd | cli, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | commit-discard-gate | pattern | sdd | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | pattern | sdd | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | context-packet | pattern | wiki | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
@@ -48,6 +52,7 @@ _Generated: 2026-05-05_
 | metric-collector | pattern | sdd | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
 | middleware-pipeline | pattern | sdd | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | multi-vault | pattern | wiki | knowledge-base, pipeline, cli, automation, domain/wiki | 2026-05-05 |
+| mutation-registry | pattern | sdd | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | policy-kernel | pattern | sdd | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | policy-projection | pattern | sdd | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | projection-registry | pattern | sdd | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |

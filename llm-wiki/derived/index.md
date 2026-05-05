@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 72 pages_
+_Updated: 2026-05-05 · 77 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -12,12 +12,15 @@ _Updated: 2026-05-05 · 72 pages_
 | event-sourcing | idea | sdd | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | git-as-ssot | idea | wiki | concept | git, ssot, knowledge-base, ingestion, domain/wiki | 2026-05-05 |
 | global-laws | idea | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
+| graph-impact | idea | sdd | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | graph-session-state | idea | sdd | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
 | graph-structural-offset | idea | sdd | architecture | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
+| idempotency-mode | idea | sdd | architecture | dedup, write-path, automation, domain/sdd | 2026-05-05 |
 | l1-l2-isolation | idea | sdd | architecture | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | trace-aligned-test-partitioning | idea | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
+| trace-scope | idea | sdd | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | adversarial-scenario-mutator | pattern | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | sdd | architecture | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
 | agent-loop | pattern | sdd | architecture | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
@@ -25,6 +28,7 @@ _Updated: 2026-05-05 · 72 pages_
 | bootstrap-policy | pattern | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | classification-result | pattern | sdd | architecture | enforcement, validation, pipeline, domain/sdd | 2026-05-05 |
 | command-bus | pattern | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
+| command-spec | pattern | sdd | architecture | cli, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | commit-discard-gate | pattern | sdd | architecture | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | pattern | sdd | architecture | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | context-packet | pattern | wiki | architecture | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
@@ -50,6 +54,7 @@ _Updated: 2026-05-05 · 72 pages_
 | metric-collector | pattern | sdd | architecture | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
 | middleware-pipeline | pattern | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | multi-vault | pattern | wiki | architecture | knowledge-base, pipeline, cli, automation, domain/wiki | 2026-05-05 |
+| mutation-registry | pattern | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | page-meta | pattern | wiki | implementation | python, pydantic, write-path, validation, domain/wiki | 2026-05-05 |
 | policy-kernel | pattern | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | policy-projection | pattern | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |

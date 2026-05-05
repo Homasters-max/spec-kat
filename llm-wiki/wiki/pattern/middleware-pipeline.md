@@ -9,7 +9,7 @@ tags:
 - enforcement
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -79,6 +79,23 @@ def create_command_bus(db, policy_reader, write_kernel, ...) -> CommandBus:
 - Слоты фиксированы в `create_command_bus` — добавление нового middleware требует изменения фабрики.
 - Guards бросают `GuardError` (не возвращают Result) — `ErrorClassifierMiddleware` обязателен как внешний слой.
 - `build_pipeline` — тупая свёртка без интроспекции; порядок слотов документируется конвенцией, не типами.
+
+
+## Invariant Test
+
+Порядок слотов документируется конвенцией, не типами. Startup invariant test детектирует нарушение в CI:
+
+```python
+def test_pipeline_order_invariant():
+    pipeline = build_test_pipeline()
+    slots = pipeline.slot_sequence()
+    assert slots.index(L0GuardSlot) < slots.index(L1ExecutionGuardSlot)
+    assert slots.index(IdempotencySlot) < slots.index(L0GuardSlot)
+    assert slots[-1] == WriteKernelSlot
+    assert not any(is_l1_dependency(s) for s in slots[:slots.index(IdempotencySlot)])
+```
+
+Почему не dynamic registry: pipeline собирается один раз при старте. Динамический реестр — over-engineering без leverage для инициализационного кода.
 
 ## See Also
 

@@ -63,6 +63,12 @@
     "session-orchestrator",
     "sdd-component-inventory"
   ],
+  "graph-impact": [
+    "command-spec",
+    "command-spec",
+    "command-spec",
+    "graph-structural-offset"
+  ],
   "graph-session-state": [
     "graph-session-projection",
     "projection-registry",
@@ -84,6 +90,13 @@
     "graph-query-engine",
     "command-bus",
     "event-sourcing"
+  ],
+  "idempotency-mode": [
+    "command-spec",
+    "idempotency-middleware",
+    "command-spec",
+    "idempotency-middleware",
+    "command-bus"
   ],
   "l1-l2-isolation": [
     "memory-layer",
@@ -118,6 +131,14 @@
     "replay-based-testing",
     "replay-engine",
     "golden-fixture"
+  ],
+  "trace-scope": [
+    "command-spec",
+    "trace-projection",
+    "trace-projection",
+    "command-spec",
+    "command-spec",
+    "trace-projection"
   ],
   "adversarial-scenario-mutator": [
     "scenario-gen",
@@ -164,10 +185,13 @@
     "command-bus"
   ],
   "audit-engine": [
+    "metric-collector",
     "scenario-gen",
     "test-catalog-projection",
     "adversarial-scenario-mutator",
     "meta-optimization",
+    "metric-collector",
+    "metric-collector",
     "scenario-gen",
     "trace-store",
     "meta-optimization",
@@ -205,6 +229,22 @@
     "scope-guard",
     "error-classifier",
     "projection-registry"
+  ],
+  "command-spec": [
+    "command-bus",
+    "trace-scope",
+    "trace-projection",
+    "graph-impact",
+    "idempotency-mode",
+    "idempotency-middleware",
+    "task-event-slice",
+    "command-bus",
+    "trace-scope",
+    "graph-impact",
+    "idempotency-mode",
+    "command-bus",
+    "middleware-pipeline",
+    "task-event-slice"
   ],
   "commit-discard-gate": [
     "sandbox-manager",
@@ -440,6 +480,12 @@
     "wiki-cli",
     "git-as-ssot",
     "ingest-log"
+  ],
+  "mutation-registry": [
+    "error-registry",
+    "error-registry",
+    "error-registry",
+    "error-classifier"
   ],
   "page-meta": [
     "wiki-cli",

@@ -8,7 +8,7 @@ tags:
 - automation
 - validation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -72,6 +72,19 @@ class TaskEventSliceBuilder:
 
 - `CONTEXT_EVENT_TYPES` — ручная синхронизация с Guards: если Guard добавлен без обновления константы, тест будет некорректен
 - `from_store` читает EventLog — не pure, но вызывается только при capture, не при тестах
+
+- I-REPLAY-12 риск устраняется safeguard-тестом: introspect Guard event reads vs CONTEXT_EVENT_TYPES — CI
+  поймает silent incorrectness:
+
+```python
+def test_context_event_types_covers_all_guard_dependencies():
+    guard_event_reads = introspect_guard_event_types(ExecutionGuard, ScopeGuard)
+    missing = guard_event_reads - TaskEventSlice.CONTEXT_EVENT_TYPES
+    assert not missing, (
+        f"Guards depend on event types not in CONTEXT_EVENT_TYPES: {missing}. "
+        f"Update TaskEventSlice.CONTEXT_EVENT_TYPES (I-REPLAY-12)."
+    )
+```
 
 ## See Also
 
