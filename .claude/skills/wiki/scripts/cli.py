@@ -8,10 +8,44 @@ import typer
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
-_DEFAULT_VAULT = Path(os.environ.get("WIKI_VAULT", "/root/project/obsidian-vault"))
+_WIKI_HOME = Path.home() / ".wiki"
+_REGISTRY_FILE = _WIKI_HOME / "vaults.yaml"
+_ACTIVE_FILE = _WIKI_HOME / "active"
+
+
+def _load_registry() -> list[dict]:
+    if not _REGISTRY_FILE.exists():
+        return []
+    import yaml
+    return yaml.safe_load(_REGISTRY_FILE.read_text(encoding="utf-8")) or []
+
+
+def _save_registry(entries: list[dict]) -> None:
+    import yaml
+    _REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _REGISTRY_FILE.write_text(yaml.dump(entries, allow_unicode=True), encoding="utf-8")
+
+
+def _get_default_vault() -> Path:
+    """Resolve default vault: WIKI_VAULT env > ~/.wiki/active > error."""
+    if "WIKI_VAULT" in os.environ:
+        return Path(os.environ["WIKI_VAULT"])
+    if _ACTIVE_FILE.exists():
+        name = _ACTIVE_FILE.read_text(encoding="utf-8").strip()
+        for entry in _load_registry():
+            if entry.get("name") == name:
+                return Path(entry["path"])
+    raise typer.BadParameter(
+        "No active vault. Run: wiki use <name>  or  export WIKI_VAULT=/path/to/vault"
+    )
+
+
+_DEFAULT_VAULT = Path(".")  # placeholder; real value resolved per-command via _resolve_vault
 
 
 def _resolve_vault(vault: Path) -> Path:
+    if vault == Path("."):
+        vault = _get_default_vault()
     return vault.expanduser().resolve()
 
 
@@ -80,6 +114,7 @@ def _ingest_one(src: Path, vault_root: Path) -> None:
     typer.echo(f"  related : {[r.page_id for r in packet.related_pages[:5]]}")
     typer.echo(f"  hints   : {[h.term for h in packet.glossary_hints]}")
     typer.echo(f"  cache   : {cache_path}")
+    typer.echo(f"\n[Next] Read ContextPacket → write runtime/tmp/extraction.json → wiki validate-extraction")
 
 
 @app.command(name="mark-ingested")
@@ -131,6 +166,10 @@ def validate_extraction(
         f"{len(result.conflicts)} conflicts, "
         f"{len(result.glossary_proposals)} proposals"
     )
+    if result.glossary_proposals:
+        typer.echo(f"\n[Next] wiki save-proposals  →  LLM writes drafts in runtime/tmp/  →  wiki apply-drafts")
+    else:
+        typer.echo(f"\n[Next] LLM writes draft files in runtime/tmp/  →  wiki apply-drafts")
 
 
 @app.command(name="apply-drafts")
@@ -147,6 +186,7 @@ def apply_drafts(
     total = len(results)
     ok = sum(1 for r in results if r.success)
     typer.echo(f"[DONE] {ok}/{total} drafts applied.")
+    typer.echo(f"\n[Next] wiki finalize --file <raw/path.md>")
 
 
 @app.command()
@@ -401,6 +441,20 @@ def status(
         last = ingest_entries[-1]
         typer.echo(f"  Last ingest: {last.ts[:19]}  {last.file}")
 
+    try:
+        from config import load_config
+        from lint import run_lint
+        cfg = load_config(vault_root)
+        report = run_lint(vault_root, domains=getattr(cfg, "domains", None) or None,
+                                       layers=getattr(cfg, "layers", None) or None)
+        n_orphans = len(report["orphans"])
+        n_broken  = len(report["broken_links"])
+        n_errors  = len(report["errors"])
+        health = "OK" if not (n_broken or n_errors) else "ISSUES"
+        typer.echo(f"Wiki health       : {health}  (orphans={n_orphans}, broken={n_broken}, errors={n_errors})")
+    except Exception:
+        typer.echo("Wiki health       : (lint unavailable)")
+
 
 @app.command(name="save-proposals")
 def save_proposals(
@@ -446,6 +500,132 @@ def save_proposals(
     pending_path.parent.mkdir(parents=True, exist_ok=True)
     pending_path.write_text(yaml.dump(existing, allow_unicode=True), encoding="utf-8")
     typer.echo(f"[OK] {added} added, {skipped} skipped")
+    typer.echo(f"\n[Next] LLM writes draft files in runtime/tmp/  →  wiki apply-drafts")
+
+
+@app.command(name="finalize")
+def finalize(
+    file: Path = typer.Option(..., "--file", help="Raw file that was ingested (path relative to vault or absolute)"),
+    message: str = typer.Option("", "--message", help="Git commit message (default: 'wiki: ingest <filename>')"),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Post-action shortcut: rebuild → lint → mark-ingested → git commit."""
+    import hashlib
+    import subprocess
+
+    from rebuild import rebuild_all
+    from state import append_ingest_log, read_ingest_log
+
+    vault_root = _resolve_vault(vault)
+
+    src = file if file.is_absolute() else vault_root / file
+    if not src.exists():
+        typer.echo(f"[ERROR] File not found: {src}", err=True)
+        raise typer.Exit(1)
+
+    sha256 = hashlib.sha256(src.read_bytes()).hexdigest()
+
+    # [1/4] rebuild
+    typer.echo("[1/4] Rebuilding derived/...")
+    rebuild_all(vault_root)
+
+    # [2/4] lint
+    typer.echo("[2/4] Running lint...")
+    from config import load_config
+    from lint import run_lint
+
+    try:
+        cfg = load_config(vault_root)
+        domains = getattr(cfg, "domains", None)
+        layers = getattr(cfg, "layers", None)
+    except Exception:
+        domains = layers = None
+
+    report = run_lint(vault_root, domains=domains, layers=layers)
+    if report["errors"] or report["broken_links"]:
+        if report["errors"]:
+            for e in report["errors"]:
+                typer.echo(f"  [ERROR] {e['page_id']}: {e['message']}", err=True)
+        if report["broken_links"]:
+            for bl in report["broken_links"]:
+                typer.echo(f"  [BROKEN] {bl['src']} → [[{bl['target']}]]", err=True)
+        typer.echo("[ERROR] Lint failed — commit aborted.", err=True)
+        raise typer.Exit(1)
+    typer.echo("  Lint OK.")
+
+    # [3/4] mark-ingested (idempotent)
+    typer.echo("[3/4] Marking ingested...")
+    import datetime
+    from models import IngestLogEntry
+
+    known = {e.sha256 for e in read_ingest_log(vault_root)}
+    if sha256 in known:
+        typer.echo(f"  [SKIP] {sha256[:8]} already in ingest_log.")
+    else:
+        cache_path = vault_root / "runtime" / "cache" / f"{sha256}.json"
+        entry = IngestLogEntry(
+            sha256=sha256,
+            file=str(src.relative_to(vault_root) if src.is_relative_to(vault_root) else src),
+            ts=datetime.datetime.utcnow().isoformat(),
+            packet_path=str(cache_path),
+        )
+        append_ingest_log(vault_root, entry)
+        typer.echo(f"  [OK] Marked {sha256[:8]} as ingested.")
+
+    # [4/4] git commit
+    typer.echo("[4/4] Committing...")
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--quiet"],
+        cwd=str(vault_root),
+    )
+    if result.returncode == 0:
+        # Nothing staged — check if there are unstaged changes to the relevant files
+        typer.echo("  [SKIP] Nothing staged — staging files...")
+
+    commit_msg = message or f"wiki: ingest {src.name}"
+    wiki_dir = vault_root / "wiki"
+    derived_dir = vault_root / "derived"
+    ingest_log_path = vault_root / ".wiki" / "state" / "ingest_log.jsonl"
+
+    files_to_add = [str(src)]
+    if wiki_dir.exists():
+        files_to_add.append(str(wiki_dir))
+    if derived_dir.exists():
+        files_to_add.append(str(derived_dir))
+    if ingest_log_path.exists():
+        files_to_add.append(str(ingest_log_path))
+
+    subprocess.run(["git", "add"] + files_to_add, cwd=str(vault_root), check=True)
+
+    result2 = subprocess.run(
+        ["git", "diff", "--cached", "--quiet"],
+        cwd=str(vault_root),
+    )
+    if result2.returncode == 0:
+        typer.echo("  [SKIP] Nothing to commit — already up to date.")
+        raise typer.Exit(0)
+
+    subprocess.run(["git", "commit", "-m", commit_msg], cwd=str(vault_root), check=True)
+    typer.echo(f"  [OK] Committed: {commit_msg}")
+    pending_yaml = vault_root / ".wiki" / "config" / "glossary_pending.yaml"
+    has_pending = pending_yaml.exists() and pending_yaml.stat().st_size > 5
+    if has_pending:
+        typer.echo(f"\n[Next] wiki sync-glossary  (glossary proposals pending)")
+    else:
+        typer.echo(f"\n[Done] Wiki evolve complete.")
+
+
+@app.command(name="clean-tmp")
+def clean_tmp(
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Remove all files from runtime/tmp/ (stale drafts, extraction.json)."""
+    vault_root = _resolve_vault(vault)
+    tmp = vault_root / "runtime" / "tmp"
+    removed = [f for f in tmp.glob("*") if f.is_file()]
+    for f in removed:
+        f.unlink()
+    typer.echo(f"[OK] Removed {len(removed)} file(s) from runtime/tmp/")
 
 
 @app.command(name="delete")
@@ -610,31 +790,107 @@ def sync_glossary(
 def curate_apply(
     vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
 ) -> None:
-    """Apply curated drafts: read curate_plan.md, call apply-drafts, rebuild."""
+    """Apply curated drafts: parse curate_plan.md frontmatter, scoped apply, lint, cleanup."""
     from apply import apply_drafts as _apply
     from rebuild import rebuild_all
     from repo import WikiRepo
 
     vault_root = _resolve_vault(vault)
-    plan_path = vault_root / "runtime" / "tmp" / "curate_plan.md"
+    tmp_dir = vault_root / "runtime" / "tmp"
+    plan_path = tmp_dir / "curate_plan.md"
 
     if not plan_path.exists():
-        typer.echo("runtime/tmp/curate_plan.md not found.", err=True)
+        typer.echo("[ERROR] runtime/tmp/curate_plan.md not found.", err=True)
         raise typer.Exit(1)
 
+    # 1. Parse plan frontmatter
     plan_text = plan_path.read_text(encoding="utf-8")
+    fm, _body = WikiRepo._parse_frontmatter(plan_text)
+    plan_ops = fm.get("operations", [])
+    if not plan_ops:
+        typer.echo("[ERROR] curate_plan.md has no operations in frontmatter.", err=True)
+        raise typer.Exit(1)
+
     typer.echo("=== Curate Plan ===")
     typer.echo(plan_text)
     typer.echo("===================\n")
 
-    repo = WikiRepo(vault_root)
-    results = _apply(vault_root, repo)
-    total = len(results)
-    ok = sum(1 for r in results if r.success)
-    typer.echo(f"[APPLY] {ok}/{total} drafts applied.")
+    # 2. Pre-flight: check draft files exist for non-delete ops
+    missing = [
+        f"{op['page_id']}.{op['op']}.md"
+        for op in plan_ops
+        if op["op"] != "delete"
+        and not (tmp_dir / f"{op['page_id']}.{op['op']}.md").exists()
+    ]
+    if missing:
+        typer.echo("[ERROR] Missing draft files:", err=True)
+        for m in missing:
+            typer.echo(f"  {m}", err=True)
+        raise typer.Exit(1)
 
+    # 3. Warn about extra files (not blocking)
+    allowed = {f"{op['page_id']}.{op['op']}.md" for op in plan_ops if op["op"] != "delete"}
+    extra = [f.name for f in tmp_dir.glob("*.md") if f.name not in allowed and f.name != "curate_plan.md"]
+    if extra:
+        typer.echo("[WARN] Unexpected draft files (will be ignored, run 'wiki clean-tmp' to remove):")
+        for e in extra:
+            typer.echo(f"  {e}")
+
+    # 4. Scoped apply
+    repo = WikiRepo(vault_root)
+    allowed_ids = {op["page_id"] for op in plan_ops if op["op"] != "delete"}
+    results = _apply(vault_root, repo, allowed_ids=allowed_ids)
+    ok = sum(1 for r in results if r.success)
+    typer.echo(f"[APPLY] {ok}/{len(results)} drafts applied.")
+
+    # 5. Pending deletes: print instructions
+    delete_ops = [op for op in plan_ops if op["op"] == "delete"]
+    if delete_ops:
+        typer.echo("\n[DELETE PENDING] Run manually:")
+        for op in delete_ops:
+            typer.echo(f"  wiki delete {op['page_id']} --confirm")
+
+    # 6. Rebuild
     rebuild_all(vault_root)
     typer.echo("[REBUILD] derived/ updated.")
+
+    # 7. Differentiated lint
+    from config import load_config
+    from lint import run_lint
+
+    try:
+        cfg = load_config(vault_root)
+        _domains = getattr(cfg, "domains", None) or None
+        _layers = getattr(cfg, "layers", None) or None
+    except Exception:
+        _domains = _layers = None
+
+    report = run_lint(vault_root, domains=_domains, layers=_layers)
+    has_fm_errors = bool(report["errors"])
+    has_broken = bool(report["broken_links"])
+    n_orphans = len(report["orphans"])
+
+    if has_fm_errors:
+        typer.echo("[ERROR] Frontmatter errors — fix before git commit:", err=True)
+        for e in report["errors"]:
+            typer.echo(f"  {e['page_id']}: {e['message']}", err=True)
+        raise typer.Exit(1)
+
+    if has_broken:
+        typer.echo(f"[WARN] {len(report['broken_links'])} broken link(s) — expected if 'delete' ops pending.")
+        typer.echo("       Run 'wiki delete <page_id> --confirm' for each, then 'wiki lint'.")
+    elif n_orphans:
+        typer.echo(f"[WARN] {n_orphans} orphan(s) — run 'wiki lint' for details.")
+    else:
+        typer.echo("[OK] Lint passed.")
+
+    # 8. Cleanup curate_plan.md after success
+    plan_path.unlink(missing_ok=True)
+    typer.echo("[CLEAN] curate_plan.md removed.")
+    if delete_ops:
+        typer.echo(f"\n[Next] wiki delete <page_id> --confirm  →  git add wiki/ derived/ && git commit -m \"wiki: curate ...\"  →  wiki lint")
+    else:
+        typer.echo(f"\n[Next] git add wiki/ derived/ && git commit -m \"wiki: curate ...\"  →  wiki lint")
 
 
 @app.command()
@@ -649,8 +905,11 @@ def evolve(
 def init_vault(
     vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
     domain: str = typer.Option("personal", "--domain", help="Wiki domain name"),
+    domains: str = typer.Option("personal,general", "--domains", help="Comma-separated allowed domains (e.g. 'wiki,llm,sdd')"),
+    layers: str = typer.Option("concept,architecture,implementation", "--layers", help="Comma-separated allowed layers"),
     model: str = typer.Option("claude-sonnet-4-6", "--model", help="LLM model"),
     force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
+    name: Optional[str] = typer.Option(None, "--name", help="Register vault under this name in ~/.wiki/vaults.yaml"),
 ) -> None:
     """Initialise a new wiki vault: create directory structure and config files."""
     import subprocess
@@ -680,6 +939,8 @@ def init_vault(
     else:
         config = {
             "domain": domain,
+            "domains": [d.strip() for d in domains.split(",") if d.strip()],
+            "layers": [l.strip() for l in layers.split(",") if l.strip()],
             "llm_model": model,
             "small_page_threshold": 1000,
             "vault_root": str(vault_root),
@@ -692,11 +953,11 @@ def init_vault(
         glossary_path.write_text("[]\n", encoding="utf-8")
         typer.echo(f"  [cfg]  .wiki/config/glossary.yaml")
 
-    for name in ("ingest_log.jsonl", "query_log.jsonl"):
-        p = vault_root / ".wiki" / "state" / name
+    for log_name in ("ingest_log.jsonl", "query_log.jsonl"):
+        p = vault_root / ".wiki" / "state" / log_name
         if not p.exists():
             p.touch()
-            typer.echo(f"  [log]  .wiki/state/{name}")
+            typer.echo(f"  [log]  .wiki/state/{log_name}")
 
     git_dir = vault_root / ".git"
     if not git_dir.exists():
@@ -705,8 +966,101 @@ def init_vault(
     else:
         typer.echo(f"  [git]  already a git repo")
 
+    if name:
+        registry = _load_registry()
+        existing = next((e for e in registry if e.get("name") == name), None)
+        if existing:
+            existing["path"] = str(vault_root)
+        else:
+            registry.append({"name": name, "path": str(vault_root)})
+        _save_registry(registry)
+        typer.echo(f"  [reg]  registered as '{name}' in ~/.wiki/vaults.yaml")
+
     typer.echo(f"\n[OK] Vault ready at {vault_root}")
     typer.echo(f"     Drop files into raw/ then run: wiki ingest --pending")
+
+
+@app.command()
+def templates(
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """List available page templates and their locations."""
+    skill_dir = Path(__file__).parent.parent
+    tmpl_dir = skill_dir / "templates"
+    items = [
+        ("idea",    "templates/idea.md"),
+        ("pattern", "templates/pattern.md"),
+        ("tool",    "templates/tool.md"),
+        ("drafts",  "templates/create-draft.md, templates/diff-draft.md"),
+    ]
+    for name, paths in items:
+        status = ""
+        for p in paths.split(", "):
+            if not (tmpl_dir / Path(p).name).exists():
+                status = "  [MISSING]"
+                break
+        typer.echo(f"→ {name:<10}: {tmpl_dir / Path(paths.split(', ')[0]).name}{status}")
+
+
+@app.command()
+def vaults() -> None:
+    """List registered wiki vaults and show which is active."""
+    registry = _load_registry()
+    if not registry:
+        typer.echo("No vaults registered. Use: wiki register <name> <path>")
+        return
+    active = _ACTIVE_FILE.read_text(encoding="utf-8").strip() if _ACTIVE_FILE.exists() else None
+    for entry in registry:
+        name = entry.get("name", "?")
+        path = entry.get("path", "?")
+        desc = entry.get("description", "")
+        marker = "▶" if name == active else " "
+        line = f"  {marker} {name:<20} {path}"
+        if desc:
+            line += f"  # {desc}"
+        typer.echo(line)
+
+
+@app.command(name="use")
+def use_vault(
+    name: str = typer.Argument(..., help="Vault name to activate"),
+) -> None:
+    """Switch active vault by name (persisted in ~/.wiki/active)."""
+    registry = _load_registry()
+    entry = next((e for e in registry if e.get("name") == name), None)
+    if entry is None:
+        typer.echo(f"Vault '{name}' not found. Registered vaults:", err=True)
+        for e in registry:
+            typer.echo(f"  - {e.get('name')}", err=True)
+        raise typer.Exit(1)
+    _ACTIVE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _ACTIVE_FILE.write_text(name, encoding="utf-8")
+    typer.echo(f"[OK] Active vault → {name}  ({entry['path']})")
+
+
+@app.command()
+def register(
+    name: str = typer.Argument(..., help="Short name for the vault"),
+    path: Path = typer.Argument(..., help="Path to vault root"),
+    description: str = typer.Option("", "--description", "-d", help="Optional description"),
+) -> None:
+    """Register a vault in ~/.wiki/vaults.yaml."""
+    vault_path = path.expanduser().resolve()
+    registry = _load_registry()
+    existing = next((e for e in registry if e.get("name") == name), None)
+    if existing:
+        existing["path"] = str(vault_path)
+        if description:
+            existing["description"] = description
+        _save_registry(registry)
+        typer.echo(f"[UPDATE] {name} → {vault_path}")
+    else:
+        entry: dict = {"name": name, "path": str(vault_path)}
+        if description:
+            entry["description"] = description
+        registry.append(entry)
+        _save_registry(registry)
+        typer.echo(f"[OK] Registered {name} → {vault_path}")
 
 
 if __name__ == "__main__":

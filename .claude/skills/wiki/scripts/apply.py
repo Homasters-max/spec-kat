@@ -35,8 +35,11 @@ def validate_extraction(vault_root: Path) -> ExtractionResult:
     return result
 
 
-def apply_drafts(vault_root: Path, repo: WikiRepo) -> list[ApplyResult]:
-    """Apply LLM draft files from runtime/tmp/ to wiki (I-WIKI-CONFLICT-1)."""
+def apply_drafts(vault_root: Path, repo: WikiRepo, allowed_ids: set[str] | None = None) -> list[ApplyResult]:
+    """Apply LLM draft files from runtime/tmp/ to wiki (I-WIKI-CONFLICT-1).
+
+    allowed_ids: if given, only process drafts whose page_id is in this set (scoped apply).
+    """
     tmp_dir = vault_root / "runtime" / "tmp"
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -45,6 +48,9 @@ def apply_drafts(vault_root: Path, repo: WikiRepo) -> list[ApplyResult]:
         for path in sorted(tmp_dir.glob(f"*.{op}.md")):
             page_id = path.name[: -(len(op) + 4)]  # strip .<op>.md
             draft_files.append((page_id, op, path))
+
+    if allowed_ids is not None:
+        draft_files = [(pid, op, path) for pid, op, path in draft_files if pid in allowed_ids]
 
     results: list[ApplyResult] = []
 
