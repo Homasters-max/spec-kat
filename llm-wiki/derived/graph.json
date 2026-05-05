@@ -65,6 +65,12 @@
     "graph-query-engine",
     "sdd-meta-harness"
   ],
+  "graph-structural-offset": [
+    "graph-query-engine",
+    "graph-query-engine",
+    "command-bus",
+    "event-sourcing"
+  ],
   "sdd-actor-model": [
     "agent-handle",
     "sandbox-manager",
@@ -100,6 +106,15 @@
     "session-orchestrator",
     "replay-based-testing"
   ],
+  "bootstrap-policy": [
+    "policy-kernel",
+    "projection-registry",
+    "policy-kernel",
+    "policy-kernel",
+    "projection-registry",
+    "event-sourcing",
+    "global-laws"
+  ],
   "command-bus": [
     "input-port",
     "input-port",
@@ -108,6 +123,18 @@
     "scope-guard",
     "error-classifier",
     "projection-registry"
+  ],
+  "commit-discard-gate": [
+    "sandbox-manager",
+    "scenario-gen",
+    "scenario-gen",
+    "sandbox-manager",
+    "audit-engine",
+    "sandbox-manager",
+    "audit-engine",
+    "scenario-gen",
+    "metric-collector",
+    "score-context"
   ],
   "context-kernel": [
     "graph-query-engine",
@@ -160,6 +187,18 @@
     "graph-session-state",
     "sdd-meta-harness"
   ],
+  "graph-session-projection": [
+    "projection-registry",
+    "execution-guard",
+    "trace-projection",
+    "execution-guard",
+    "execution-guard",
+    "projection-registry",
+    "execution-guard",
+    "trace-projection",
+    "graph-session-state",
+    "replay-based-testing"
+  ],
   "ingest-log": [
     "context-packet",
     "wiki-cli",
@@ -181,6 +220,15 @@
     "trace-store",
     "classified-recovery",
     "sdd-actor-model"
+  ],
+  "metric-collector": [
+    "audit-engine",
+    "audit-engine",
+    "score-context",
+    "commit-discard-gate",
+    "execution-guard",
+    "scope-guard",
+    "trace-projection"
   ],
   "multi-vault": [
     "wiki-cli",
@@ -247,6 +295,23 @@
     "execution-guard",
     "sdd-meta-harness"
   ],
+  "score-context": [
+    "metric-collector",
+    "audit-engine",
+    "trace-projection",
+    "sandbox-manager",
+    "commit-discard-gate",
+    "trace-projection",
+    "sandbox-manager",
+    "policy-kernel",
+    "metric-collector",
+    "metric-collector",
+    "metric-collector",
+    "audit-engine",
+    "commit-discard-gate",
+    "trace-projection",
+    "policy-kernel"
+  ],
   "sdd-meta-harness": [
     "sdd-component-inventory",
     "global-laws",
@@ -267,6 +332,22 @@
     "audit-engine",
     "classified-recovery",
     "sdd-component-inventory"
+  ],
+  "trace-projection": [
+    "projection-registry",
+    "trace-store",
+    "execution-guard",
+    "scope-guard",
+    "command-bus",
+    "execution-guard",
+    "graph-session-projection",
+    "scope-guard",
+    "command-bus",
+    "trace-store",
+    "projection-registry",
+    "execution-guard",
+    "scope-guard",
+    "graph-session-projection"
   ],
   "upcaster-registry": [
     "reducer",
