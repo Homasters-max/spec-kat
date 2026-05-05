@@ -10,12 +10,13 @@ tags:
 - enforcement
 - llm
 - domain/sdd
-version: 3
+version: 4
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
 - raw/SDD Meta Harness Core.md
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
+- raw/orchestrator-agentloop-plan.md
 ---
 # SDD Meta Harness
 
@@ -32,10 +33,11 @@ L0 — Execution Core (неизменяемое ядро):
   UpcasterRegistry, ErrorEvent, ProjectionRegistry,
   Graph/SpatialIndex  ← проекция EventLog+Code, не behavioral
 
-L1 — Harness Core (контроль поведения агента):
+L1 — Harness Core (контроль поведения агента, 12 компонентов):
   QueryEngine, ExecutionGuard, ScopeGuard, TraceProjection,
   ErrorClassifier, Session Orchestrator, ContextKernel,
-  InputPort, AgentHandle, SandboxManager, AuditEngine
+  InputPort, AgentHandle, AgentLoop, LoopTrace,
+  SandboxManager, AuditEngine
 
 L2 — Extensions (только через CommandBus + ReadModel):
   RAG, PolicyKernel, MetaOptimization, ScenarioGen
@@ -60,26 +62,30 @@ GL-10 L2 Access:   L2 только через CommandBus + ReadModel
 
 ```python
 # Session Orchestrator запускает TaskRun:
-sandbox = SandboxManager.create(task_id)
-agent   = AgentHandle.start(model, config)
-context = ContextKernel.build_base(task_id)        # Push
+sandbox    = SandboxManager.create(task_id)
+agent      = AgentHandle.start(model, config)
+agent_loop = AgentLoop(phase_id=phase_id, agent_handle=agent)
 
-# Цикл:
-tool_call = agent.step(context)                    # LLM → tool call
-result    = CommandBus.dispatch(tool_call)         # Guards → Handler → EventLog
-if result.error:
-    strategy = ErrorClassifier.classify(result.error)
-    # RETRY / RE_EXPLAIN / HUMAN_GATE / ABORT
-TraceStore.record(tool_call, result, model_version)
+# AgentLoop управляет внутренним циклом:
+outcome = agent_loop.run()   # FSM: PLAN → STEP → OBSERVE → DECIDE → ...
 
-# По завершению (commit/discard gate):
-SandboxManager.freeze(sandbox)                     # snapshot FS, writes невозможны
-score = AuditEngine.score(task_id, scenario_spec)  # M1-M9 до коммита
-if score.critical_passed:
-    SandboxManager.commit(sandbox)
-else:
-    SandboxManager.discard(sandbox)
-ScenarioGen.generate_full_spec(task_id)            # L2, non-blocking, после commit
+# Session Orchestrator ветвится по LoopOutcome:
+# COMPLETE      → commit + AuditEngine + ScenarioGen
+# GATE          → SandboxManager.freeze(ttl=policy.gate_freeze_ttl_hours)
+# CORE_ABORT    → SandboxManager.discard(); сессия закрывается без AuditEngine
+# PROTOCOL_ABORT→ AuditEngine (M1-M8, M9=0); SandboxManager.discard()
+```
+
+**AgentLoop внутренний цикл (детали — см. [[agent-loop]]):**
+
+```python
+# Каждый шаг:
+tool_call = agent.step(context)          # LLM → tool call
+AgentLoop.validate(tool_call)            # structural + policy validation
+result    = CommandBus.dispatch(tool_call)
+strategy  = ErrorClassifier.classify(result, loop_state)
+# RETRY / RE_EXPLAIN / HUMAN_GATE / ABORT
+LoopStepRecorded → EventStore           # replay-safe decision log (LOOP-2)
 ```
 
 ## When To Use
@@ -91,6 +97,7 @@ ScenarioGen.generate_full_spec(task_id)            # L2, non-blocking, посл�
 - Каждый write требует цикла `resolve → explain → write` — overhead для тривиальных изменений.
 - L0 не зависит от L1, но L1 guards всегда вызываются после L0 — нельзя обойти порядок.
 - Graph находится в L0 (не L1): это проекция-SSOT, QueryEngine (L1) делает запросы к Graph.
+- AgentLoop отделён от AgentHandle: control logic и LLM API wrapper — разные зоны ответственности.
 
 ## See Also
 
@@ -100,6 +107,8 @@ ScenarioGen.generate_full_spec(task_id)            # L2, non-blocking, посл�
 - [[reducer]]
 - [[command-bus]]
 - [[session-orchestrator]]
+- [[agent-loop]]
+- [[loop-outcome]]
 - [[execution-guard]]
 - [[audit-engine]]
 - [[trace-store]]

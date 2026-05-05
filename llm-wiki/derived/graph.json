@@ -106,13 +106,36 @@
     "audit-engine"
   ],
   "agent-handle": [
+    "agent-loop",
+    "agent-loop",
     "audit-engine",
-    "meta-optimization",
+    "agent-loop",
+    "session-orchestrator",
+    "graph-session-state",
+    "agent-loop",
     "session-orchestrator",
     "input-port",
     "trace-store",
     "context-kernel",
     "graph-session-state"
+  ],
+  "agent-loop": [
+    "session-orchestrator",
+    "agent-handle",
+    "agent-handle",
+    "policy-projection",
+    "command-bus",
+    "trace-projection",
+    "session-orchestrator",
+    "loop-outcome",
+    "session-orchestrator",
+    "agent-handle",
+    "loop-policy",
+    "loop-outcome",
+    "error-classifier",
+    "trace-projection",
+    "policy-projection",
+    "command-bus"
   ],
   "audit-engine": [
     "scenario-gen",
@@ -176,12 +199,20 @@
     "projection-registry"
   ],
   "error-classifier": [
-    "policy-kernel",
-    "classified-recovery",
-    "execution-guard",
-    "scope-guard",
+    "agent-loop",
+    "agent-loop",
+    "agent-loop",
+    "agent-loop",
     "session-orchestrator",
-    "policy-kernel"
+    "agent-loop",
+    "agent-loop",
+    "loop-policy",
+    "policy-projection",
+    "agent-loop",
+    "classified-recovery",
+    "loop-policy",
+    "session-orchestrator",
+    "execution-guard"
   ],
   "eventstore-guard": [
     "event-sourcing",
@@ -244,6 +275,28 @@
     "context-kernel",
     "sdd-actor-model"
   ],
+  "loop-outcome": [
+    "agent-loop",
+    "session-orchestrator",
+    "agent-loop",
+    "session-orchestrator",
+    "agent-loop",
+    "session-orchestrator",
+    "loop-policy",
+    "audit-engine"
+  ],
+  "loop-policy": [
+    "agent-loop",
+    "policy-projection",
+    "agent-loop",
+    "agent-loop",
+    "error-classifier",
+    "agent-loop",
+    "agent-loop",
+    "policy-projection",
+    "loop-outcome",
+    "error-classifier"
+  ],
   "memory-layer": [
     "projection-registry",
     "l1-l2-isolation",
@@ -295,11 +348,16 @@
   "policy-projection": [
     "projection-registry",
     "memory-layer",
+    "agent-loop",
+    "loop-policy",
+    "loop-policy",
     "memory-layer",
     "execution-guard",
     "trace-projection",
     "projection-registry",
-    "graph-session-projection"
+    "graph-session-projection",
+    "agent-loop",
+    "loop-policy"
   ],
   "projection-registry": [
     "embedding-projection",
@@ -367,12 +425,15 @@
     "policy-kernel"
   ],
   "sdd-meta-harness": [
+    "agent-loop",
     "sdd-component-inventory",
     "global-laws",
     "event-sourcing",
     "reducer",
     "command-bus",
     "session-orchestrator",
+    "agent-loop",
+    "loop-outcome",
     "execution-guard",
     "audit-engine",
     "trace-store",
@@ -383,6 +444,10 @@
     "replay-based-testing"
   ],
   "session-orchestrator": [
+    "agent-loop",
+    "agent-loop",
+    "agent-loop",
+    "loop-outcome",
     "agent-handle",
     "context-kernel",
     "sandbox-manager",

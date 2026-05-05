@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## sdd (40)
+## sdd (43)
 
 | id | type | layer | tags | updated |
 |---|---|---|---|---|
@@ -17,6 +17,7 @@ _Generated: 2026-05-05_
 | sdd-actor-model | idea | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | architecture | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
+| agent-loop | pattern | architecture | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
 | audit-engine | pattern | architecture | validation, automation, pipeline, ssot, domain/sdd | 2026-05-05 |
 | bootstrap-policy | pattern | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | command-bus | pattern | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
@@ -29,6 +30,8 @@ _Generated: 2026-05-05_
 | graph-query-engine | pattern | architecture | search, pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | graph-session-projection | pattern | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | input-port | pattern | architecture | pipeline, write-path, llm, automation, domain/sdd | 2026-05-05 |
+| loop-outcome | pattern | architecture | enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
+| loop-policy | pattern | architecture | enforcement, automation, pipeline, write-path, domain/sdd | 2026-05-05 |
 | memory-layer | pattern | architecture | ssot, read-only, pipeline, llm, domain/sdd | 2026-05-05 |
 | meta-optimization | pattern | architecture | automation, pipeline, llm, validation, domain/sdd | 2026-05-05 |
 | metric-collector | pattern | architecture | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |

@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 55 pages_
+_Updated: 2026-05-05 · 58 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -18,6 +18,7 @@ _Updated: 2026-05-05 · 55 pages_
 | sdd-actor-model | idea | sdd | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | sdd | architecture | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
+| agent-loop | pattern | sdd | architecture | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
 | audit-engine | pattern | sdd | architecture | validation, automation, pipeline, ssot, domain/sdd | 2026-05-05 |
 | bootstrap-policy | pattern | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | command-bus | pattern | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
@@ -33,6 +34,8 @@ _Updated: 2026-05-05 · 55 pages_
 | graph-session-projection | pattern | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | ingest-log | pattern | wiki | implementation | ingestion, write-path, ssot, automation, pipeline, domain/wiki | 2026-05-05 |
 | input-port | pattern | sdd | architecture | pipeline, write-path, llm, automation, domain/sdd | 2026-05-05 |
+| loop-outcome | pattern | sdd | architecture | enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
+| loop-policy | pattern | sdd | architecture | enforcement, automation, pipeline, write-path, domain/sdd | 2026-05-05 |
 | memory-layer | pattern | sdd | architecture | ssot, read-only, pipeline, llm, domain/sdd | 2026-05-05 |
 | meta-optimization | pattern | sdd | architecture | automation, pipeline, llm, validation, domain/sdd | 2026-05-05 |
 | metric-collector | pattern | sdd | architecture | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
