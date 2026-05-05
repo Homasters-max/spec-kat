@@ -21,7 +21,7 @@ _Generated: 2026-05-05_
 | sdd-component-inventory | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | trace-aligned-test-partitioning | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 
-## pattern (52)
+## pattern (56)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
@@ -30,12 +30,16 @@ _Generated: 2026-05-05_
 | agent-loop | sdd | architecture | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
 | audit-engine | sdd | architecture | validation, automation, pipeline, ssot, domain/sdd | 2026-05-05 |
 | bootstrap-policy | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
+| classification-result | sdd | architecture | enforcement, validation, pipeline, domain/sdd | 2026-05-05 |
 | command-bus | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | commit-discard-gate | sdd | architecture | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | sdd | architecture | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | context-packet | wiki | architecture | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
 | embedding-projection | sdd | architecture | pipeline, search, automation, domain/sdd | 2026-05-05 |
 | error-classifier | sdd | architecture | enforcement, validation, pipeline, automation, domain/sdd | 2026-05-05 |
+| error-event | sdd | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
+| error-meta | sdd | architecture | enforcement, validation, ssot, domain/sdd | 2026-05-05 |
+| error-registry | sdd | architecture | enforcement, validation, ssot, automation, domain/sdd | 2026-05-05 |
 | eventstore-guard | sdd | architecture | enforcement, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | execution-guard | sdd | architecture | enforcement, pipeline, validation, write-path, domain/sdd | 2026-05-05 |
 | extraction-result | wiki | architecture | seam, pipeline, extraction, pydantic, validation, domain/wiki | 2026-05-05 |

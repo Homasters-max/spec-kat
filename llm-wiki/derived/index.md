@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 68 pages_
+_Updated: 2026-05-05 · 72 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -23,12 +23,16 @@ _Updated: 2026-05-05 · 68 pages_
 | agent-loop | pattern | sdd | architecture | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
 | audit-engine | pattern | sdd | architecture | validation, automation, pipeline, ssot, domain/sdd | 2026-05-05 |
 | bootstrap-policy | pattern | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
+| classification-result | pattern | sdd | architecture | enforcement, validation, pipeline, domain/sdd | 2026-05-05 |
 | command-bus | pattern | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | commit-discard-gate | pattern | sdd | architecture | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | pattern | sdd | architecture | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | context-packet | pattern | wiki | architecture | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
 | embedding-projection | pattern | sdd | architecture | pipeline, search, automation, domain/sdd | 2026-05-05 |
 | error-classifier | pattern | sdd | architecture | enforcement, validation, pipeline, automation, domain/sdd | 2026-05-05 |
+| error-event | pattern | sdd | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
+| error-meta | pattern | sdd | architecture | enforcement, validation, ssot, domain/sdd | 2026-05-05 |
+| error-registry | pattern | sdd | architecture | enforcement, validation, ssot, automation, domain/sdd | 2026-05-05 |
 | eventstore-guard | pattern | sdd | architecture | enforcement, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | execution-guard | pattern | sdd | architecture | enforcement, pipeline, validation, write-path, domain/sdd | 2026-05-05 |
 | extraction-result | pattern | wiki | architecture | seam, pipeline, extraction, pydantic, validation, domain/wiki | 2026-05-05 |

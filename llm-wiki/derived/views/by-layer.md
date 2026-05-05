@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## architecture (61)
+## architecture (65)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -22,12 +22,16 @@ _Generated: 2026-05-05_
 | agent-loop | pattern | sdd | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-05 |
 | audit-engine | pattern | sdd | validation, automation, pipeline, ssot, domain/sdd | 2026-05-05 |
 | bootstrap-policy | pattern | sdd | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
+| classification-result | pattern | sdd | enforcement, validation, pipeline, domain/sdd | 2026-05-05 |
 | command-bus | pattern | sdd | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | commit-discard-gate | pattern | sdd | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | pattern | sdd | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | context-packet | pattern | wiki | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
 | embedding-projection | pattern | sdd | pipeline, search, automation, domain/sdd | 2026-05-05 |
 | error-classifier | pattern | sdd | enforcement, validation, pipeline, automation, domain/sdd | 2026-05-05 |
+| error-event | pattern | sdd | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
+| error-meta | pattern | sdd | enforcement, validation, ssot, domain/sdd | 2026-05-05 |
+| error-registry | pattern | sdd | enforcement, validation, ssot, automation, domain/sdd | 2026-05-05 |
 | eventstore-guard | pattern | sdd | enforcement, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | execution-guard | pattern | sdd | enforcement, pipeline, validation, write-path, domain/sdd | 2026-05-05 |
 | extraction-result | pattern | wiki | seam, pipeline, extraction, pydantic, validation, domain/wiki | 2026-05-05 |

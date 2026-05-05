@@ -9,11 +9,12 @@ tags:
 - enforcement
 - llm
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
 - raw/orchestrator-agentloop-plan.md
+- raw/error-model-architecture.md
 ---
 # AgentLoop
 
@@ -57,7 +58,7 @@ AgentLoop эмитит `HumanGateReached`/`ErrorEvent` **напрямую в Eve
 class LoopState:
     phase_id: str                           # передаётся конструктором от SessionOrchestrator
     step_count: int = 0
-    retry_counts: dict[str, int] = field(default_factory=dict)  # error_type → count
+    retry_counts: dict[str, int] = field(default_factory=dict)  # error_code → count
     re_explain_count: int = 0
     policy: PolicySnapshot = field(...)     # читается at_offset; обновляется при RE_EXPLAIN
     last_policy_offset: int = 0            # offset последнего PolicyProjection update event
@@ -71,17 +72,14 @@ LoopState — эфемерный in-memory dataclass, не персистиру�
 @dataclass(frozen=True)
 class CommandResult:
     status: Literal["OK", "ERROR"]
-    error_type: str | None          # None если status == OK
-    task_complete: bool             # True только если агент вызвал sdd_complete
+    error_code: str | None       # None если status == OK (error_type переименован в error_code)
+    task_complete: bool          # True только если агент вызвал sdd_complete
 ```
-
-Без строгой типизации DECIDE недетерминирован.
 
 ### DECIDE: полная логика
 
 ```python
 def decide(result: CommandResult, loop_state: LoopState) -> Transition:
-    # task_complete проверяется ДО budget (приоритет)
     if result.status == "OK":
         if result.task_complete:
             return Transition.DONE
@@ -92,41 +90,68 @@ def decide(result: CommandResult, loop_state: LoopState) -> Transition:
     if loop_state.step_count >= loop_state.policy.step_budget:
         return Transition.GATE
 
-    strategy = ErrorClassifier.classify(result, loop_state)
+    classification: ClassificationResult = ErrorClassifier.classify(result, loop_state)
 
-    if strategy == RETRY:
+    if classification.strategy == "RETRY":
         budget = loop_state.policy.retry_budget.get(
-            result.error_type, loop_state.policy.retry_budget["DEFAULT"]
+            result.error_code, loop_state.policy.retry_budget["DEFAULT"]
         )
-        if loop_state.retry_counts.get(result.error_type, 0) >= budget:
+        if loop_state.retry_counts.get(result.error_code, 0) >= budget:
             return Transition.GATE
-        loop_state.retry_counts[result.error_type] = (
-            loop_state.retry_counts.get(result.error_type, 0) + 1
+        loop_state.retry_counts[result.error_code] = (
+            loop_state.retry_counts.get(result.error_code, 0) + 1
         )
         return Transition.STEP
 
-    if strategy == RE_EXPLAIN:
+    if classification.strategy == "RE_EXPLAIN":
         loop_state.re_explain_count += 1
         if loop_state.re_explain_count >= loop_state.policy.re_explain_budget:
             return Transition.GATE
-        return Transition.PLAN   # PLAN перечитает Policy at_offset (LOOP-1)
+        return Transition.PLAN
 
-    if strategy == HUMAN_GATE:
+    if classification.strategy == "HUMAN_GATE":
         return Transition.GATE
 
-    if strategy == ABORT:
-        return Transition.PROTOCOL_ABORT
+    if classification.strategy == "ABORT":
+        abort_kind = classification.effective_abort_kind
+        return Transition.CORE_ABORT if abort_kind == "CORE_ABORT" else Transition.PROTOCOL_ABORT
 ```
 
 ### ToolCall validation (до CommandBus.dispatch)
 
 ```python
-def validate(self, tool_call: ToolCall) -> ValidationResult:
-    # structural: обязательные поля, типы → провал: CORE_ABORT
-    # policy: phase_write_allowed, scope checks → провал: PROTOCOL_ABORT
+def validate(self, tool_call: ToolCall) -> ClassificationResult:
+    # structural: обязательные поля, типы
+    #   → провал: ClassificationResult(strategy="ABORT", meta=..., origin="VALIDATE_STRUCTURAL")
+    # policy: phase_write_allowed, scope checks
+    #   → провал: ClassificationResult(strategy="ABORT", meta=..., origin="VALIDATE_POLICY")
 ```
 
-Два разных исхода намеренны: structural failure (мусор от LLM) → CORE_ABORT, AuditEngine пропускается; policy violation (корректный ToolCall, нарушает rules) → PROTOCOL_ABORT, AuditEngine запускается.
+Два разных origin намеренны: structural failure (мусор от LLM) → `effective_abort_kind = "CORE_ABORT"`, AuditEngine пропускается; policy violation → `effective_abort_kind = "PROTOCOL_ABORT"`, AuditEngine запускается.
+
+### LoopStepRecorded (расширенный)
+
+В конце каждого DECIDE-шага записывается в EventStore:
+
+```python
+@dataclass(frozen=True)
+class LoopStepRecorded:
+    # существующие поля
+    step_count: int
+    retry_counts: dict[str, int]
+    re_explain_count: int
+    policy_version: str
+    # новые поля error audit (None если status == OK)
+    error_code: str | None
+    severity: Literal["FATAL", "ERROR", "WARNING"] | None
+    layer: Literal["L0", "L1", "TRANSIENT", "UNKNOWN"] | None
+    invariant_id: str | None
+    rule_id: str | None
+    strategy: Literal["ABORT", "HUMAN_GATE", "RETRY", "RE_EXPLAIN"] | None
+    origin: Literal["VALIDATE_STRUCTURAL", "VALIDATE_POLICY", "GUARD"] | None
+```
+
+Заменяет упразднённый `ErrorClassified` event. [[trace-projection]] подписана и читает новые поля.
 
 ## Инварианты
 
@@ -144,7 +169,7 @@ class LoopTraceEntry:
     step: int
     tool_call_type: str         # "resolve" | "explain" | "write" | ...
     decision: str               # "RETRY" | "RE_EXPLAIN" | "GATE" | "ABORT" | "DONE" | "CONTINUE"
-    error_type: str | None
+    error_code: str | None
     outcome: str | None         # заполняется на последнем шаге
 ```
 
@@ -159,6 +184,7 @@ class LoopTraceEntry:
 - FSM с explicit states → все переходы наблюдаемы и тестируемы детерминированно.
 - Phase lock через конструктор: mid-loop phase switch не влияет на текущий AgentLoop.
 - Прямые EventStore-записи (не через CommandBus) для `LoopStepRecorded`/`HumanGateReached`/`ErrorEvent` — нарушение GL-7 намеренно для L1 isolation; документировано в design.
+- `ClassificationResult` из `validate()` и `ErrorClassifier.classify()`: единый тип → DECIDE не ветвится по источнику классификации.
 
 ## See Also
 
@@ -167,6 +193,8 @@ class LoopTraceEntry:
 - [[loop-policy]]
 - [[loop-outcome]]
 - [[error-classifier]]
+- [[classification-result]]
+- [[error-event]]
 - [[trace-projection]]
 - [[policy-projection]]
 - [[command-bus]]

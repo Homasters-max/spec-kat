@@ -8,7 +8,7 @@ tags:
 - pipeline
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -49,8 +49,8 @@ class LoopOutcome(Enum):
 
 **Разница CORE_ABORT vs PROTOCOL_ABORT:**
 
-- `CORE_ABORT` — невалидный формат ToolCall (структурный мусор от LLM) → L0-нарушение; AuditEngine пропускается, MetaOptimization не получает сигнал.
-- `PROTOCOL_ABORT` — структурно корректный ToolCall нарушает policy (напр. write при `phase_write_allowed=False`), или budget exceeded, или UNKNOWN error → AuditEngine запускается, MetaOptimization получает поведенческий сигнал.
+- `CORE_ABORT` — structural validation failure: невалидный ToolCall (INVALID_TOOL_CALL_STRUCTURE, origin=VALIDATE_STRUCTURAL) → CORE_ABORT. FATAL L0 violations через guard (DIRECT_EVENTSTORE_ACCESS и др.) → PROTOCOL_ABORT.
+- `PROTOCOL_ABORT` — структурно корректный ToolCall нарушает policy (напр. write при `phase_write_allowed=False`), или budget exceeded, или guard violation, или UNKNOWN error → AuditEngine запускается, MetaOptimization получает поведенческий сигнал.
 
 ## When To Use
 

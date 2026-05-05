@@ -9,12 +9,16 @@
     "git-as-ssot"
   ],
   "classified-recovery": [
+    "error-registry",
+    "error-event",
     "error-classifier",
+    "error-registry",
+    "classification-result",
+    "error-registry",
+    "error-event",
     "error-classifier",
-    "error-classifier",
-    "execution-guard",
-    "session-orchestrator",
-    "sdd-meta-harness"
+    "classification-result",
+    "session-orchestrator"
   ],
   "command-context": [
     "sdd-meta-harness",
@@ -145,6 +149,7 @@
     "policy-projection",
     "command-bus",
     "trace-projection",
+    "trace-projection",
     "session-orchestrator",
     "loop-outcome",
     "session-orchestrator",
@@ -152,6 +157,8 @@
     "loop-policy",
     "loop-outcome",
     "error-classifier",
+    "classification-result",
+    "error-event",
     "trace-projection",
     "policy-projection",
     "command-bus"
@@ -175,6 +182,17 @@
     "projection-registry",
     "event-sourcing",
     "global-laws"
+  ],
+  "classification-result": [
+    "error-classifier",
+    "agent-loop",
+    "agent-loop",
+    "error-meta",
+    "error-meta",
+    "error-registry",
+    "error-classifier",
+    "agent-loop",
+    "error-event"
   ],
   "command-bus": [
     "middleware-pipeline",
@@ -223,20 +241,54 @@
     "projection-registry"
   ],
   "error-classifier": [
-    "agent-loop",
+    "classification-result",
     "agent-loop",
     "agent-loop",
     "agent-loop",
     "session-orchestrator",
     "agent-loop",
     "agent-loop",
-    "loop-policy",
-    "policy-projection",
+    "error-registry",
+    "classification-result",
+    "error-meta",
     "agent-loop",
-    "classified-recovery",
     "loop-policy",
     "session-orchestrator",
     "execution-guard"
+  ],
+  "error-event": [
+    "agent-loop",
+    "error-meta",
+    "command-bus",
+    "trace-projection",
+    "agent-loop",
+    "agent-loop",
+    "agent-loop",
+    "trace-projection",
+    "error-registry",
+    "error-meta",
+    "classification-result",
+    "agent-loop",
+    "loop-outcome",
+    "trace-projection"
+  ],
+  "error-meta": [
+    "error-registry",
+    "classification-result",
+    "error-registry",
+    "classification-result",
+    "error-registry",
+    "classification-result",
+    "error-event"
+  ],
+  "error-registry": [
+    "error-classifier",
+    "agent-loop",
+    "error-meta",
+    "error-event",
+    "classification-result",
+    "error-classifier",
+    "agent-loop"
   ],
   "eventstore-guard": [
     "event-sourcing",
