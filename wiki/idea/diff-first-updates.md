@@ -1,22 +1,58 @@
+---
+id: idea/diff-first-updates
+page_type: idea
+domain: wiki
+layer: concept
+tags:
+- write-path
+- dedup
+- maintenance
+- git
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/TASKS.md
+---
 # Diff-First Updates
 
 ## Summary
-Принцип обновления wiki-страниц: по умолчанию через unified diff (WikiDiff + base_sha256), full rewrite разрешён только при двух условиях: страница мала (`size < SMALL_PAGE_THRESHOLD`) или изменения структурны (`diff_ratio > 0.8`). Решение принимает `wiki apply-drafts` автоматически — не LLM (I-WIKI-2).
+Принцип [[wiki-evolve]]: обновлять существующие страницы через unified diff, а не полной заменой. Full rewrite — только при структурных изменениях или маленьких страницах (< `small_page_threshold` символов). Сохраняет git-историю читаемой.
 
 ## How It Works
-- `WikiRepo.save_page()` не существует — архитектурный запрет случайного full rewrite
-- `apply_diff(WikiDiff)` — default path; WikiDiff содержит `base_sha256` как optimistic lock
-- `rewrite_page(op: RewriteOp)` — требует явного `reason: "small_page" | "structural_change"`
-- Conflict при sha256 mismatch → `ApplyResult.conflict=True` → STOP (I-WIKI-CONFLICT-1)
+
+Stage 2 (LLM) выбирает операцию по правилу:
+
+| Условие | Операция | Файл черновика |
+|---------|---------|---------------|
+| Страница не существует | `create` | `<id>.create.md` |
+| Страница существует, добавление небольшое, размер > 1000 символов | `diff` | `<id>.diff.md` |
+| Страница существует, структурное изменение ИЛИ размер ≤ 1000 символов | `rewrite` | `<id>.rewrite.md` |
+
+**Формат diff-черновика** (pure unified diff, I-WIKI-DIFF-1):
+
+```text
+---
+base_sha256: <sha256 существующей страницы>
+---
+--- wiki/pattern/page-id.md
++++ wiki/pattern/page-id.md
+@@ -22,4 +22,5 @@
+ ## See Also
+ - [[automation-over-llm]]
++- [[git-as-ssot]]
+```
+
+`base_sha256` — защита от применения diff к изменённой версии страницы.
 
 ## When To Use
-Всегда при обновлении существующих wiki-страниц в [[wiki-evolve]] Stage 2.
+При выборе операции в Stage 2 wiki-evolve. Если добавляется новый раздел или несколько строк в существующий — diff. Если переструктурируется вся страница — rewrite.
 
 ## Trade-offs
-- **+** Git-история читаема: diff показывает точные изменения, а не полную замену
-- **+** Optimistic lock предотвращает затирание concurrent изменений
-- **-** LLM должен генерировать корректный unified diff (форматная точность важна)
+- LLM сложнее писать корректный unified diff, чем полный rewrite
+- Генерацию diff безопаснее делать через `difflib` в Bash, не вручную
 
 ## See Also
 - [[wiki-evolve]]
-- [[extraction-result]]
+- [[wiki-cli]]
+- [[git-as-ssot]]

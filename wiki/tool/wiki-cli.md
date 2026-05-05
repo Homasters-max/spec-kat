@@ -1,0 +1,61 @@
+---
+id: tool/wiki-cli
+page_type: tool
+domain: wiki
+layer: implementation
+tags:
+- cli
+- pipeline
+- knowledge-base
+- python
+- automation
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/TASKS.md
+---
+# Wiki CLI
+
+## Summary
+Консольный инструмент (`wiki`) для управления персональной базой знаний на основе markdown. Реализует три протокола: [[wiki-evolve]], [[wiki-query]], [[wiki-curate]]. Построен на принципе [[automation-over-llm]]: детерминированный код делает механическую работу, LLM — только смысловую.
+
+## Архитектура модулей
+
+| Модуль | Назначение |
+|--------|-----------|
+| `models.py` | Контракты данных: `ContextPacket`, `ExtractionResult`, `WikiDiff`, `RewriteOp` |
+| `config.py` | Загрузка `wiki_config.yaml`, чтение/запись glossary |
+| `state.py` | Append-only логи: `ingest_log.jsonl`, `query_log.jsonl` |
+| `git.py` | Обнаружение pending raw-файлов через git status |
+| `repo.py` | CRUD страниц wiki: `create_page`, `apply_diff`, `rewrite_page` |
+| `search.py` | BM25-индекс по всем страницам `wiki/**/*.md` |
+| `ingest.py` | Stage 0: создание [[context-packet]] из raw-файла |
+| `apply.py` | Stage 2: применение LLM-черновиков к wiki |
+| `rebuild.py` | Генерация `derived/index.md`, `derived/graph.json` |
+| `lint.py` | Проверка: orphans, broken links, duplicates, frontmatter |
+
+## Установка
+
+```bash
+WIKI_SRC=/root/project/.claude/skills/wiki
+python3 -m venv $WIKI_SRC/venv
+$WIKI_SRC/venv/bin/pip install -e $WIKI_SRC/scripts/ -q
+ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
+```
+
+## Ключевые инварианты
+
+- `repo.py` не имеет метода `save_page()` — только `create_page`, `apply_diff`, `rewrite_page`
+- `ingest.py::make_context_packet` — единственный конструктор `ContextPacket`
+- `apply_drafts` останавливается на первом конфликте (не откатывает применённые)
+- `git.py::pending_raw_files` = uncommitted raw/ WHERE sha256 NOT IN ingest_log
+
+## See Also
+- [[wiki-evolve]]
+- [[wiki-query]]
+- [[wiki-curate]]
+- [[context-packet]]
+- [[extraction-result]]
+- [[automation-over-llm]]
+- [[git-as-ssot]]

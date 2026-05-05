@@ -1,23 +1,50 @@
+---
+id: idea/automation-over-llm
+page_type: idea
+domain: wiki
+layer: concept
+tags:
+- automation
+- llm
+- ssot
+- pipeline
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/TASKS.md
+---
 # Automation Over LLM
 
 ## Summary
-Ключевой принцип [[llm-knowledge-base]]: максимум автоматизации, минимум LLM. Код делает всё детерминированное (parsing, indexing, search, git, rebuild, validation). LLM вызывается только для смысловых операций (extraction, synthesis) где детерминизм невозможен.
+Архитектурный принцип [[wiki-cli]]: детерминированный код делает всё механическое, LLM — только смысловое. Разделение обязанностей между CLI (предсказуемо, быстро, без токенов) и LLM (понимание, извлечение, синтез).
 
 ## How It Works
-Разделение ответственности:
-- **CLI (без LLM):** ingest, BM25 search, pydantic validation, apply-drafts logic, rebuild, lint, git operations
-- **LLM:** Stage 1 (extract entities/relations), Stage 2 (synthesize pages), curate (plan changes)
-- **Seam-контракты** — [[context-packet]] и [[extraction-result]] — явно ограничивают область LLM-вмешательства
+
+**CLI выполняет:**
+- Хэширование файлов, обнаружение изменений
+- Разбивку на chunks, поиск по BM25-индексу
+- Валидацию JSON-схем
+- Применение unified diff, создание файлов
+- Ведение логов, rebuild derived/
+
+**LLM выполняет:**
+- Извлечение сущностей и отношений из текста
+- Выбор структуры страниц (create / diff / rewrite)
+- Синтез ответов из нескольких страниц
+- Разрешение смысловых конфликтов
+
+**Граница** — [[context-packet]] (CLI → LLM) и [[extraction-result]] (LLM → CLI).
 
 ## When To Use
-При любом проектировании компонентов системы: если операция детерминирована, она НЕ должна требовать LLM.
+При проектировании любого нового шага pipeline: сначала задать вопрос "может ли это сделать детерминированный код?". Если да — не привлекать LLM.
 
 ## Trade-offs
-- **+** Надёжность: детерминированный код не галлюцинирует
-- **+** Стоимость: LLM вызывается только там, где нужен
-- **-** Требует явного проектирования границ (seams)
+- Требует явного проектирования seam'ов (ContextPacket, ExtractionResult)
+- CLI-код нужно поддерживать, но он предсказуем и тестируем
 
 ## See Also
-- [[llm-knowledge-base]]
-- [[skill-cli-architecture]]
+- [[wiki-cli]]
 - [[context-packet]]
+- [[extraction-result]]
+- [[git-as-ssot]]

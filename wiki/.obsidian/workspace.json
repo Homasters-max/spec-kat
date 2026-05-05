@@ -11,14 +11,10 @@
             "id": "fc7950969510c998",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "tool/typer.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "typer"
+              "title": "Новая вкладка"
             }
           }
         ]
@@ -94,7 +90,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "tool/typer.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +99,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Обратные ссылки для typer"
+              "title": "Обратные ссылки"
             }
           },
           {
@@ -113,12 +108,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "tool/typer.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Исходящие ссылки из typer"
+              "title": "Исходящие ссылки"
             }
           },
           {
@@ -156,13 +150,12 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "tool/typer.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Структура typer"
+              "title": "Структура"
             }
           }
         ]
@@ -185,19 +178,24 @@
   },
   "active": "fc7950969510c998",
   "lastOpenFiles": [
-    "tool/pydantic.md",
-    "tool/bm25-search.md",
+    "pattern/context-packet.md.tmp.211232.1777960727627",
+    "idea/diff-first-updates.md.tmp.211232.1777960716533",
+    "pattern/context-packet.md.tmp.211232.1777960715140",
     "pattern/wiki-query.md",
     "pattern/wiki-evolve.md",
     "pattern/wiki-curate.md",
-    "pattern/skill-cli-architecture.md",
-    "pattern/llm-knowledge-base.md",
-    "pattern/extraction-result.md",
-    "pattern/entity-registry.md",
-    "pattern/context-packet.md",
-    "idea/glossary-discovery.md",
+    "tool/wiki-cli.md",
     "idea/git-as-ssot.md",
+    "pattern/extraction-result.md",
     "idea/diff-first-updates.md",
-    "idea/automation-over-llm.md"
+    "pattern/context-packet.md",
+    "idea/automation-over-llm.md",
+    "tool/typer.md",
+    "pattern/llm-knowledge-base.md",
+    "tool/pydantic.md",
+    "tool/bm25-search.md",
+    "pattern/skill-cli-architecture.md",
+    "pattern/entity-registry.md",
+    "idea/glossary-discovery.md"
   ]
 }

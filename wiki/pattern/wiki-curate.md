@@ -1,24 +1,63 @@
+---
+id: pattern/wiki-curate
+page_type: pattern
+domain: wiki
+layer: architecture
+tags:
+- curation
+- maintenance
+- pipeline
+- llm
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/TASKS.md
+---
 # Wiki Curate
 
 ## Summary
-Maintenance workflow для контроля качества wiki (I-WIKI-QUALITY-1). Находит orphan-страницы, дубли, broken links, semantic conflicts. Все изменения применяются только после явного подтверждения пользователя — human gate обязателен.
+Протокол [[wiki-cli]] для поддержания качества базы знаний: устранение orphans, битых ссылок, дублирующихся страниц. Включает human gate перед применением изменений.
 
 ## How It Works
-1. **Stage 0** — `wiki lint` → orphans, broken links, дубли; `wiki search <terms>` → кластеры похожих страниц; `query_log.jsonl` → частые вопросы = слабые места
-2. **Stage 1** (dry-run) — LLM формирует `runtime/tmp/curate_plan.md` с планом операций (merge, упрощение, удаление, реорганизация связей); показывает пользователю
-3. **[HUMAN GATE]** — `wiki curate-apply` запускается только после явного подтверждения
-4. **Stage 2** — LLM пишет черновики в `runtime/tmp/<page_id>.[op].md`; `wiki apply-drafts` → `wiki rebuild`; пользователь делает `git commit` после review
+
+**Stage 0 (CLI):**
+
+```bash
+wiki lint                             # orphans, broken links, duplicates, frontmatter
+wiki search <terms>                   # найти связанные страницы
+cat .wiki/state/query_log.jsonl       # контекст прошлых запросов (опционально)
+```
+
+**Stage 1 (LLM, dry-run):**
+- Анализирует вывод lint + содержимое страниц
+- Пишет `runtime/tmp/curate_plan.md` — список операций с обоснованием
+- Показывает план пользователю
+
+**[HUMAN GATE]** — пользователь одобряет план:
+
+```bash
+wiki curate-apply
+```
+
+**Stage 2 (LLM, после curate-apply):**
+- `curate-apply` читает `curate_plan.md`, пишет черновики, вызывает `apply_drafts`
+- `wiki rebuild`
+
+```bash
+git commit   # пользователь вручную после проверки
+```
 
 ## When To Use
-- Периодически (только вручную в v1)
-- При обнаружении растущего числа orphan-страниц через `wiki lint`
-- При частых не-ответных запросах через `wiki-query` (сигнал слабых мест)
+- После накопления большого числа страниц
+- При обнаружении `wiki lint` exit 1
+- Когда есть подозрение на дублирование знаний
 
 ## Trade-offs
-- **+** Human gate предотвращает автоматическое удаление нужных знаний
-- **-** Требует ручного запуска — нет cron в v1
+- Требует human gate — нельзя автоматизировать полностью
+- Конфликт при `apply-drafts` требует ручного разрешения (I-WIKI-CONFLICT-1)
 
 ## See Also
-- [[llm-knowledge-base]]
+- [[wiki-cli]]
 - [[wiki-evolve]]
-- [[diff-first-updates]]
+- [[wiki-query]]

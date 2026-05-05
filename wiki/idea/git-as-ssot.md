@@ -1,23 +1,49 @@
+---
+id: idea/git-as-ssot
+page_type: idea
+domain: wiki
+layer: concept
+tags:
+- git
+- ssot
+- knowledge-base
+- ingestion
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/TASKS.md
+---
 # Git as SSOT
 
 ## Summary
-Git используется как единственный источник истины состояния [[llm-knowledge-base]]. Uncommitted файлы = pending (ожидают evolve). Committed файлы = обработаны. История знаний = git log. Никакой отдельной базы данных состояния не нужно.
+Принцип [[wiki-cli]]: git — единственный источник истины о состоянии базы знаний. Uncommitted файлы в `raw/` = необработанные знания. Committed = включённые в систему. История изменений страниц = git log.
 
 ## How It Works
-- `raw/` uncommitted → pending для [[wiki-evolve]] (I-WIKI-PENDING-1)
-- `wiki/` + `derived/` committed → обработанные знания (SSOT)
-- `ingest_log.jsonl` — только audit trail "ingested" (dedup-фильтр, не источник состояния)
-- `GitRepo.pending_files()` = uncommitted `raw/` WHERE sha256 NOT IN ingest_log
-- Эволюция знаний полностью читаема через `git log` и `git diff`
 
-## When To Use
-Везде в [[llm-knowledge-base]]: состояние pipeline определяется git-статусом, не отдельным state store.
+`git.py::GitRepo.pending_raw_files()` определяет что ещё не обработано:
+
+```python
+pending = uncommitted_files_in_raw()
+         - files_whose_sha256_in_ingest_log()
+```
+
+**Поток:**
+1. Пользователь кладёт файл в `raw/` — он появляется в `git status` (untracked/modified)
+2. `wiki ingest --pending` находит его через `git status`
+3. После полного wiki-evolve цикла — `git commit raw/file.md wiki/**`
+4. `wiki mark-ingested <sha256> --file <path>` — файл больше не pending
+
+**Почему git, не filesystem:**
+- Uncommitted = явный сигнал "ещё не обработано"
+- Commit = атомарная операция "raw + wiki страницы вместе"
+- История правок страниц хранится в git log
 
 ## Trade-offs
-- **+** Бесплатная история, branching, rollback через git
-- **+** Нет отдельной БД — меньше инфраструктуры
-- **-** Pending detection через git + ingest_log = две проверки (небольшой overhead)
+- Vault должен быть git-репозиторием (или вложен в него)
+- `git status` медленнее чем filesystem scan на больших репозиториях
 
 ## See Also
-- [[llm-knowledge-base]]
+- [[wiki-cli]]
 - [[wiki-evolve]]
+- [[automation-over-llm]]

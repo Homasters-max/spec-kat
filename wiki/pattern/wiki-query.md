@@ -1,26 +1,55 @@
+---
+id: pattern/wiki-query
+page_type: pattern
+domain: wiki
+layer: architecture
+tags:
+- read-only
+- search
+- llm
+- knowledge-base
+version: 1
+created: '2026-05-05'
+updated: '2026-05-05'
+sources:
+- raw/TASKS.md
+---
 # Wiki Query
 
 ## Summary
-Read-only workflow для получения ответов из wiki (I-WIKI-QUERY-1). Никогда не пишет в SSOT напрямую. Может предлагать `promote_suggestion` — сигнал для создания ContextPacket из инсайта и последующего [[wiki-evolve]].
+Read-only протокол [[wiki-cli]] для ответа на вопросы из базы знаний. LLM синтезирует ответ из найденных страниц. Никаких изменений wiki не производится (I-WIKI-QUERY-1).
 
 ## How It Works
-1. **Stage 0** — `wiki search <terms>` → BM25 ranked list; `wiki show <page_id>` → контент страниц
-2. **Stage 1** — LLM синтезирует ответ из загруженных страниц; формирует структурированный output:
-   - `answer` — прямой ответ на вопрос
-   - `citations` — список использованных page_id
-   - `insights` — gaps, conflicts, synthesis (тип + заметка + страницы)
-   - `promote_suggestion` — optional сигнал для записи инсайта в wiki
-3. **Post-action** — `wiki log-query` записывает в `query_log.jsonl`; при `promote_suggestion != null` → `wiki promote <query_id>` → [[wiki-evolve]]
+
+**Stage 0 (CLI):**
+
+```bash
+wiki search <terms>      # BM25-поиск, возвращает ranked list page_id + scores
+wiki show <page_id>      # полное содержимое страницы
+```
+
+**Stage 1 (LLM):**
+Синтезирует ответ из прочитанных страниц. Вывод содержит:
+- `answer` — прямой ответ на вопрос
+- `citations` — список использованных page_id
+- `insights` — новые связи или пробелы, замеченные при синтезе
+- `promote_suggestion` — сигнал о ценном знании для будущего wiki-evolve
+
+**Post-action (опционально):**
+
+```bash
+QID=$(wiki log-query --query "<вопрос>")
+wiki promote $QID    # сохранить контекст для будущего wiki-evolve
+```
 
 ## When To Use
-- Для ответа на вопрос с использованием накопленных знаний
-- Для обнаружения пробелов и конфликтов в wiki
+Когда нужно найти информацию в wiki или синтезировать ответ из нескольких страниц.
 
 ## Trade-offs
-- **+** Read-only — zero risk записи мусора в SSOT
-- **-** BM25 не понимает семантику; для размытых запросов нужны точные термины
+- Качество ответа ограничено тем, что уже есть в wiki
+- BM25-поиск не понимает семантику — запросы должны содержать ключевые слова из страниц
 
 ## See Also
-- [[llm-knowledge-base]]
-- [[bm25-search]]
+- [[wiki-cli]]
 - [[wiki-evolve]]
+- [[wiki-curate]]
