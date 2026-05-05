@@ -14,7 +14,7 @@ _Generated: 2026-05-05_
 | event-sourcing | sdd | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | git-as-ssot | wiki | concept | git, ssot, knowledge-base, ingestion, domain/wiki | 2026-05-05 |
 | global-laws | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
-| graph-session-state | sdd | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
+| graph-session-state | ? | ? |  | 2026-05-05 |
 | graph-structural-offset | sdd | architecture | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
 | sdd-actor-model | sdd | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
@@ -65,5 +65,5 @@ _Generated: 2026-05-05_
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
-| trace-store | sdd | architecture | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
+| trace-store | ? | ? |  | 2026-05-05 |
 | wiki-cli | wiki | implementation | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-05 |

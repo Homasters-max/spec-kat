@@ -60,10 +60,20 @@
     "sdd-component-inventory"
   ],
   "graph-session-state": [
+    "graph-session-projection",
+    "projection-registry",
     "execution-guard",
+    "trace-projection",
     "execution-guard",
-    "graph-query-engine",
-    "sdd-meta-harness"
+    "graph-session-projection",
+    "execution-guard",
+    "graph-session-projection",
+    "execution-guard",
+    "graph-session-projection",
+    "execution-guard",
+    "projection-registry",
+    "replay-based-testing",
+    "graph-query-engine"
   ],
   "graph-structural-offset": [
     "graph-query-engine",
@@ -322,6 +332,9 @@
     "execution-guard",
     "audit-engine",
     "trace-store",
+    "trace-projection",
+    "commit-discard-gate",
+    "metric-collector",
     "upcaster-registry",
     "replay-based-testing"
   ],
@@ -393,8 +406,12 @@
     "wiki-cli"
   ],
   "trace-store": [
+    "trace-projection",
+    "projection-registry",
+    "projection-registry",
     "execution-guard",
     "scope-guard",
+    "trace-projection",
     "execution-guard",
     "scope-guard",
     "sdd-meta-harness"

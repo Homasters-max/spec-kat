@@ -2,7 +2,14 @@
 
 _Generated: 2026-05-05_
 
-## sdd (36)
+## ? (2)
+
+| id | type | layer | tags | updated |
+|---|---|---|---|---|
+| graph-session-state | idea | ? |  | 2026-05-05 |
+| trace-store | tool | ? |  | 2026-05-05 |
+
+## sdd (34)
 
 | id | type | layer | tags | updated |
 |---|---|---|---|---|
@@ -11,7 +18,6 @@ _Generated: 2026-05-05_
 | context-snapshot | idea | architecture | search, read-only, ssot, domain/sdd | 2026-05-05 |
 | event-sourcing | idea | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | global-laws | idea | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
-| graph-session-state | idea | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
 | graph-structural-offset | idea | architecture | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
@@ -41,7 +47,6 @@ _Generated: 2026-05-05_
 | session-orchestrator | pattern | architecture | pipeline, automation, enforcement, write-path, domain/sdd | 2026-05-05 |
 | trace-projection | pattern | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | upcaster-registry | pattern | architecture | pipeline, validation, automation, domain/sdd | 2026-05-05 |
-| trace-store | tool | architecture | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
 
 ## wiki (15)
 

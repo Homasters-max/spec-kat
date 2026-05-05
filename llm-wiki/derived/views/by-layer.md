@@ -2,7 +2,14 @@
 
 _Generated: 2026-05-05_
 
-## architecture (44)
+## ? (2)
+
+| id | type | domain | tags | updated |
+|---|---|---|---|---|
+| graph-session-state | idea | ? |  | 2026-05-05 |
+| trace-store | tool | ? |  | 2026-05-05 |
+
+## architecture (42)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -11,7 +18,6 @@ _Generated: 2026-05-05_
 | context-snapshot | idea | sdd | search, read-only, ssot, domain/sdd | 2026-05-05 |
 | event-sourcing | idea | sdd | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | global-laws | idea | sdd | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
-| graph-session-state | idea | sdd | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
 | graph-structural-offset | idea | sdd | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
@@ -49,7 +55,6 @@ _Generated: 2026-05-05_
 | wiki-frontmatter | pattern | wiki | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
 | wiki-query | pattern | wiki | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-session-isolation | pattern | wiki | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
-| trace-store | tool | sdd | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
 
 ## concept (3)
 

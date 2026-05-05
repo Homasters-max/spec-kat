@@ -12,7 +12,7 @@ _Updated: 2026-05-05 · 51 pages_
 | event-sourcing | idea | sdd | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | git-as-ssot | idea | wiki | concept | git, ssot, knowledge-base, ingestion, domain/wiki | 2026-05-05 |
 | global-laws | idea | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
-| graph-session-state | idea | sdd | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
+| graph-session-state | idea | ? | ? |  | 2026-05-05 |
 | graph-structural-offset | idea | sdd | architecture | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
@@ -53,5 +53,5 @@ _Updated: 2026-05-05 · 51 pages_
 | wiki-frontmatter | pattern | wiki | architecture | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
 | wiki-query | pattern | wiki | architecture | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-session-isolation | pattern | wiki | architecture | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
-| trace-store | tool | sdd | architecture | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
+| trace-store | tool | ? | ? |  | 2026-05-05 |
 | wiki-cli | tool | wiki | implementation | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-05 |

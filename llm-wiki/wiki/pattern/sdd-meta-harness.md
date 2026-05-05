@@ -3,8 +3,14 @@ id: pattern/sdd-meta-harness
 page_type: pattern
 domain: sdd
 layer: architecture
-tags: [event-sourcing, pipeline, ssot, enforcement, llm, domain/sdd]
-version: 2
+tags:
+- event-sourcing
+- pipeline
+- ssot
+- enforcement
+- llm
+- domain/sdd
+version: 3
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -27,7 +33,7 @@ L0 — Execution Core (неизменяемое ядро):
   Graph/SpatialIndex  ← проекция EventLog+Code, не behavioral
 
 L1 — Harness Core (контроль поведения агента):
-  QueryEngine, ExecutionGuard, ScopeGuard, TraceStore,
+  QueryEngine, ExecutionGuard, ScopeGuard, TraceProjection,
   ErrorClassifier, Session Orchestrator, ContextKernel,
   InputPort, AgentHandle, SandboxManager, AuditEngine
 
@@ -66,10 +72,14 @@ if result.error:
     # RETRY / RE_EXPLAIN / HUMAN_GATE / ABORT
 TraceStore.record(tool_call, result, model_version)
 
-# По завершению:
-SandboxManager.commit_or_discard(sandbox)
-AuditEngine.calculate(M1_M9)                       # → AgentScore
-ScenarioGen.build(task_artifacts)                  # → ScenarioSpec
+# По завершению (commit/discard gate):
+SandboxManager.freeze(sandbox)                     # snapshot FS, writes невозможны
+score = AuditEngine.score(task_id, scenario_spec)  # M1-M9 до коммита
+if score.critical_passed:
+    SandboxManager.commit(sandbox)
+else:
+    SandboxManager.discard(sandbox)
+ScenarioGen.generate_full_spec(task_id)            # L2, non-blocking, после commit
 ```
 
 ## When To Use
@@ -93,5 +103,8 @@ ScenarioGen.build(task_artifacts)                  # → ScenarioSpec
 - [[execution-guard]]
 - [[audit-engine]]
 - [[trace-store]]
+- [[trace-projection]]
+- [[commit-discard-gate]]
+- [[metric-collector]]
 - [[upcaster-registry]]
 - [[replay-based-testing]]
