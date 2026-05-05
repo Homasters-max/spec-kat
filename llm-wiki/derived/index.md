@@ -1,10 +1,11 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 77 pages_
+_Updated: 2026-05-05 · 83 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
 | automation-over-llm | idea | wiki | concept | automation, llm, ssot, pipeline, domain/wiki | 2026-05-05 |
+| causal-linkage | idea | sdd | architecture | pipeline, automation, ssot, write-path, domain/sdd | 2026-05-05 |
 | classified-recovery | idea | sdd | architecture | enforcement, pipeline, validation, automation, domain/sdd | 2026-05-05 |
 | command-context | idea | sdd | architecture | pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | context-snapshot | idea | sdd | architecture | search, read-only, ssot, domain/sdd | 2026-05-05 |
@@ -16,6 +17,7 @@ _Updated: 2026-05-05 · 77 pages_
 | graph-session-state | idea | sdd | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
 | graph-structural-offset | idea | sdd | architecture | search, pipeline, ssot, automation, domain/sdd | 2026-05-05 |
 | idempotency-mode | idea | sdd | architecture | dedup, write-path, automation, domain/sdd | 2026-05-05 |
+| idempotent-events | idea | sdd | architecture | dedup, write-path, ssot, automation, domain/sdd | 2026-05-05 |
 | l1-l2-isolation | idea | sdd | architecture | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
@@ -32,6 +34,8 @@ _Updated: 2026-05-05 · 77 pages_
 | commit-discard-gate | pattern | sdd | architecture | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
 | context-kernel | pattern | sdd | architecture | pipeline, search, llm, ssot, domain/sdd | 2026-05-05 |
 | context-packet | pattern | wiki | architecture | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
+| cqrs-boundary | pattern | sdd | architecture | cqrs, write-path, ssot, pipeline, domain/sdd | 2026-05-05 |
+| deterministic-context | pattern | sdd | architecture | pipeline, automation, ssot, write-path, domain/sdd | 2026-05-05 |
 | embedding-projection | pattern | sdd | architecture | pipeline, search, automation, domain/sdd | 2026-05-05 |
 | error-classifier | pattern | sdd | architecture | enforcement, validation, pipeline, automation, domain/sdd | 2026-05-05 |
 | error-event | pattern | sdd | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
@@ -55,6 +59,7 @@ _Updated: 2026-05-05 · 77 pages_
 | middleware-pipeline | pattern | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | multi-vault | pattern | wiki | architecture | knowledge-base, pipeline, cli, automation, domain/wiki | 2026-05-05 |
 | mutation-registry | pattern | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
+| optimistic-concurrency-control | pattern | sdd | architecture | write-path, ssot, automation, validation, domain/sdd | 2026-05-05 |
 | page-meta | pattern | wiki | implementation | python, pydantic, write-path, validation, domain/wiki | 2026-05-05 |
 | policy-kernel | pattern | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | policy-projection | pattern | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
@@ -79,5 +84,6 @@ _Updated: 2026-05-05 · 77 pages_
 | wiki-frontmatter | pattern | wiki | architecture | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
 | wiki-query | pattern | wiki | architecture | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-session-isolation | pattern | wiki | architecture | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
+| write-kernel | pattern | sdd | architecture | write-path, ssot, pipeline, enforcement, domain/sdd | 2026-05-05 |
 | trace-store | tool | sdd | architecture | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
 | wiki-cli | tool | wiki | implementation | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-05 |

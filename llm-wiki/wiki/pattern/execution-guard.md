@@ -9,60 +9,80 @@ tags:
 - validation
 - write-path
 - domain/sdd
-version: 2
+version: 3
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
 - raw/SDD Meta Harness Core.md
 - raw/Memory Layer and Invariant Management.md
+- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 ---
 # Execution Guard (L1)
 
-L1 guard в SDD pipeline: enforces поведенческий протокол агента — нельзя писать без `resolve → explain → write` цикла. Pure function над externalized state — нет instance state, нет side effects.
+Guard pipeline в SDD: три типа guard'ов (Structural, Runtime, Policy), пять middleware слотов в фиксированном порядке. Pure function над externalized state.
 
-## How It Works
+## Guard Taxonomy
 
-**Сигнатура:**
+| Guard Type | Enforcement | Failure | Configurable | Bypass |
+|------------|-------------|---------|--------------|--------|
+| Structural | hardcoded constants | ABORT | No | Never |
+| Runtime | call-stack assertion | RuntimeError → ABORT | No | Never |
+| Policy | PolicyProjection (EventLog-sourced) | RETRY / HUMAN_GATE | Yes, via human gate | No |
+
+**Structural Guards:**
+
+- `L1ExecutionGuardMiddleware`: 4 hardcoded axioms — `NO_EXPLAIN_BEFORE_WRITE`, `GRAPH_FINGERPRINT`, `NO_GRAPH_BEFORE_EXPLAIN`, `TASK_ISOLATED`
+- `L1ScopeGuardMiddleware`: `write_scope` из TraceStore (фиксирован при создании задачи, ABORT)
+
+**Runtime Guard:**
+
+- `L0GuardMiddleware`: call-stack assertion — EventStore.append() вызван только из WriteKernel (GL-7)
+
+**Policy Guard:**
+
+- `L1PolicyGuardMiddleware`: читает из [[policy-projection]]
+  - `max_write_cycles_per_task` (изменяемый через human gate)
+  - actor permissions
+  - retry_limit
+
+## Middleware Pipeline
+
+Фиксированный порядок слотов:
+
+```text
+slot 0:   ErrorClassifierMiddleware   ← перехват всех GuardError/RuntimeError
+slot 0.5: IdempotencyMiddleware        ← dedup команды по idempotency_key (до guards)
+slot 1:   L0GuardMiddleware           ← Runtime Guard: EventStore call-stack (GL-7)
+slot 2a:  L1ExecutionGuardMiddleware  ← Structural: 4 axioms, hardcoded
+slot 2b:  L1ScopeGuardMiddleware      ← Structural: write_scope, ABORT
+slot 2c:  L1PolicyGuardMiddleware     ← Policy: PolicyProjection, RETRY/HUMAN_GATE
+terminal: WriteKernel.execute_and_project(snapshot, expected_version)
+```
+
+**Инварианты pipeline:**
+
+```text
+I-GUARD-PIPELINE-1: порядок слотов (0, 0.5, 1, 2a, 2b, 2c, terminal) фиксирован;
+                    тест на порядок обязателен в CI
+I-GUARD-PIPELINE-2: Structural Guards (2a, 2b) MUST run before Policy Guard (2c)
+I-GUARD-PIPELINE-3: L1PolicyGuardMiddleware читает ТОЛЬКО из PolicyProjection;
+                    прямые DB-reads запрещены
+```
+
+## Execution Guard Logic
+
+`L1ExecutionGuardMiddleware` — pure function:
 
 ```python
 def check(
     cmd: Command,
     ctx: CommandContext,
     projection_reader: ProjectionReader,
-    memory: L1MemoryLayer          # L2 API физически недоступен (ML-6)
 ) -> Result:
-    state  = GraphSessionState.current(ctx.task_id, projection_reader)  # SELECT из L1
-    policy = memory.read.policy()                                        # behavioral rules
-```
-
-State читается внутри через `GraphSessionState.current()` — guard не принимает state как аргумент и не мутирует его.
-
-**Иерархия правил:**
-
-```text
-Axioms (hardcoded, code-enforced, ABORT):
-  NO_EXPLAIN_BEFORE_WRITE   → hardcoded в guard
-  GRAPH_FINGERPRINT         → hardcoded в guard
-  NO_GRAPH_BEFORE_EXPLAIN   → hardcoded в guard
-  TASK_ISOLATED             → hardcoded в guard
-
-Structural (guard-enforced, RETRY/HUMAN_GATE):
-  GL-6 Write Gate → ExecutionGuard + ScopeGuard (частично config)
-
-Behavioral (policy-managed, из PolicyProjection):
-  retry_limit, scope permissions, max_write_cycles_per_task
-  → читаются через memory.read.policy()
-```
-
-**Алгоритм:**
-
-```python
-def check(cmd, ctx, projection_reader, memory: L1MemoryLayer) -> Result:
-    state  = GraphSessionState.current(ctx.task_id, projection_reader)
-    policy = memory.read.policy()
+    state = GraphSessionState.current(ctx.task_id, projection_reader)
 
     if cmd.type == "resolve":
-        return OK  # state обновится через проекцию после применения события
+        return OK
 
     if cmd.type == "explain":
         if not state.has_graph:
@@ -81,33 +101,29 @@ def check(cmd, ctx, projection_reader, memory: L1MemoryLayer) -> Result:
             return DENY("NO_EXPLAIN_BEFORE_WRITE")       # axiom
         if current_fingerprint() != state.graph_fingerprint:
             return DENY("GRAPH_CHANGED_AFTER_EXPLAIN")   # axiom
-
-        # behavioral rule (MAX_WRITE_CYCLES) — из policy, не hardcoded
-        cycles = memory.read.trace(ctx.task_id).write_cycles
-        limit  = policy.max_write_cycles_per_task
-        if cycles >= limit:
-            return DENY("MAX_WRITE_CYCLES_EXCEEDED")     # severity из policy
-
         return OK
 ```
+
+`max_write_cycles_per_task` проверяется в `L1PolicyGuardMiddleware` (slot 2c), не здесь.
 
 Guard не мутирует state — state обновляется через [[graph-session-projection]] после применения события в WriteKernel.
 
 ## When To Use
 
-Вызывается WriteKernel после L0 guard, до handler, на каждую команду в SDD task session.
+Pipeline вызывается WriteKernel на каждую команду в SDD task session. `IdempotencyMiddleware` (slot 0.5) обрабатывает дубликаты до guard chain.
 
 ## Trade-offs
 
-- Pure function: создаётся и уничтожается без потери контекста; тестируется без моков state.
-- Behavioral limits (cycle count) в [[policy-projection]] — изменяются через human gate без правки guard кода.
-- Каждый вызов = SELECT к PostgreSQL (stateless read), небольшой latency tradeoff.
+- Structural Guards — ABORT без конфигурации: невозможно случайно ослабить через human gate
+- Policy Guards — RETRY/HUMAN_GATE: изменяемые лимиты без правки кода
+- Каждый вызов = SELECT к PostgreSQL (stateless read), небольшой latency tradeoff
 
 ## See Also
 
-- [[graph-session-projection]] — L1 проекция state (projection_reader source)
-- [[policy-projection]] — источник behavioral rules
-- [[memory-layer]] — фасад L1 API
-- [[l1-l2-isolation]] — guard физически не имеет доступа к L2
+- [[graph-session-projection]]
+- [[policy-projection]]
+- [[l1-l2-isolation]]
+- [[cqrs-boundary]]
+- [[write-kernel]]
 - [[scope-guard]]
 - [[trace-projection]]

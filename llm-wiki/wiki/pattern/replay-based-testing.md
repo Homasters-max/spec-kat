@@ -9,11 +9,12 @@ tags:
 - pipeline
 - ssot
 - domain/sdd
-version: 2
+version: 3
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
 - raw/replay-based-testing-architecture.md
+- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 ---
 # Replay-Based Testing
 
@@ -91,6 +92,25 @@ Tier 3 — Regression Suite
 | I-REPLAY-11 | `ReplayResult.synthetic_trace` строится инкрементально из events; доступ к TraceProjection запрещён |
 | I-REPLAY-12 | `CONTEXT_EVENT_TYPES` — единственная константа в `task_event_slice.py`; изменяется только явным PR |
 | I-REPLAY-13 | `TestCatalogEntry.affected_commands` вычисляется автоматически при `golden-approve`; ручная декларация запрещена |
+| I-REPLAY-14 | `replay(EventLog) == current_state_from_StateProjection()`; проверяется при каждом sdd check-dod |
+| I-REPLAY-16 | для каждой deterministic Projection P: `P.rebuild(EventLog) == P.current_state()`; approximate projections — отдельный контракт |
+
+## Deterministic vs Approximate Projections
+
+| Класс | Инвариант | Примеры |
+|-------|-----------|---------|
+| Deterministic | `P.rebuild(EventLog) == P.current_state()` | State, Trace, Graph, Policy, Idempotency |
+| Approximate | `P.rebuild(EventLog) ≈ P.current_state()` (semantic equiv.) | EmbeddingProjection |
+
+Только deterministic projections определяют system correctness.  
+Approximate projections имеют отдельный контракт (near-neighbor consistency, не побитовое равенство).
+
+**Reducer контракт:**
+
+```text
+I-REDUCER-1: reduce — pure function (no side effects)
+I-REDUCER-2: reduce — total function (unknown event type → identity, not raise)
+```
 
 ## When To Use
 

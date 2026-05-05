@@ -8,6 +8,13 @@
     "extraction-result",
     "git-as-ssot"
   ],
+  "causal-linkage": [
+    "event-sourcing",
+    "event-sourcing",
+    "cqrs-boundary",
+    "write-kernel",
+    "sdd-actor-model"
+  ],
   "classified-recovery": [
     "error-registry",
     "error-event",
@@ -48,7 +55,10 @@
     "reducer",
     "upcaster-registry",
     "replay-based-testing",
-    "sdd-meta-harness"
+    "sdd-meta-harness",
+    "cqrs-boundary",
+    "idempotent-events",
+    "causal-linkage"
   ],
   "git-as-ssot": [
     "wiki-cli",
@@ -97,6 +107,12 @@
     "command-spec",
     "idempotency-middleware",
     "command-bus"
+  ],
+  "idempotent-events": [
+    "cqrs-boundary",
+    "event-sourcing",
+    "write-kernel",
+    "replay-based-testing"
   ],
   "l1-l2-isolation": [
     "memory-layer",
@@ -274,6 +290,27 @@
     "extraction-result",
     "wiki-cli"
   ],
+  "cqrs-boundary": [
+    "write-kernel",
+    "write-kernel",
+    "write-kernel",
+    "replay-based-testing",
+    "write-kernel",
+    "optimistic-concurrency-control",
+    "idempotent-events",
+    "replay-based-testing",
+    "event-sourcing",
+    "execution-guard"
+  ],
+  "deterministic-context": [
+    "write-kernel",
+    "write-kernel",
+    "replay-based-testing",
+    "write-kernel",
+    "cqrs-boundary",
+    "replay-based-testing",
+    "event-sourcing"
+  ],
   "embedding-projection": [
     "memory-layer",
     "memory-layer",
@@ -337,12 +374,13 @@
     "sdd-component-inventory"
   ],
   "execution-guard": [
-    "graph-session-projection",
     "policy-projection",
     "graph-session-projection",
+    "graph-session-projection",
     "policy-projection",
-    "memory-layer",
     "l1-l2-isolation",
+    "cqrs-boundary",
+    "write-kernel",
     "scope-guard",
     "trace-projection"
   ],
@@ -486,6 +524,14 @@
     "error-registry",
     "error-registry",
     "error-classifier"
+  ],
+  "optimistic-concurrency-control": [
+    "write-kernel",
+    "cqrs-boundary",
+    "cqrs-boundary",
+    "write-kernel",
+    "idempotent-events",
+    "event-sourcing"
   ],
   "page-meta": [
     "wiki-cli",
@@ -716,6 +762,14 @@
     "wiki-evolve",
     "wiki-curate",
     "wiki-cli"
+  ],
+  "write-kernel": [
+    "execution-guard",
+    "cqrs-boundary",
+    "execution-guard",
+    "optimistic-concurrency-control",
+    "event-sourcing",
+    "deterministic-context"
   ],
   "trace-store": [
     "trace-projection",
