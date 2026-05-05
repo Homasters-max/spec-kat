@@ -9,7 +9,7 @@ tags:
 - knowledge-base
 - python
 - automation
-version: 5
+version: 6
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -51,11 +51,14 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - `apply_drafts` останавливается на первом конфликте (не откатывает применённые)
 - `wiki mark-ingested` — финальный шаг pipeline: записывает SHA256 в [[ingest-log]] (I-WIKI-INGEST-1)
 - `wiki log-query` — записывает вопрос в [[query-log]], возвращает `query_id` для `wiki promote`
-- `wiki evolve` — запускает wiki-evolve pipeline из CLI (без ручного запуска skill)
+- `wiki evolve` — подсказка-указатель; выводит инструкцию запустить /wiki skill; НЕ автоматизирует pipeline
+- `wiki finalize --file <path>` — post-action shortcut: rebuild → lint → mark-ingested → git commit (I-WIKI-SEQ-1)
+- `wiki clean-tmp` — удаляет все файлы из `runtime/tmp/` (stale drafts, extraction.json) (I-WIKI-CLEAN-1)
 - `wiki templates` — показывает доступные шаблоны страниц и черновиков с путями
-- `wiki curate-apply` — читает `runtime/tmp/curate_plan.md`, применяет черновики через `apply_drafts`, пересобирает derived/
+- `wiki curate-apply` — проверяет наличие черновиков (pre-flight), scoped apply по `curate_plan.md` frontmatter, дифференцированный lint; НЕ пишет черновики сам
+- `wiki init --domains <...> --layers <...>` — добавлены флаги для списка допустимых доменов и слоёв в конфиг
 - `wiki register`, `wiki vaults`, `wiki use` — управление [[multi-vault]] реестром
-- `wiki status` — показывает состояние pipeline: pending файлы, черновики, записи логов
+- `wiki status` — показывает состояние pipeline: pending файлы, черновики, записи логов + wiki health (lint summary)
 - `wiki save-proposals` — сохраняет `glossary_proposals` из extraction.json в `.wiki/config/glossary_pending.yaml`; skip если term уже есть (I-WIKI-SEQ-1)
 - `wiki delete <page_id> [--confirm]` — dry-run или удаление страницы: чистит входящие wikilinks, glossary entry, вызывает rebuild (I-WIKI-DELETE-1)
 - `git.py::pending_raw_files` = uncommitted raw/ WHERE sha256 NOT IN ingest_log

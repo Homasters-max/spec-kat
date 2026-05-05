@@ -10,7 +10,7 @@ _Generated: 2026-05-05_
 | diff-first-updates | wiki | concept | write-path, dedup, maintenance, git | 2026-05-05 |
 | git-as-ssot | wiki | concept | git, ssot, knowledge-base, ingestion | 2026-05-05 |
 
-## pattern (10)
+## pattern (11)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
@@ -24,6 +24,7 @@ _Generated: 2026-05-05_
 | wiki-evolve | wiki | architecture | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
 | wiki-frontmatter | wiki | architecture | validation, ssot, markdown, yaml | 2026-05-05 |
 | wiki-query | wiki | architecture | read-only, search, llm, knowledge-base | 2026-05-05 |
+| wiki-session-isolation | wiki | architecture | automation, curation, maintenance, pipeline | 2026-05-05 |
 
 ## tool (1)
 

@@ -95,6 +95,13 @@
     "wiki-evolve",
     "wiki-curate"
   ],
+  "wiki-session-isolation": [
+    "wiki-evolve",
+    "wiki-curate",
+    "wiki-evolve",
+    "wiki-curate",
+    "wiki-cli"
+  ],
   "wiki-cli": [
     "wiki-evolve",
     "wiki-query",

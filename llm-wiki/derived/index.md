@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 14 pages_
+_Updated: 2026-05-05 · 15 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -17,4 +17,5 @@ _Updated: 2026-05-05 · 14 pages_
 | wiki-evolve | pattern | wiki | architecture | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
 | wiki-frontmatter | pattern | wiki | architecture | validation, ssot, markdown, yaml | 2026-05-05 |
 | wiki-query | pattern | wiki | architecture | read-only, search, llm, knowledge-base | 2026-05-05 |
+| wiki-session-isolation | pattern | wiki | architecture | automation, curation, maintenance, pipeline | 2026-05-05 |
 | wiki-cli | tool | wiki | implementation | cli, pipeline, knowledge-base, python, automation | 2026-05-05 |

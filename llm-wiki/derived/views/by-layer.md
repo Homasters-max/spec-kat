@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## architecture (7)
+## architecture (8)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -13,6 +13,7 @@ _Generated: 2026-05-05_
 | wiki-evolve | pattern | wiki | pipeline, ingestion, write-path, llm, automation | 2026-05-05 |
 | wiki-frontmatter | pattern | wiki | validation, ssot, markdown, yaml | 2026-05-05 |
 | wiki-query | pattern | wiki | read-only, search, llm, knowledge-base | 2026-05-05 |
+| wiki-session-isolation | pattern | wiki | automation, curation, maintenance, pipeline | 2026-05-05 |
 
 ## concept (3)
 
