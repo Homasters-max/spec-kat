@@ -9,63 +9,72 @@ tags:
 - enforcement
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
+- raw/CommandBus — Idempotency, Dedup, Middleware Pipeline.md
 ---
 # CommandBus
 
-L0-компонент: явная шина маршрутизации команд. `InputPort → Bus → Guard(L0) → Guard(L1) → Handler → EventLog`.
+L0-компонент: явная шина маршрутизации команд. Делегирует выполнение в [[middleware-pipeline]], собранный фабрикой `create_command_bus()`.
 
 ## How It Works
 
 ```python
 class CommandBus:
+    def __init__(self, pipeline: Next):
+        self._pipeline = pipeline
+
     def dispatch(self, cmd: Command) -> CommandResult:
-        # 1. L0 Guards (state invariants)
-        l0_result = l0_guards.check(state, cmd, ctx)
-        if not l0_result.ok:
-            return ErrorClassifier.classify(l0_result.error)
-
-        # 2. EventStore Guard
-        eventstore_guard.check_caller(inspect.currentframe())
-
-        # 3. L1 ExecutionGuard (behavior protocol)
-        l1_result = execution_guard.check(trace, gss, cmd)
-        if not l1_result.ok:
-            return ErrorClassifier.classify(l1_result.error)
-
-        # 4. L1 ScopeGuard (file scope)
-        scope_result = scope_guard.check(cmd, sandbox)
-        if not scope_result.ok:
-            return ErrorClassifier.classify(scope_result.error)
-
-        # 5. WriteKernel (atomic append + projections)
-        return write_kernel.execute_and_project(cmd)
+        return self._pipeline(cmd)
 ```
 
-**Порядок guards строго фиксирован** — нарушение порядка = нарушение GL-3.
+`dispatch()` не содержит логики — только делегация в pipeline. Порядок guards, idempotency и error handling определяется в `create_command_bus()`.
 
-**Два входа в CommandBus:**
+### create_command_bus (фабрика)
+
+```python
+def create_command_bus(db, policy_reader, write_kernel, ...) -> CommandBus:
+    pipeline = build_pipeline([
+        ErrorClassifierMiddleware(),           # slot 0: перехват GuardError
+        LoggingMiddleware(),                   # slot 0: stderr/stdout
+        IdempotencyMiddleware(                 # slot 0.5: exact dedup
+            IdempotencyProjection(db)
+        ),
+        L0GuardMiddleware(...),               # slot 1: state invariants
+        L1ExecutionGuardMiddleware(policy_reader),  # slot 2: behavior
+        L1ScopeGuardMiddleware(),             # slot 2: file scope
+    ], terminal=write_kernel.execute_and_project)
+    return CommandBus(pipeline)
+```
+
+**Guards бросают `GuardError`**, не возвращают Result — `ErrorClassifierMiddleware` (slot 0) перехватывает и классифицирует.
+
+**`idempotency_key: UUID`** — поле на каждой `Command`. InputPort генерирует `uuid5(NAMESPACE_SDD, f"{call.id}:{call.name}")`, CLI использует `uuid4()`.
+
+**Два входа:**
 
 - [[input-port]] (LLM tool calls) → CommandBus
-- CLI (human commands) → CommandBus (те же guards, те же handlers)
+- CLI (human commands) → CommandBus
 
-Это гарантирует что human и LLM подчиняются одинаковым правилам.
+Оба входа подчиняются одинаковым guards и middleware.
 
 ## When To Use
 
-Единственная точка входа для любой мутирующей операции. CommandRegistry.execute_and_project() должен вызываться через CommandBus, не напрямую.
+Единственная точка входа для любой мутирующей операции. `WriteKernel.execute_and_project()` вызывается только через CommandBus, не напрямую.
 
 ## Trade-offs
 
-- Все guards выполняются последовательно (SEM-13) — нельзя параллельно.
-- Добавление нового guard = изменение в CommandBus + новый тест.
+- Guards выполняются последовательно (SEM-13) — нельзя параллельно.
+- Добавление нового middleware = изменение фабрики `create_command_bus` + новый тест.
+- Guards бросают исключения, не возвращают Result — pipeline обязан иметь `ErrorClassifierMiddleware` на внешнем слое.
 
 ## See Also
 
+- [[middleware-pipeline]]
+- [[idempotency-middleware]]
 - [[input-port]]
 - [[eventstore-guard]]
 - [[execution-guard]]

@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-05_
 
-## sdd (50)
+## sdd (53)
 
 | id | type | layer | tags | updated |
 |---|---|---|---|---|
@@ -32,12 +32,15 @@ _Generated: 2026-05-05_
 | golden-fixture | pattern | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | graph-query-engine | pattern | architecture | search, pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | graph-session-projection | pattern | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
+| idempotency-middleware | pattern | architecture | dedup, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
+| idempotency-projection | pattern | architecture | dedup, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | input-port | pattern | architecture | pipeline, write-path, llm, automation, domain/sdd | 2026-05-05 |
 | loop-outcome | pattern | architecture | enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | loop-policy | pattern | architecture | enforcement, automation, pipeline, write-path, domain/sdd | 2026-05-05 |
 | memory-layer | pattern | architecture | ssot, read-only, pipeline, llm, domain/sdd | 2026-05-05 |
 | meta-optimization | pattern | architecture | automation, pipeline, llm, validation, domain/sdd | 2026-05-05 |
 | metric-collector | pattern | architecture | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
+| middleware-pipeline | pattern | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | policy-kernel | pattern | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
 | policy-projection | pattern | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | projection-registry | pattern | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |

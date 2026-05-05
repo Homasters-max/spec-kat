@@ -9,7 +9,7 @@ tags:
 - pipeline
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -21,7 +21,7 @@ sources:
 
 ## Summary
 
-28 блоков, разбитых по трём слоям: L0 (неизменяемое ядро), L1 (контроль поведения агента), L2 (intelligence extensions). Документ получен через архитектурный допрос (grill-me session) по спекам v65–83.
+30 блоков, разбитых по трём слоям: L0 (неизменяемое ядро), L1 (контроль поведения агента), L2 (intelligence extensions). Документ получен через архитектурный допрос (grill-me session) по спекам v65–83.
 
 **SDD = детерминированный runtime для недетерминированного LLM.** L0 — жёсткий каркас, внутри которого агент обретает свободу.
 
@@ -34,10 +34,11 @@ L0 — Execution Core (13 блоков):
   EventStore Guard, UpcasterRegistry, ErrorEvent,
   ProjectionRegistry, Graph/SpatialIndex
 
-L1 — Harness Core (11 блоков):
+L1 — Harness Core (13 блоков):
   QueryEngine, ExecutionGuard, ScopeGuard, TraceStore,
   ErrorClassifier, Session Orchestrator, ContextKernel,
-  InputPort, AgentHandle, SandboxManager, AuditEngine
+  InputPort, AgentHandle, SandboxManager, AuditEngine,
+  IdempotencyMiddleware, IdempotencyProjection
 
 L2 — Extensions (4 блока):
   RAG, PolicyKernel, MetaOptimization, ScenarioGen
@@ -56,7 +57,7 @@ L2 — Extensions (4 блока):
 ## Trade-offs
 
 - Документ декларативный — реальный статус реализации каждого блока нужно проверять в коде.
-- 16 из 28 блоков ещё не реализованы на момент создания (2026-05-05).
+- 16 из 30 блоков ещё не реализованы на момент создания (2026-05-05).
 
 ## See Also
 
@@ -66,3 +67,5 @@ L2 — Extensions (4 блока):
 - [[event-sourcing]]
 - [[session-orchestrator]]
 - [[audit-engine]]
+- [[idempotency-middleware]]
+- [[idempotency-projection]]

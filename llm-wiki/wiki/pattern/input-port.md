@@ -9,7 +9,7 @@ tags:
 - llm
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
 updated: '2026-05-05'
 sources:
@@ -29,7 +29,8 @@ class InputPort:
 
     def _translate(self, call: ToolUseBlock) -> Command:
         spec = TOOL_REGISTRY[call.name]    # typed tool schema
-        return spec.command_type(**call.input)
+        key  = uuid5(NAMESPACE_SDD, f"{call.id}:{call.name}")
+        return spec.command_type(**call.input, idempotency_key=key)
 ```
 
 **Tool Schema → Command mapping:**
@@ -61,3 +62,4 @@ tool: sdd_show_state  → ShowStateQuery(...)
 - [[agent-handle]]
 - [[context-kernel]]
 - [[sdd-actor-model]]
+- [[idempotency-middleware]]

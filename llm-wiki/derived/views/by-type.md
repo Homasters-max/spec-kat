@@ -21,7 +21,7 @@ _Generated: 2026-05-05_
 | sdd-component-inventory | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
 | trace-aligned-test-partitioning | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 
-## pattern (49)
+## pattern (52)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
@@ -42,6 +42,8 @@ _Generated: 2026-05-05_
 | golden-fixture | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | graph-query-engine | sdd | architecture | search, pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | graph-session-projection | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
+| idempotency-middleware | sdd | architecture | dedup, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
+| idempotency-projection | sdd | architecture | dedup, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | ingest-log | wiki | implementation | ingestion, write-path, ssot, automation, pipeline, domain/wiki | 2026-05-05 |
 | input-port | sdd | architecture | pipeline, write-path, llm, automation, domain/sdd | 2026-05-05 |
 | loop-outcome | sdd | architecture | enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
@@ -49,6 +51,7 @@ _Generated: 2026-05-05_
 | memory-layer | sdd | architecture | ssot, read-only, pipeline, llm, domain/sdd | 2026-05-05 |
 | meta-optimization | sdd | architecture | automation, pipeline, llm, validation, domain/sdd | 2026-05-05 |
 | metric-collector | sdd | architecture | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
+| middleware-pipeline | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | multi-vault | wiki | architecture | knowledge-base, pipeline, cli, automation, domain/wiki | 2026-05-05 |
 | page-meta | wiki | implementation | python, pydantic, write-path, validation, domain/wiki | 2026-05-05 |
 | policy-kernel | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |

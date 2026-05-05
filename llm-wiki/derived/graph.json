@@ -103,7 +103,9 @@
     "sdd-actor-model",
     "event-sourcing",
     "session-orchestrator",
-    "audit-engine"
+    "audit-engine",
+    "idempotency-middleware",
+    "idempotency-projection"
   ],
   "trace-aligned-test-partitioning": [
     "test-catalog-projection",
@@ -175,7 +177,10 @@
     "global-laws"
   ],
   "command-bus": [
+    "middleware-pipeline",
     "input-port",
+    "middleware-pipeline",
+    "idempotency-middleware",
     "input-port",
     "eventstore-guard",
     "execution-guard",
@@ -288,6 +293,21 @@
     "trace-projection",
     "memory-layer"
   ],
+  "idempotency-middleware": [
+    "middleware-pipeline",
+    "middleware-pipeline",
+    "idempotency-projection",
+    "input-port",
+    "command-bus"
+  ],
+  "idempotency-projection": [
+    "idempotency-middleware",
+    "idempotency-middleware",
+    "idempotency-middleware",
+    "middleware-pipeline",
+    "projection-registry",
+    "eventstore-guard"
+  ],
   "ingest-log": [
     "context-packet",
     "wiki-cli",
@@ -301,7 +321,8 @@
     "command-bus",
     "agent-handle",
     "context-kernel",
-    "sdd-actor-model"
+    "sdd-actor-model",
+    "idempotency-middleware"
   ],
   "loop-outcome": [
     "agent-loop",
@@ -353,6 +374,14 @@
     "execution-guard",
     "scope-guard",
     "trace-projection"
+  ],
+  "middleware-pipeline": [
+    "command-bus",
+    "global-laws",
+    "command-bus",
+    "idempotency-middleware",
+    "global-laws",
+    "error-classifier"
   ],
   "multi-vault": [
     "wiki-cli",

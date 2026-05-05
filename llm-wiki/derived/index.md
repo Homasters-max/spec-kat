@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 65 pages_
+_Updated: 2026-05-05 · 68 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -35,6 +35,8 @@ _Updated: 2026-05-05 · 65 pages_
 | golden-fixture | pattern | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | graph-query-engine | pattern | sdd | architecture | search, pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | graph-session-projection | pattern | sdd | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
+| idempotency-middleware | pattern | sdd | architecture | dedup, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
+| idempotency-projection | pattern | sdd | architecture | dedup, write-path, ssot, validation, domain/sdd | 2026-05-05 |
 | ingest-log | pattern | wiki | implementation | ingestion, write-path, ssot, automation, pipeline, domain/wiki | 2026-05-05 |
 | input-port | pattern | sdd | architecture | pipeline, write-path, llm, automation, domain/sdd | 2026-05-05 |
 | loop-outcome | pattern | sdd | architecture | enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
@@ -42,6 +44,7 @@ _Updated: 2026-05-05 · 65 pages_
 | memory-layer | pattern | sdd | architecture | ssot, read-only, pipeline, llm, domain/sdd | 2026-05-05 |
 | meta-optimization | pattern | sdd | architecture | automation, pipeline, llm, validation, domain/sdd | 2026-05-05 |
 | metric-collector | pattern | sdd | architecture | validation, automation, pipeline, enforcement, domain/sdd | 2026-05-05 |
+| middleware-pipeline | pattern | sdd | architecture | pipeline, write-path, enforcement, automation, domain/sdd | 2026-05-05 |
 | multi-vault | pattern | wiki | architecture | knowledge-base, pipeline, cli, automation, domain/wiki | 2026-05-05 |
 | page-meta | pattern | wiki | implementation | python, pydantic, write-path, validation, domain/wiki | 2026-05-05 |
 | policy-kernel | pattern | sdd | architecture | enforcement, ssot, write-path, automation, domain/sdd | 2026-05-05 |
