@@ -1,0 +1,120 @@
+{
+  "automation-over-llm": [
+    "wiki-cli",
+    "context-packet",
+    "extraction-result",
+    "wiki-cli",
+    "context-packet",
+    "extraction-result",
+    "git-as-ssot"
+  ],
+  "diff-first-updates": [
+    "wiki-evolve",
+    "automation-over-llm",
+    "git-as-ssot",
+    "wiki-evolve",
+    "wiki-cli",
+    "git-as-ssot"
+  ],
+  "git-as-ssot": [
+    "wiki-cli",
+    "wiki-cli",
+    "wiki-evolve",
+    "automation-over-llm"
+  ],
+  "context-packet": [
+    "wiki-evolve",
+    "wiki-evolve",
+    "extraction-result",
+    "wiki-cli"
+  ],
+  "extraction-result": [
+    "wiki-evolve",
+    "context-packet",
+    "wiki-evolve",
+    "context-packet",
+    "wiki-cli"
+  ],
+  "ingest-log": [
+    "context-packet",
+    "wiki-cli",
+    "context-packet",
+    "wiki-cli",
+    "wiki-evolve",
+    "context-packet",
+    "query-log"
+  ],
+  "multi-vault": [
+    "wiki-cli",
+    "wiki-cli",
+    "git-as-ssot",
+    "ingest-log"
+  ],
+  "page-meta": [
+    "wiki-cli",
+    "wiki-cli",
+    "wiki-frontmatter",
+    "wiki-evolve"
+  ],
+  "query-log": [
+    "context-packet",
+    "wiki-query",
+    "wiki-cli",
+    "ingest-log",
+    "context-packet",
+    "wiki-evolve"
+  ],
+  "wiki-curate": [
+    "wiki-cli",
+    "wiki-cli",
+    "wiki-evolve",
+    "wiki-query"
+  ],
+  "wiki-evolve": [
+    "wiki-cli",
+    "diff-first-updates",
+    "context-packet",
+    "extraction-result",
+    "wiki-cli",
+    "context-packet",
+    "extraction-result",
+    "diff-first-updates",
+    "wiki-query",
+    "wiki-curate"
+  ],
+  "wiki-frontmatter": [
+    "wiki-cli",
+    "wiki-cli",
+    "wiki-evolve",
+    "page-meta",
+    "ingest-log"
+  ],
+  "wiki-query": [
+    "wiki-cli",
+    "wiki-cli",
+    "wiki-evolve",
+    "wiki-curate"
+  ],
+  "wiki-cli": [
+    "wiki-evolve",
+    "wiki-query",
+    "wiki-curate",
+    "automation-over-llm",
+    "context-packet",
+    "ingest-log",
+    "query-log",
+    "multi-vault",
+    "wiki-evolve",
+    "wiki-query",
+    "wiki-curate",
+    "context-packet",
+    "extraction-result",
+    "automation-over-llm",
+    "git-as-ssot",
+    "ingest-log",
+    "query-log",
+    "wiki-frontmatter",
+    "page-meta",
+    "multi-vault"
+  ]
+}
