@@ -9,6 +9,7 @@ tags:
 - write-path
 - llm
 - automation
+- domain/wiki
 version: 2
 created: '2026-05-05'
 updated: '2026-05-05'

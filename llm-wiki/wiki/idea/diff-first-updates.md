@@ -8,6 +8,7 @@ tags:
 - dedup
 - maintenance
 - git
+- domain/wiki
 version: 1
 created: '2026-05-05'
 updated: '2026-05-05'

@@ -8,6 +8,7 @@ tags:
 - pipeline
 - cli
 - automation
+- domain/wiki
 version: 3
 created: '2026-05-05'
 updated: '2026-05-05'

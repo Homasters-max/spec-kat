@@ -9,6 +9,7 @@ tags:
 - knowledge-base
 - python
 - automation
+- domain/wiki
 version: 6
 created: '2026-05-05'
 updated: '2026-05-05'

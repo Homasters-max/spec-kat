@@ -1,0 +1,237 @@
+{
+  "main": {
+    "id": "9df279d6cac7b897",
+    "type": "split",
+    "children": [
+      {
+        "id": "d22b20c70938bed8",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "85e6e4c64bbac574",
+            "type": "leaf",
+            "pinned": true,
+            "state": {
+              "type": "graph",
+              "state": {},
+              "pinned": true,
+              "icon": "lucide-git-fork",
+              "title": "Граф"
+            }
+          },
+          {
+            "id": "a23ab952033af69a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "wiki/pattern/sdd-meta-harness.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "sdd-meta-harness"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "0ca873cf9d7c434e",
+    "type": "split",
+    "children": [
+      {
+        "id": "27f7f6f3734f5f2b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "42455f991101453a",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "30de53c09632db85",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "464d23bae991c8cc",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "74df2bbd61008265",
+    "type": "split",
+    "children": [
+      {
+        "id": "62e81ce4d8779a1a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f1da3fab8ba5e503",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "CLAUDE.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for CLAUDE"
+            }
+          },
+          {
+            "id": "f90cb817867597a3",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "CLAUDE.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from CLAUDE"
+            }
+          },
+          {
+            "id": "51f398a89c0cb528",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "f798d3049e6b9484",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "824547fb521774bc",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "CLAUDE.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of CLAUDE"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false
+    }
+  },
+  "active": "85e6e4c64bbac574",
+  "lastOpenFiles": [
+    "wiki/pattern/sdd-meta-harness.md",
+    "wiki/idea/graph-session-state.md",
+    "wiki/idea/event-sourcing.md",
+    "wiki/tool/wiki-cli.md",
+    "raw/SDD Meta Harness Core.md",
+    "wiki/idea/git-as-ssot.md",
+    "wiki/pattern/wiki-session-isolation.md",
+    "wiki/pattern/upcaster-registry.md",
+    "wiki/tool/trace-store.md",
+    "wiki/pattern/scope-guard.md",
+    "wiki/pattern/replay-based-testing.md",
+    "wiki/pattern/reducer.md",
+    "wiki/pattern/graph-query-engine.md",
+    "wiki/pattern/execution-guard.md",
+    "wiki/idea/context-snapshot.md",
+    "wiki/idea/command-context.md",
+    "runtime/tmp/command-context.create.md",
+    "runtime/tmp/command-context.create.md.tmp.283195.1777972857391",
+    "runtime/tmp/context-snapshot.create.md",
+    "runtime/tmp/context-snapshot.create.md.tmp.283195.1777972848151",
+    "runtime/tmp/graph-session-state.create.md",
+    "runtime/tmp/graph-session-state.create.md.tmp.283195.1777972838771",
+    "runtime/tmp/replay-based-testing.create.md",
+    "runtime/tmp/replay-based-testing.create.md.tmp.283195.1777972829393",
+    "runtime/tmp/trace-store.create.md",
+    "runtime/tmp/trace-store.create.md.tmp.283195.1777972819606",
+    "runtime/tmp/scope-guard.create.md",
+    "runtime/tmp/scope-guard.create.md.tmp.283195.1777972809360",
+    "runtime/tmp/execution-guard.create.md",
+    "runtime/tmp/execution-guard.create.md.tmp.283195.1777972797152",
+    "runtime/tmp/graph-query-engine.create.md",
+    "runtime/tmp/graph-query-engine.create.md.tmp.283195.1777972783415",
+    "runtime/tmp/upcaster-registry.create.md",
+    "runtime/tmp/upcaster-registry.create.md.tmp.283195.1777972769416",
+    "runtime/tmp/reducer.create.md",
+    "runtime/tmp/reducer.create.md.tmp.283195.1777972759976"
+  ]
+}
