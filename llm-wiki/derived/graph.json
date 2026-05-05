@@ -8,6 +8,22 @@
     "extraction-result",
     "git-as-ssot"
   ],
+  "command-context": [
+    "sdd-meta-harness",
+    "graph-session-state",
+    "trace-store"
+  ],
+  "context-snapshot": [
+    "graph-query-engine",
+    "trace-store",
+    "execution-guard",
+    "graph-query-engine",
+    "execution-guard",
+    "trace-store",
+    "graph-query-engine",
+    "execution-guard",
+    "trace-store"
+  ],
   "diff-first-updates": [
     "wiki-evolve",
     "automation-over-llm",
@@ -16,11 +32,23 @@
     "wiki-cli",
     "git-as-ssot"
   ],
+  "event-sourcing": [
+    "reducer",
+    "upcaster-registry",
+    "replay-based-testing",
+    "sdd-meta-harness"
+  ],
   "git-as-ssot": [
     "wiki-cli",
     "wiki-cli",
     "wiki-evolve",
     "automation-over-llm"
+  ],
+  "graph-session-state": [
+    "execution-guard",
+    "execution-guard",
+    "graph-query-engine",
+    "sdd-meta-harness"
   ],
   "context-packet": [
     "wiki-evolve",
@@ -28,12 +56,29 @@
     "extraction-result",
     "wiki-cli"
   ],
+  "execution-guard": [
+    "graph-session-state",
+    "trace-store",
+    "graph-session-state",
+    "graph-query-engine",
+    "trace-store",
+    "scope-guard",
+    "sdd-meta-harness"
+  ],
   "extraction-result": [
     "wiki-evolve",
     "context-packet",
     "wiki-evolve",
     "context-packet",
     "wiki-cli"
+  ],
+  "graph-query-engine": [
+    "execution-guard",
+    "execution-guard",
+    "context-snapshot",
+    "execution-guard",
+    "graph-session-state",
+    "sdd-meta-harness"
   ],
   "ingest-log": [
     "context-packet",
@@ -63,6 +108,40 @@
     "ingest-log",
     "context-packet",
     "wiki-evolve"
+  ],
+  "reducer": [
+    "upcaster-registry",
+    "event-sourcing",
+    "upcaster-registry",
+    "replay-based-testing",
+    "sdd-meta-harness"
+  ],
+  "replay-based-testing": [
+    "reducer",
+    "upcaster-registry",
+    "event-sourcing",
+    "sdd-meta-harness"
+  ],
+  "scope-guard": [
+    "trace-store",
+    "trace-store",
+    "execution-guard",
+    "sdd-meta-harness"
+  ],
+  "sdd-meta-harness": [
+    "event-sourcing",
+    "reducer",
+    "graph-query-engine",
+    "execution-guard",
+    "scope-guard",
+    "trace-store",
+    "upcaster-registry",
+    "replay-based-testing"
+  ],
+  "upcaster-registry": [
+    "reducer",
+    "event-sourcing",
+    "sdd-meta-harness"
   ],
   "wiki-curate": [
     "wiki-cli",
@@ -101,6 +180,13 @@
     "wiki-evolve",
     "wiki-curate",
     "wiki-cli"
+  ],
+  "trace-store": [
+    "execution-guard",
+    "scope-guard",
+    "execution-guard",
+    "scope-guard",
+    "sdd-meta-harness"
   ],
   "wiki-cli": [
     "wiki-evolve",
