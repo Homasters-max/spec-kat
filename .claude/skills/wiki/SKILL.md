@@ -26,6 +26,7 @@ Process a pending raw file through the full ingest → extract → apply pipelin
 Step 0 (опционально):
   wiki status          → проверить наличие стейл-черновиков в runtime/tmp/
   wiki clean-tmp       ← если остались файлы от предыдущей сессии (I-WIKI-CLEAN-1)
+  NOTE: finalize не удаляет extraction.json — он выживает между сессиями до явного wiki clean-tmp
 
 Stage 0 (CLI):
   wiki ingest --pending --take 1   # из очереди pending (стандартный путь)
@@ -35,7 +36,8 @@ Stage 0 (CLI):
 Stage 1 (LLM):
   Read ContextPacket from the printed path (use Read tool with the full path).
   Analyse content_chunks (actual text), glossary_hints (known terms),
-  and related_pages (existing wiki pages ranked by relevance).
+  related_pages (existing wiki pages ranked by relevance),
+  and all_page_ids (complete list of all pages in the wiki — use to identify gaps).
 
   IMPORTANT: ensure runtime/tmp/ exists before writing:
     mkdir -p <vault>/runtime/tmp/
@@ -85,7 +87,8 @@ Stage 2 (LLM):
   For each entity choose operation:
 
   OPERATION SELECTION:
-    create  → page does not exist   (wiki show <page_id> returns "not found")
+    Batch-check existence: wiki exists <id1> <id2> ...   (faster than N wiki show calls)
+    create  → page does not exist
     diff    → page exists + small addition + page size > 1000 chars
     rewrite → page exists + structural change OR page size ≤ 1000 chars
 
@@ -114,11 +117,11 @@ Stage 2 (LLM):
     ## See Also
     - [[related-page-id]]
 
-  .diff.md FORMAT:
-    ---
-    base_sha256: <run: sha256sum wiki/<type>/<page_id>.md | awk '{print $1}'>
-    ---
-    <unified diff in standard patch format>
+  diff workflow (LLM):
+    wiki show <page_id>                                         # читаем текущий контент
+    # → пишем runtime/tmp/<page_id>.new.md с полным новым контентом
+    wiki gen-diff <page_id> --new-content runtime/tmp/<page_id>.new.md
+    # → создаёт runtime/tmp/<page_id>.diff.md, удаляет .new.md автоматически
 
   .rewrite.md FORMAT:
     <full new page content — same structure as .create.md body>
@@ -163,14 +166,16 @@ Stage 1 (LLM):
 Post-action (optional, user decision):
   If the query reveals reusable knowledge worth ingesting later:
 
-  Step 1 — record in query_log (prints query_id):
-    wiki log-query --query "<the user's original question>"
+  Option A — если sha256 пакета известен (стандартный путь в сессии):
+    wiki promote --sha256 <sha256>   ← загружает из runtime/cache/ напрямую, без log-query
 
-  Step 2 — optionally attach context snapshot:
-    wiki log-query --query "<question>" --snapshot /path/to/context.json
-
-  Step 3 — promote to ContextPacket for future wiki-evolve:
-    wiki promote <query_id>
+  Option B — через query_log (когда нужна привязка к тексту запроса):
+    Step 1 — record in query_log (prints query_id):
+      wiki log-query --query "<the user's original question>"
+    Step 2 — optionally attach context snapshot:
+      wiki log-query --query "<question>" --snapshot /path/to/context.json
+    Step 3 — promote:
+      wiki promote <query_id>
 
   Note: promote_suggestion in LLM output is a SIGNAL to run the above steps —
   not a query_id that already exists. Only wiki log-query writes to query_log.
@@ -318,7 +323,7 @@ Stage 2 (CLI):
 
 Post-action (user):
   wiki delete <page_id> --confirm   ← для каждого op: delete из плана
-  git add wiki/ derived/ && git commit -m "wiki: curate ..."
+  wiki commit -m "wiki: curate ..."  ← rebuild → lint → git commit
   wiki lint                          ← финальная проверка после всех deletes
 ```
 
@@ -474,30 +479,47 @@ I-WIKI-SNAP-1      wiki-query для DocGraph-контекста: структу
 
 ## §FORMATS
 
-### Рабочий формат `.diff.md` (pure unified diff, I-WIKI-DIFF-1)
+Форматы, которые LLM пишет вручную: `.create.md` и `.rewrite.md`.  
+`.diff.md` генерируется через `wiki gen-diff` — LLM никогда не пишет его вручную (I-WIKI-DIFF-1).
 
+---
+
+## §COMMANDS
+
+| Команда | Описание |
+|---------|----------|
+| `wiki page-info <page_id>` | Метаданные страницы: path, size, sha256. Выходит 0 даже если страница не найдена. |
+| `wiki exists <id1> <id2> ...` | Batch-проверка существования страниц. Быстрее N вызовов `wiki show`. |
+| `wiki gen-diff <page_id> --new-content <path>` | Вычисляет diff между текущей страницей и новым файлом → пишет `runtime/tmp/<id>.diff.md`. Удаляет `--new-content` файл после генерации. |
+| `wiki commit -m "msg"` | rebuild → lint → git commit. Стейджит только `wiki/`, `derived/`, `ingest_log.jsonl`. Выходит 1 если lint не прошёл. |
+| `wiki lint --errors-only` | Выводит только errors + broken_links. Exit 1 если хотя бы одно из них непусто. |
+| `wiki lint --json` | Выводит полный report как JSON. |
+
+**`wiki page-info` — пример вывода:**
 ```text
----
-base_sha256: <sha256sum wiki/type/page-id.md | awk '{print $1}'>
----
---- wiki/pattern/page-id.md
-+++ wiki/pattern/page-id.md
-@@ -22,4 +22,5 @@
- ## See Also
- - [[existing-link]]
-+- [[new-link]]
+exists  : true
+page_id : wiki-curate
+path    : wiki/pattern/wiki-curate.md
+size    : 1842
+sha256  : d4e5f6...
 ```
 
-**Генерировать через Bash (безопаснее ручного написания):**
+**`wiki exists` — пример вывода:**
+```text
+page_id                        exists   size
+--------------------------------------------------
+wiki-curate                    true     1842
+wiki-open-questions            false       —
+wiki-evolve-protocol           true     3107
+```
 
+**`wiki gen-diff` — LLM workflow:**
 ```bash
-python3 -c "
-import difflib, sys
-page = 'wiki/pattern/page-id.md'
-old = open(page).readlines()
-new = old + ['- [[new-link]]\n']
-sys.stdout.writelines(difflib.unified_diff(old, new, fromfile=page, tofile=page))
-"
+wiki show <page_id>                                           # читаем текущий контент
+# → пишем runtime/tmp/<page_id>.new.md с полным новым контентом
+wiki gen-diff <page_id> --new-content runtime/tmp/<page_id>.new.md
+# → создаёт runtime/tmp/<page_id>.diff.md, удаляет .new.md
+wiki apply-drafts
 ```
 
 ---
