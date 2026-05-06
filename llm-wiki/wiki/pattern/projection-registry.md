@@ -69,6 +69,14 @@ ProjectionRegistry не читает флаги из CommandSpec. Маршрут
 - Явный `subscribed_commands` — routing SSOT; изменение подписки требует явного кода, нет скрытых side-effects.
 - L2 проекции вынесены за периметр — сбой async worker не откатывает L1 commit.
 
+## See Also
+
+- [[memory-layer]] — потребитель L1 projections через ReadModel
+- [[policy-projection]] — L1 проекция behavioral rules
+- [[trace-projection]] — L1 проекция истории шагов (affects_trace = семантика, не routing)
+- [[embedding-projection]] — L2 проекция (НЕ в ProjectionRegistry)
+- [[command-bus]]
+
 ## Open Questions
 
 - [ ] (P1) Q88 PARTIAL: Нет explicit механизма обнаружения desync проекции и EventLog. Как обнаружить corruption?
@@ -82,11 +90,3 @@ ProjectionRegistry не читает флаги из CommandSpec. Маршрут
 
 - [x] (P1) Q86: Sync vs async projections — sync inline в L1 → [[projection-registry]]
 - [x] (P1) Q87: Rebuild trigger — проекции перестраиваются при rebuild → [[projection-registry]]
-
-## See Also
-
-- [[memory-layer]] — потребитель L1 projections через ReadModel
-- [[policy-projection]] — L1 проекция behavioral rules
-- [[trace-projection]] — L1 проекция истории шагов (affects_trace = семантика, не routing)
-- [[embedding-projection]] — L2 проекция (НЕ в ProjectionRegistry)
-- [[command-bus]]

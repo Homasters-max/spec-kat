@@ -9,7 +9,7 @@ tags:
 - enforcement
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-06'
 updated: '2026-05-06'
 sources:
@@ -24,12 +24,12 @@ sources:
 В DocGraph нет единого SSOT — есть два источника с чётким разделением ответственности и временным переключением авторитета:
 
 **До `sync-wiki`:**
-```
+```text
 Wiki = SSOT для структуры (единственный источник намерения)
 ```
 
 **После `sync-wiki`:**
-```
+```text
 EventLog = SSOT для структуры (status, deps, blocked_by)
 Wiki     = SSOT для семантики (prose: Summary, Criteria, Notes)
 ```
@@ -41,7 +41,7 @@ Wiki     = SSOT для семантики (prose: Summary, Criteria, Notes)
 Три точки принуждения (Q20):
 
 **1. QueryEngine — разделение адаптеров:**
-```
+```text
 EventExtractor    → структура (status, deps)       из EventLog
 WikiSemanticExtractor → семантика (prose, intent)  из WikiSnapshot
 ```
@@ -53,7 +53,7 @@ WikiSemanticExtractor → семантика (prose, intent)  из WikiSnapshot
 - Нет прямого чтения wiki-файлов (I-PM-INPUT-1)
 
 **3. ContextKernel — aligned snapshots:**
-```
+```text
 projection.event_pos == snapshot.event_pos  (I-SNAPSHOT-ALIGN-1)
 ```
 
@@ -62,6 +62,7 @@ projection.event_pos == snapshot.event_pos  (I-SNAPSHOT-ALIGN-1)
 - `I-GRAPH-SSOT-2`: Wiki = semantic SSOT; EventLog = structural SSOT (post-sync)
 - `I-NO-DUAL-GRAPH-1`: нельзя строить граф одновременно из Wiki и EventLog
 - `I-RUNTIME-NO-WIKI-1`: runtime компоненты читают wiki только через WikiSnapshotLoader
+- `I-INVARIANT-META-1` (DECLARED): каждый инвариант MUST объявить уровень принуждения: `ENFORCED` (проверяется кодом) или `DECLARED` (только документация). Инварианты без декларации считаются DECLARED (Q15).
 
 ## When To Use
 

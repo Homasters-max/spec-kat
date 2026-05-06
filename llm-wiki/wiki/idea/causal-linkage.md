@@ -78,6 +78,13 @@ Event A (causation=None) → Event B (causation=A.event_id) → Event C (causati
 - `correlation_id` охватывает сессию целиком — нужен дополнительный индекс в PostgreSQL
 - `command_id` дублирует информацию о команде, но устраняет JOIN с таблицей команд
 
+## See Also
+
+- [[event-sourcing]]
+- [[cqrs-boundary]]
+- [[write-kernel]]
+- [[sdd-actor-model]]
+
 ## Open Questions
 
 - [ ] (P1) Q116: Есть ли единая модель causal graph (event→event через causation_event_id, command→event через command_id)? Формализована в спеке?
@@ -86,10 +93,3 @@ Event A (causation=None) → Event B (causation=A.event_id) → Event C (causati
 - [ ] (P1) Q119: Как гарантировать что нет orphan events (событий без причины/команды)? Root events = user commands — это invariant?
 - [ ] (P1) Q120: Возможны ли циклы в causal graph? Где проверяется acyclicity — при append или при rebuild?
 - [ ] (P1) Q121: Как визуализируется causal graph для debugging? CLI `sdd trace-graph T-NNN`? Graphviz export?
-
-## See Also
-
-- [[event-sourcing]]
-- [[cqrs-boundary]]
-- [[write-kernel]]
-- [[sdd-actor-model]]

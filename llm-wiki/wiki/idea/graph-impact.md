@@ -28,7 +28,7 @@ class GraphImpact(Enum):
 
 **Два независимых канала инвалидации кэша GraphQueryEngine:**
 
-```
+```text
 cache_fingerprint = hash(code_hash + max_structural_event_offset)
 ```
 

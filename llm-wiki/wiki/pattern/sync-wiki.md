@@ -9,7 +9,7 @@ tags:
 - automation
 - git
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-06'
 updated: '2026-05-06'
 sources:
@@ -35,6 +35,8 @@ sdd sync-wiki
 
 **Идемпотентность:** PlanManager читает текущую `EventLogProjection` → emits только для diff. Повторный sync без изменений = no-op.
 
+> **Дизайн-решение (Q8):** `idempotent=True` не используется — ключ идемпотентности по `node_id` потребовал бы расширения модели данных.
+
 **Events, записываемые в EventLog:**
 - `SyncWikiExecuted { phase_id, event_pos, wiki_files_hash }` (Q19) — читается PhaseOrchestrator для freshness check
 - `GraphVersionRecorded` (Q17, I-PM-GRAPHVER-1) — версионирует граф
@@ -51,6 +53,7 @@ sdd sync-wiki
 
 - Явный human gate даёт полный контроль над моментом компиляции, но требует дисциплины (не забыть запустить перед activate-phase).
 - Атомарность защищает от частичного применения, но означает что крупные изменения = один большой атомарный коммит.
+- **Отклонённые альтернативы (Q11):** auto-on-session-start — рискует применить незавершённые правки Wiki; file watcher — ломает атомарность компиляции (нет контроля момента).
 
 ## See Also
 

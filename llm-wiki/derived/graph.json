@@ -21,13 +21,13 @@
     "error-classifier",
     "error-registry",
     "classification-result",
-    "error-classifier",
-    "error-event",
-    "session-orchestrator",
     "error-registry",
     "error-event",
     "error-classifier",
     "classification-result",
+    "session-orchestrator",
+    "error-classifier",
+    "error-event",
     "session-orchestrator"
   ],
   "command-context": [
@@ -224,7 +224,8 @@
     "audit-engine",
     "error-classifier",
     "replay-based-testing",
-    "task-event-slice"
+    "task-event-slice",
+    "mutation-registry"
   ],
   "agent-handle": [
     "agent-loop",
@@ -688,17 +689,18 @@
     "projection-registry",
     "graph-session-projection",
     "agent-loop",
-    "loop-policy"
+    "loop-policy",
+    "bootstrap-policy"
   ],
   "projection-registry": [
     "embedding-projection",
-    "projection-registry",
-    "projection-registry",
     "memory-layer",
     "policy-projection",
     "trace-projection",
     "embedding-projection",
-    "command-bus"
+    "command-bus",
+    "projection-registry",
+    "projection-registry"
   ],
   "query-log": [
     "context-packet",
@@ -886,11 +888,11 @@
     "graph-session-projection"
   ],
   "upcaster-registry": [
-    "event-sourcing",
-    "reducer",
     "reducer",
     "event-sourcing",
-    "sdd-meta-harness"
+    "sdd-meta-harness",
+    "event-sourcing",
+    "reducer"
   ],
   "wiki-curate": [
     "wiki-cli",
@@ -908,7 +910,8 @@
     "extraction-result",
     "diff-first-updates",
     "wiki-query",
-    "wiki-curate"
+    "wiki-curate",
+    "wiki-session-isolation"
   ],
   "wiki-frontmatter": [
     "wiki-cli",
@@ -950,13 +953,14 @@
   ],
   "write-kernel": [
     "execution-guard",
-    "optimistic-concurrency-control",
-    "optimistic-concurrency-control",
     "cqrs-boundary",
     "execution-guard",
     "optimistic-concurrency-control",
     "event-sourcing",
-    "deterministic-context"
+    "deterministic-context",
+    "command-context",
+    "optimistic-concurrency-control",
+    "optimistic-concurrency-control"
   ],
   "trace-store": [
     "trace-projection",

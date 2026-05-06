@@ -76,3 +76,4 @@ Adversarial scenarios — только из провальных задач. У�
 - [[error-classifier]]
 - [[replay-based-testing]]
 - [[task-event-slice]]
+- [[mutation-registry]] — реестр ErrorCode → MutationStrategy, заменяет статический MUTATION_TABLE

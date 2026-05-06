@@ -110,3 +110,4 @@ Guard violation → ErrorClassified + guard_rule_id
 - [[graph-session-projection]] — читает policy для MAX_WRITE_CYCLES check
 - [[agent-loop]] — основной потребитель loop-specific policy keys
 - [[loop-policy]] — справочник loop-specific ключей и их defaults
+- [[bootstrap-policy]] — команда первоначального заполнения PolicyProjection из norm_catalog.yaml

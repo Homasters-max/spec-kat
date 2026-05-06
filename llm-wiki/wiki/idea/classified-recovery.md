@@ -42,6 +42,14 @@ ABORT         → CORE_ABORT (structural) или PROTOCOL_ABORT (policy/guard/un
 - RETRY без лимита → агент застрянет. Budget через `retry_budget` в PolicyProjection.
 - HUMAN_GATE для всего → human overload. Только scope violations и budget exhaustion.
 
+## See Also
+
+- [[error-registry]]
+- [[error-event]]
+- [[error-classifier]]
+- [[classification-result]]
+- [[session-orchestrator]]
+
 ## Open Questions
 
 - [ ] (P0) Q30 PARTIAL: Как восстановиться после process crash? EventLog цел, но in-flight команда потеряна. Автоматическое обнаружение незавершённых сессий?
@@ -54,11 +62,3 @@ ABORT         → CORE_ABORT (structural) или PROTOCOL_ABORT (policy/guard/un
 - [x] (P0) Q27: Error classification — RETRY/RE_EXPLAIN/HUMAN_GATE/ABORT → [[error-classifier]]
 - [x] (P0) Q28: Error events — все ошибки пишутся как ErrorEvent → [[error-event]]
 - [x] (P0) Q29: Human intervention trigger — GATE outcome → [[session-orchestrator]]
-
-## See Also
-
-- [[error-registry]]
-- [[error-event]]
-- [[error-classifier]]
-- [[classification-result]]
-- [[session-orchestrator]]

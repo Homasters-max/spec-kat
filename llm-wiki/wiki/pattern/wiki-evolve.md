@@ -80,3 +80,4 @@ wiki sync-glossary                   # пользователь вручную
 - [[diff-first-updates]]
 - [[wiki-query]]
 - [[wiki-curate]]
+- [[wiki-session-isolation]] — изоляция tmp/ между wiki-evolve и wiki-curate сессиями

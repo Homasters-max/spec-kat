@@ -64,6 +64,15 @@ snapshot = reduce(event_store.load(up_to=N))
 - Все projections rebuild синхронно — latency tradeoff при большом числе projections
 - OCC retry orchestrated снаружи (middleware / orchestrator)
 
+## See Also
+
+- [[cqrs-boundary]]
+- [[execution-guard]]
+- [[optimistic-concurrency-control]]
+- [[event-sourcing]]
+- [[deterministic-context]]
+- [[command-context]] — контекст исполнения (actor, session_id, correlation_id), передаётся handler'у
+
 ## Open Questions
 
 - [ ] (P0) Q5: Что происходит при падении процесса между handle() и append()? Как обнаружить и компенсировать незавершённый batch?
@@ -76,11 +85,3 @@ snapshot = reduce(event_store.load(up_to=N))
 
 - [x] (P0) Q4: Atomic append гарантируется через Write Kernel + OCC; expected_version = snapshot.version → [[optimistic-concurrency-control]]
 - [x] (P0) Q27: expected_version source — всегда snapshot.version, никогда не задаётся клиентом → [[optimistic-concurrency-control]]
-
-## See Also
-
-- [[cqrs-boundary]]
-- [[execution-guard]]
-- [[optimistic-concurrency-control]]
-- [[event-sourcing]]
-- [[deterministic-context]]

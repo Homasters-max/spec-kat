@@ -47,6 +47,12 @@ def upcast(event: Event) -> Event:
 - Цепочка апкастеров растёт с каждой миграцией схемы.
 - Нельзя удалять апкастеры, пока в EventLog есть старые события.
 
+## See Also
+
+- [[reducer]]
+- [[event-sourcing]]
+- [[sdd-meta-harness]]
+
 ## Open Questions
 
 - [ ] (P2) Q203: Как делается upgrade системы без потери событий и downtime? Blue-green? Rolling с multi-version compatibility?
@@ -60,9 +66,3 @@ def upcast(event: Event) -> Event:
 
 - [x] (P0) Q6: Schema evolution реализована через upcasting — цепочка апкастеров для всех старых версий → [[event-sourcing]]
 - [x] (P0) Q35: Reducer versioning — upcaster позволяет reducer работать только с последней версией событий → [[reducer]]
-
-## See Also
-
-- [[reducer]]
-- [[event-sourcing]]
-- [[sdd-meta-harness]]
