@@ -13,6 +13,8 @@ Choose one of three protocols based on the user's intent:
 | Add or process new knowledge from raw files | **wiki-evolve** |
 | Answer a question from the wiki | **wiki-query** |
 | Clean up, merge, or restructure existing pages | **wiki-curate** |
+| Manage open questions on wiki pages | **wiki-open-questions** |
+| Create or edit DocGraph task/phase/domain execution node | **wiki-docgraph** |
 
 ---
 
@@ -172,6 +174,102 @@ Post-action (optional, user decision):
 
   Note: promote_suggestion in LLM output is a SIGNAL to run the above steps —
   not a query_id that already exists. Only wiki log-query writes to query_log.
+
+NOTE (DocGraph context):
+  Структурные данные DocGraph-узлов (status, depends, blocked_by) живут в EventLog,
+  не в wiki prose. Для структурных запросов:
+    sdd show-state       → текущее состояние задач/фазы
+    sdd query-events     → история событий (в т.ч. SyncWikiExecuted, GraphVersionRecorded)
+  wiki show <node-id> → только prose (Summary, Acceptance Criteria, Notes)
+  affects-рёбра: приоритет P5 (последний), только при наличии бюджета токенов (Q14)
+  WikiSemanticExtractor навигирует: task → phase → domain (три уровня prose = один контекстный пакет)
+```
+
+---
+
+## wiki-docgraph protocol
+
+Создание и редактирование DocGraph-узлов (wiki-файлы с `type: domain|phase|task`). Не путать с wiki knowledge pages (`page_type: idea|pattern|tool`) — схемы frontmatter несовместимы (I-DOCGRAPH-FM-1).
+
+**Таблица типов:**
+
+| `type`   | Префикс ID | Компилируется в EventLog? | Имеет `status`? | Роль                   |
+|----------|------------|---------------------------|-----------------|------------------------|
+| `domain` | `d-`       | Нет                       | Нет             | Semantic cluster       |
+| `phase`  | `p-`       | Да                        | Да              | Execution boundary     |
+| `task`   | `t-`       | Да                        | Да              | Atomic work item       |
+
+**Поля-владельцы (критическая таблица):**
+
+| Поле         | Владелец  | LLM может редактировать?          |
+|--------------|-----------|-----------------------------------|
+| `id`         | Human     | Никогда (immutable slug)          |
+| `name`       | Human     | Да (переименование)               |
+| `type`       | Human     | Никогда                           |
+| `status`     | EventLog  | Никогда (render-wiki пишет)       |
+| `blocked_by` | EventLog  | Никогда (render-wiki пишет)       |
+| `depends`    | Human     | Только до TaskSpawned             |
+| `part_of`    | Human     | Требует DAG проверки              |
+| `affects`    | Human     | Да                                |
+| `scope`      | Human     | Только до TaskStarted             |
+
+```
+РЕЖИМ A — Создание нового execution-узла (task / phase):
+
+  Frontmatter (точная схема):
+    ---
+    id: t-<slug>         # immutable slug; kebab-case; НИКОГДА не меняется
+    name: "Title"        # mutable display name
+    type: task           # task | phase
+    status: OPEN         # ⛔ EventLog-owned; render-wiki пишет
+    blocked_by: []       # ⛔ EventLog-owned; render-wiki пишет
+    depends: []          # DAG edges; FROZEN после TaskSpawned
+    part_of: p-<id>      # родительская фаза (для task) или домен (для phase)
+    affects: []          # traceability hints (P5, lowest priority)
+    scope: []            # empty = наследует от phase; FROZEN после TaskStarted
+    ---
+
+  Prose структура:
+    # <name>
+    ## Summary
+    ## Acceptance Criteria   (только для task)
+    ## Notes                 (optional)
+
+  После создания → показать пользователю:
+    "[sync-wiki gate] Структурный узел создан.
+     Запустите: sdd sync-wiki — для компиляции в EventLog.
+     ОБЯЗАТЕЛЕН перед activate-phase (I-SYNC-FRESHNESS-1)."
+
+РЕЖИМ B — Создание нового domain-узла (semantic-only):
+
+  Frontmatter:
+    ---
+    id: d-<slug>
+    name: "Domain Name"
+    type: domain
+    # ЗАПРЕЩЕНЫ поля: status, blocked_by, depends, scope  (I-DOCGRAPH-DOMAIN-2)
+    ---
+
+  Prose = архитектурные правила, shared vocabulary, ограничения домена.
+  sync-wiki пропускает domain-узлы. render-wiki их не трогает.
+  После создания domain → sync-wiki НЕ нужен.
+
+РЕЖИМ C — Редактирование prose существующего узла:
+
+  Прочитать: wiki show <node-id>
+  Определить: что изменяется?
+
+  Если изменяется ТОЛЬКО prose (Summary, Acceptance Criteria, Notes):
+    → писать runtime/tmp/<node-id>.diff.md — ТОЛЬКО prose секции
+    → НЕ ВКЛЮЧАТЬ в diff: status, blocked_by (EventLog-owned)
+    → вызывать: wiki apply-drafts
+    → sync-wiki НЕ нужен (prose ≠ structure)
+
+  Если изменяются структурные поля (depends / part_of / scope):
+    → предупредить: "Структурное изменение после TaskSpawned ЗАПРЕЩЕНО (Q2, I-GRAPH-DEP-IMMUT-1)"
+    → depends: нельзя менять после TaskSpawned
+    → scope:   нельзя менять после TaskStarted
+    → ОБЯЗАТЕЛЬНО напомнить: "sdd sync-wiki — обязателен перед activate-phase"
 ```
 
 ---
@@ -226,6 +324,103 @@ Post-action (user):
 
 ---
 
+## wiki-open-questions protocol
+
+Встраивание открытых вопросов inline в существующие страницы wiki. **Не создавать отдельный документ.**
+
+```
+Формат блоков — два стандартных блока в КОНЦЕ страницы
+(перед ## See Also, или в самом конце если See Also нет):
+
+  ## Open Questions
+
+  - [ ] (P0) Как гарантируется total order EventLog?
+  - [ ] (P1) Нужен ли snapshotting для replay оптимизации?
+
+  ## Decisions
+
+  - [x] (P0) EventLog = append-only, total order через event_index → [[eventstore-guard]]
+
+Приоритеты:
+  (P0) — ломает систему; ДОЛЖЕН быть закрыт до релиза
+  (P1) — ломает фичи
+  (P2) — оптимизация, nice-to-have
+
+Три правила:
+  1. Вопрос НЕ удаляется — он переносится в Decisions
+  2. Решённый вопрос: убрать из Open Questions → добавить в Decisions
+     (с приоритетом + утверждение + [[wikilink]])
+  3. Все P0 ДОЛЖНЫ быть закрыты перед релизом
+
+Фильтр добавления — вопрос разрешено добавлять только если влияет на:
+  - determinism  (воспроизводимость поведения)
+  - correctness  (правильность результата)
+  - production   (runtime, безопасность, данные)
+
+Формат решения — утверждение, не просто ссылка:
+  ❌ - [x] EventLog → [[eventstore-guard]]
+  ✓  - [x] (P0) EventLog = append-only, total order через event_index → [[eventstore-guard]]
+```
+
+**Workflow — добавление вопроса:**
+
+```
+Возник архитектурный вопрос (влияет на determinism/correctness/production)
+→ wiki show <page_id>                — найти нужную страницу
+→ создать runtime/tmp/<id>.diff.md   — добавить строку в ## Open Questions
+   (если блока нет → создать оба блока в конце страницы)
+   (если блок есть → только append, не дублировать блок)
+→ wiki apply-drafts
+```
+
+**Workflow — решение вопроса:**
+
+```
+Вопрос решён
+→ создать runtime/tmp/<id>.diff.md с двумя изменениями:
+   1. удалить строку из ## Open Questions
+   2. добавить в ## Decisions: - [x] (PN) <утверждение> → [[wikilink]]
+→ wiki apply-drafts
+→ если P0 — обновить derived/open-questions.md через wiki-curate
+```
+
+**Trigger использования:**
+
+```
+Перед изменением любого компонента:
+→ wiki show <page_id>
+→ проверить ## Open Questions
+→ если есть P0 → сначала решить или задокументировать причину откладывания
+```
+
+**Обязательные страницы** (добавить Open Questions блок при первой возможности):
+
+```
+- event-sourcing     - execution-guard
+- reducer            - replay-engine
+- context-kernel
+```
+
+**Поиск открытых вопросов:**
+
+```bash
+# Найти все P0:
+grep -r "- \[ \] (P0)" /obsidian-vault/llm-wiki/wiki/
+
+# Найти все открытые вопросы:
+grep -r "- \[ \]" /obsidian-vault/llm-wiki/wiki/
+```
+
+**Обновление derived/open-questions.md** — через wiki-curate (.rewrite.md) когда:
+
+```
+- закрыт или открыт любой P0
+- >5 изменений вопросов с последнего обновления
+- перед релизом
+```
+
+---
+
 ## §INVARIANTS
 
 ```
@@ -248,6 +443,31 @@ I-WIKI-CONFLICT-1  apply-drafts завершается exit 1 на первом 
                    разрешает конфликт вручную и перезапускает apply-drafts
 I-WIKI-QUERY-1     wiki-query НЕ ДОЛЖЕН писать в wiki/ или .wiki/config/; разрешены только
                    log-query и promote (оба пишут в .wiki/state/)
+I-WIKI-OQ-0        ## Open Questions и ## Decisions размещаются в КОНЦЕ страницы — перед ## See Also
+                   или в самом конце; ЗАПРЕЩЕНО размещать в середине страницы
+I-WIKI-OQ-1        ## Open Questions: формат строк — "- [ ] (P0|P1|P2) <текст>"; строки НЕ
+                   удаляются — только переносятся в ## Decisions
+I-WIKI-OQ-2        ## Decisions: формат строк — "- [x] (P0|P1|P2) <утверждение> → [[wikilink]]";
+                   wikilink обязателен — WARNING если отсутствует
+I-DOCGRAPH-FM-1    DocGraph nodes (type: task|phase) MUST use DocGraph frontmatter schema
+                   (id/name/type/status/blocked_by/depends/part_of/affects/scope).
+                   wiki knowledge schema (page_type/domain/layer/tags) ЗАПРЕЩЕНО смешивать.
+                   Lint ERROR если найдены оба schema в одном файле.
+I-DOCGRAPH-OWNED-1 Поля status и blocked_by MUST NOT редактироваться вручную.
+                   Они EventLog-owned: render-wiki пишет их автоматически (Q7).
+I-DOCGRAPH-ID-1    id DocGraph-узла — immutable slug. Переименование = менять поле name.
+                   Путь файла в filesystem не влияет на node_id.
+I-DOCGRAPH-DOMAIN-1 Узлы type: domain НЕ компилируются в EventLog. PlanManager/sync-wiki
+                    их полностью игнорируют. Семантика только: prose для WikiSemanticExtractor.
+I-DOCGRAPH-DOMAIN-2 Frontmatter type: domain MUST NOT содержать поля: status, blocked_by,
+                    depends, scope. Наличие этих полей = Lint Error.
+I-DOCGRAPH-SYNC-1  После изменения структурных полей (depends/part_of/scope) LLM MUST
+                   напомнить пользователю: "sdd sync-wiki — обязателен перед activate-phase".
+I-DOCGRAPH-PROSE-1 WikiSemanticExtractor читает prose DocGraph-узлов из WikiSnapshot.
+                   Prose = источник семантики. EventLog = источник структуры.
+                   WikiSemanticExtractor MUST NOT read wiki files directly.
+I-WIKI-SNAP-1      wiki-query для DocGraph-контекста: структурные данные (status, deps) —
+                   из EventLog (sdd show-state). Prose — из wiki show. ЗАПРЕЩЕНО путать источники.
 ```
 
 ---
@@ -320,6 +540,7 @@ sys.stdout.writelines(difflib.unified_diff(old, new, fromfile=page, tofile=page)
 | `extraction` | извлечение сущностей |
 | `maintenance` | поддержка качества |
 | `curation` | редактирование |
+| `open-questions` | страницы с нерешёнными вопросами |
 
 ### По технологии
 
