@@ -9,9 +9,9 @@ tags:
 - write-path
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/commandspec-deepening-plan.md
 ---
@@ -64,6 +64,11 @@ structural_specs = registry.filter(lambda s: s.graph_impact == GraphImpact.STRUC
 **Плюсы:** единственная точка декларации маршрутизационного контракта; добавить команду = один файл; compile-time safety вместо runtime boolean-drift; [[command-bus]] и его middleware не знают о деталях отдельных команд.
 
 **Минусы:** добавление нового routing-concern требует нового enum и изменения CommandSpec; нельзя выразить неоднородные эффекты одной команды (Command→Event 1:many — именно поэтому context_boundary не вошёл в CommandSpec).
+
+## Open Questions
+
+- [ ] (P1) Q104: Где валидируется command schema — до guards (middleware) или внутри handler? Кто отвечает за well-formedness input?
+- [ ] (P1) Q106: Формально гарантируется: одинаковый input command + одинаковый State → одинаковые output events? Где доказательство?
 
 ## See Also
 

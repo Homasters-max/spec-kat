@@ -9,9 +9,9 @@ tags:
 - ssot
 - write-path
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 ---
@@ -77,6 +77,15 @@ Event A (causation=None) → Event B (causation=A.event_id) → Event C (causati
 - `causation_event_id` строит DAG событий, не линейный лог — сложнее для анализа при ветвлении
 - `correlation_id` охватывает сессию целиком — нужен дополнительный индекс в PostgreSQL
 - `command_id` дублирует информацию о команде, но устраняет JOIN с таблицей команд
+
+## Open Questions
+
+- [ ] (P1) Q116: Есть ли единая модель causal graph (event→event через causation_event_id, command→event через command_id)? Формализована в спеке?
+- [ ] (P1) Q117: Как восстановить полную цепочку причинности для произвольного event без ambiguity? SQL query или projection?
+- [ ] (P1) Q118: Есть ли API: `get_lineage(event_id) → [ancestor_events]`? Через EventLog query или отдельная lineage projection?
+- [ ] (P1) Q119: Как гарантировать что нет orphan events (событий без причины/команды)? Root events = user commands — это invariant?
+- [ ] (P1) Q120: Возможны ли циклы в causal graph? Где проверяется acyclicity — при append или при rebuild?
+- [ ] (P1) Q121: Как визуализируется causal graph для debugging? CLI `sdd trace-graph T-NNN`? Graphviz export?
 
 ## See Also
 

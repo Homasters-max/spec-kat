@@ -9,9 +9,9 @@ tags:
 - enforcement
 - llm
 - domain/sdd
-version: 2
+version: 3
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/orchestrator-agentloop-plan.md
 - raw/error-model-architecture.md
@@ -185,6 +185,27 @@ class LoopTraceEntry:
 - Phase lock через конструктор: mid-loop phase switch не влияет на текущий AgentLoop.
 - Прямые EventStore-записи (не через CommandBus) для `LoopStepRecorded`/`HumanGateReached`/`ErrorEvent` — нарушение GL-7 намеренно для L1 isolation; документировано в design.
 - `ClassificationResult` из `validate()` и `ErrorClassifier.classify()`: единый тип → DECIDE не ветвится по источнику классификации.
+
+## Open Questions
+
+- [ ] (P1) Q129: Записывается ли полный raw output LLM в EventLog (LLMResponseReceived) или только parsed tool_call?
+- [ ] (P1) Q130: Записывается ли финальный assembled prompt (после ContextKernel) в EventLog? Как реплеить если промпт изменился?
+- [ ] (P1) Q131: При replay — можно ли подменять LLM на stub (записанные ответы)? Как изолировать LLM-вызов от CommandBus?
+- [ ] (P1) Q132: Допускает ли система расхождение в текстовых ответах LLM при replay (fuzzy match) или требует bit-identical?
+- [ ] (P1) Q133: Что если версия LLM изменилась между записью события и replay? Ошибка или допустимая вариация?
+- [ ] (P2) Q138: Canonical список ролей агентов: Planner, Executor, Reviewer, Auditor. Могут ли переопределяться через PolicyKernel?
+- [ ] (P2) Q139: Sequential (Planner→Executor→Reviewer) vs Streaming (Generator→Critic loop). Где описывается паттерн оркестрации фазы?
+- [ ] (P2) Q140: Reviewer имеет только read+comment, Executor — read+write? Где задаётся tool ACL?
+- [ ] (P2) Q141: Может ли Executor породить Sub-executor? Как отслеживаются деревья вызовов в EventLog через causation_event_id?
+- [ ] (P2) Q142: Reviewer и Executor бесконечный цикл правок. Какой budget/timeout? Escalation to HUMAN_GATE?
+- [ ] (P2) Q143: Как создаётся, передаётся и инвалидируется actor_id агента в сессии?
+- [ ] (P3) Q215: Как задаётся максимум токенов на TaskRun? Кто enforces — LoopPolicy или отдельный budget guard?
+- [ ] (P3) Q216: Как записываются LLM API costs? В EventLog как metric event или отдельный store?
+- [ ] (P3) Q217: При каком % budget usage агент предупреждает? При 100% — HUMAN_GATE или ABORT?
+- [ ] (P3) Q218: Как PolicyKernel управляет выбором модели (дорогая/дешёвая) для разных типов задач?
+- [ ] (P3) Q219: При нехватке token budget — автоматическое сжатие context? Какой алгоритм? Влияние на детерминизм?
+- [ ] (P3) Q220: Суммарный бюджет на фазу? Как распределяется между задачами?
+- [ ] (P3) Q221: Как измерить ROI задачи — AgentScore / tokens_spent? Метрика M10?
 
 ## See Also
 

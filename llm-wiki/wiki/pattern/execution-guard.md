@@ -9,9 +9,9 @@ tags:
 - validation
 - write-path
 - domain/sdd
-version: 3
+version: 4
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Meta Harness Core.md
 - raw/Memory Layer and Invariant Management.md
@@ -127,3 +127,16 @@ Pipeline вызывается WriteKernel на каждую команду в SD
 - [[write-kernel]]
 - [[scope-guard]]
 - [[trace-projection]]
+
+## Open Questions
+
+- [ ] (P0) Q23: Guard side effects строго запрещены? Что если guard нужно логировать решение (запись в TraceStore) — это side effect?
+- [ ] (P0) Q24 PARTIAL: Может ли human override structural guard (не policy)? Механика не описана → [[sdd-actor-model]]
+- [ ] (P0) Q25: Применяются ли guards при replay EventLog? Если да — что если policy изменилась с момента записи события?
+- [ ] (P0) Q26: Как технически запрещён прямой вызов handler минуя guards? Только convention или code-enforced?
+
+## Decisions
+
+- [x] (P0) Q20: Guard ordering — фиксированные слоты middleware-pipeline → [[middleware-pipeline]]
+- [x] (P0) Q21: Guard composition — chain через middleware-pipeline → [[middleware-pipeline]]
+- [x] (P0) Q22: Guard determinism — все guards детерминированы по дизайну → [[execution-guard]]

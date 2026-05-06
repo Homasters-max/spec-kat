@@ -9,9 +9,9 @@ tags:
 - enforcement
 - write-path
 - domain/sdd
-version: 2
+version: 4
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
 - raw/orchestrator-agentloop-plan.md
@@ -61,6 +61,26 @@ Orchestrator.complete():
 - Нет persistent loop → нет overhead от долгоживущего процесса, но нет и автоматического продолжения.
 - Human должен явно инициировать каждую сессию — intentional design, не ограничение.
 - GATE freeze vs discard: freeze сохраняет контекст для возобновления; TTL предотвращает бесконечно висящие Sandbox.
+
+## Open Questions
+
+- [ ] (P1) Q66: Какие шаги ОБЯЗАТЕЛЬНЫ в pipeline фазы? Могут ли фазы иметь разные pipeline-конфигурации?
+- [ ] (P1) Q67: Могут ли шаги выполняться параллельно? Как координировать конкурентные writes к одному файлу?
+- [ ] (P1) Q68: Как перейти с незакрытой фазы на следующую? PhaseAbandoned event? Влияние на projections?
+- [ ] (P1) Q69: Можно ли открыть закрытую задачу/фазу? Как это влияет на монотонность EventLog и I-PHASE-LIFECYCLE-2?
+- [ ] (P1) Q70: Статусы спеки/плана: DRAFT→REVIEW→APPROVED→OBSOLETE. Кто переводит? Что происходит при OBSOLETE с зависимыми задачами?
+- [ ] (P3) Q222: Где исчерпывающий список всех точек human approval? Spec approve, plan approve, phase complete, policy update — что ещё?
+- [ ] (P3) Q223: Что происходит если human не реагирует N часов? Auto-expire? Freeze state?
+- [ ] (P3) Q224: Как человек узнаёт что его ожидают? Telegram, email, CLI poll?
+- [ ] (P3) Q225: Человек может дать feedback через время после завершения задачи? Как применяется к уже выполненному?
+- [ ] (P3) Q226: Человек одобряет план частично — "делай пункты 1–3, пункт 4 переработай". Механика?
+- [ ] (P3) Q227: Может ли human делегировать gate approval другому human или автоматической проверке?
+
+- [ ] (P2) Q186: Фазы строго последовательны (I-PHASE-SEQ-1), но может ли задача из Phase 3 зависеть от артефакта Phase 1?
+- [ ] (P2) Q187: Как отследить цепочку: Spec_v1 → Plan_v1 → T-001 → code_file.py? Bidirectional graph?
+- [ ] (P2) Q188: Если Phase 3 провалилась и нужно вернуться к Phase 2 — какой механизм? PhaseReverted event?
+- [ ] (P2) Q189: Возможно ли выполнение двух независимых фаз параллельно? Какие инварианты нарушаются?
+- [ ] (P2) Q190: Есть ли reusable phase templates? Как фаза "Add tests" переиспользуется в разных проектах?
 
 ## See Also
 

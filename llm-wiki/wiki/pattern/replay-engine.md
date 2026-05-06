@@ -8,9 +8,9 @@ tags:
 - validation
 - pipeline
 - domain/sdd
-version: 1
+version: 3
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/replay-based-testing-architecture.md
 ---
@@ -76,3 +76,23 @@ class ReplayEngine:
 - [[task-event-slice]]
 - [[golden-fixture]]
 - [[replay-based-testing]]
+
+## Open Questions
+
+- [ ] (P1) Q98 PARTIAL: Mismatch между replay result и expected state. Alerting? Auto-quarantine? → [[classified-recovery]] но нет replay-specific flow.
+- [ ] (P1) Q99: При каком объёме EventLog full replay неприемлем? Метрики? Benchmark?
+- [ ] (P1) Q100: Проверяются ли все projections на консистентность после replay? Что считается mismatch?
+- [ ] (P1) Q101 PARTIAL: Команды для replay существуют? `sdd replay-from --event-id N`? → [[replay-engine]] (code), но CLI не задокументирован.
+
+- [ ] (P2) Q159: Сколько команд/сек принимает система? Где bottleneck — DB, reducer, projections?
+- [ ] (P2) Q160: SLA на command execution: P50, P95, P99?
+- [ ] (P2) Q161: Budget на сборку ContextPacket? Graph query timeout?
+- [ ] (P2) Q162: Стоимость первого TaskRun после idle? Projection warm-up?
+- [ ] (P2) Q163: Как измерять performance hotpaths? Встроенная instrumentация?
+
+## Decisions
+
+- [x] (P1) Q94: Replay scope — full EventLog → [[replay-engine]]
+- [x] (P1) Q95: Replay isolation — stateless, no side effects → [[replay-engine]]
+- [x] (P1) Q96: Replay step-by-step — поддерживается → [[replay-engine]]
+- [x] (P1) Q97: Replay with snapshots — golden-fixture → [[golden-fixture]]

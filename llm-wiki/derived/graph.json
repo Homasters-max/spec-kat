@@ -21,6 +21,9 @@
     "error-classifier",
     "error-registry",
     "classification-result",
+    "error-classifier",
+    "error-event",
+    "session-orchestrator",
     "error-registry",
     "error-event",
     "error-classifier",
@@ -58,7 +61,12 @@
     "sdd-meta-harness",
     "cqrs-boundary",
     "idempotent-events",
-    "causal-linkage"
+    "causal-linkage",
+    "classified-recovery",
+    "golden-fixture",
+    "write-kernel",
+    "upcaster-registry",
+    "eventstore-guard"
   ],
   "git-as-ssot": [
     "wiki-cli",
@@ -67,7 +75,12 @@
     "automation-over-llm"
   ],
   "global-laws": [
+    "eventstore-guard",
+    "global-laws",
+    "global-laws",
     "event-sourcing",
+    "sdd-bounded-contexts",
+    "observability-events",
     "eventstore-guard",
     "sandbox-manager",
     "session-orchestrator",
@@ -130,61 +143,50 @@
     "policy-kernel",
     "sdd-component-inventory"
   ],
-  "sdd-component-inventory": [
+  "sdd-bounded-contexts": [
+    "eventstore-guard",
+    "memory-layer",
+    "phase-orchestrator",
+    "memory-layer",
+    "memory-layer",
+    "spec-manager",
+    "plan-manager",
+    "phase-orchestrator",
+    "constitution-parser",
+    "audit-engine",
+    "sdd-component-inventory",
     "sdd-meta-harness",
+    "command-bus",
+    "event-sourcing",
+    "memory-layer",
+    "global-laws",
+    "execution-guard",
+    "eventstore-guard",
+    "write-kernel",
+    "projection-registry",
+    "policy-kernel",
+    "observability-events",
+    "phase-orchestrator",
+    "spec-manager",
+    "plan-manager",
+    "constitution-parser"
+  ],
+  "sdd-component-inventory": [
+    "sdd-bounded-contexts",
+    "sdd-meta-harness",
+    "sdd-bounded-contexts",
     "global-laws",
     "sdd-actor-model",
     "event-sourcing",
     "session-orchestrator",
     "audit-engine",
     "idempotency-middleware",
-    "idempotency-projection"
-  ],
-  "sdd-open-questions": [
-    "optimistic-concurrency-control",
-    "write-kernel",
-    "upcaster-registry",
-    "eventstore-guard",
-    "classified-recovery",
-    "golden-fixture",
-    "loop-policy",
     "idempotency-projection",
-    "idempotency-mode",
-    "middleware-pipeline",
-    "middleware-pipeline",
-    "execution-guard",
-    "sdd-actor-model",
-    "error-classifier",
-    "error-event",
-    "session-orchestrator",
-    "global-laws",
-    "deterministic-context",
-    "context-packet",
-    "context-kernel",
-    "deterministic-context",
-    "reducer",
-    "projection-registry",
-    "projection-registry",
-    "projection-registry",
-    "replay-engine",
-    "replay-engine",
-    "replay-engine",
-    "golden-fixture",
-    "classified-recovery",
-    "replay-engine",
-    "causal-linkage",
-    "meta-optimization",
-    "global-laws",
-    "sdd-component-inventory",
-    "sdd-actor-model",
-    "sdd-meta-harness",
-    "meta-optimization",
-    "audit-engine",
-    "error-classifier",
-    "session-orchestrator",
-    "replay-engine",
-    "policy-kernel",
-    "causal-linkage"
+    "memory-layer",
+    "spec-manager",
+    "plan-manager",
+    "phase-orchestrator",
+    "constitution-parser"
   ],
   "trace-aligned-test-partitioning": [
     "test-catalog-projection",
@@ -320,6 +322,12 @@
     "metric-collector",
     "score-context"
   ],
+  "constitution-parser": [
+    "sdd-bounded-contexts",
+    "spec-manager",
+    "memory-layer",
+    "policy-kernel"
+  ],
   "context-kernel": [
     "policy-projection",
     "graph-query-engine",
@@ -328,7 +336,9 @@
     "context-snapshot",
     "execution-guard",
     "input-port",
-    "session-orchestrator"
+    "session-orchestrator",
+    "deterministic-context",
+    "context-packet"
   ],
   "context-packet": [
     "wiki-evolve",
@@ -414,10 +424,13 @@
     "agent-loop"
   ],
   "eventstore-guard": [
+    "observability-events",
     "event-sourcing",
     "command-bus",
     "global-laws",
-    "sdd-component-inventory"
+    "sdd-component-inventory",
+    "observability-events",
+    "sdd-bounded-contexts"
   ],
   "execution-guard": [
     "policy-projection",
@@ -428,7 +441,11 @@
     "cqrs-boundary",
     "write-kernel",
     "scope-guard",
-    "trace-projection"
+    "trace-projection",
+    "sdd-actor-model",
+    "middleware-pipeline",
+    "middleware-pipeline",
+    "execution-guard"
   ],
   "extraction-result": [
     "wiki-evolve",
@@ -439,6 +456,7 @@
   ],
   "golden-fixture": [
     "test-catalog-projection",
+    "replay-engine",
     "replay-engine",
     "snapshot-comparator",
     "task-event-slice",
@@ -525,10 +543,10 @@
   "memory-layer": [
     "projection-registry",
     "l1-l2-isolation",
-    "projection-registry",
     "embedding-projection",
     "embedding-projection",
     "l1-l2-isolation",
+    "sdd-bounded-contexts",
     "policy-projection",
     "embedding-projection",
     "projection-registry",
@@ -571,9 +589,20 @@
     "error-registry",
     "error-classifier"
   ],
+  "observability-events": [
+    "eventstore-guard",
+    "eventstore-guard",
+    "sdd-bounded-contexts",
+    "global-laws",
+    "event-sourcing",
+    "agent-loop"
+  ],
   "optimistic-concurrency-control": [
     "write-kernel",
     "cqrs-boundary",
+    "loop-policy",
+    "idempotency-projection",
+    "idempotency-mode",
     "cqrs-boundary",
     "write-kernel",
     "idempotent-events",
@@ -585,7 +614,24 @@
     "wiki-frontmatter",
     "wiki-evolve"
   ],
+  "phase-orchestrator": [
+    "sdd-bounded-contexts",
+    "plan-manager",
+    "memory-layer",
+    "audit-engine",
+    "agent-loop",
+    "observability-events"
+  ],
+  "plan-manager": [
+    "sandbox-manager",
+    "sdd-bounded-contexts",
+    "spec-manager",
+    "phase-orchestrator",
+    "memory-layer",
+    "sandbox-manager"
+  ],
   "policy-kernel": [
+    "meta-optimization",
     "error-classifier",
     "meta-optimization",
     "sdd-actor-model",
@@ -608,6 +654,8 @@
   ],
   "projection-registry": [
     "embedding-projection",
+    "projection-registry",
+    "projection-registry",
     "memory-layer",
     "policy-projection",
     "trace-projection",
@@ -627,7 +675,10 @@
     "event-sourcing",
     "upcaster-registry",
     "replay-based-testing",
-    "sdd-meta-harness"
+    "sdd-meta-harness",
+    "deterministic-context",
+    "global-laws",
+    "reducer"
   ],
   "replay-based-testing": [
     "replay-engine",
@@ -653,7 +704,13 @@
     "upcaster-registry",
     "task-event-slice",
     "golden-fixture",
-    "replay-based-testing"
+    "replay-based-testing",
+    "classified-recovery",
+    "replay-engine",
+    "replay-engine",
+    "replay-engine",
+    "replay-engine",
+    "golden-fixture"
   ],
   "sandbox-manager": [
     "scope-guard",
@@ -730,6 +787,15 @@
     "golden-fixture",
     "replay-based-testing"
   ],
+  "spec-manager": [
+    "constitution-parser",
+    "constitution-parser",
+    "sdd-bounded-contexts",
+    "constitution-parser",
+    "plan-manager",
+    "memory-layer",
+    "event-sourcing"
+  ],
   "task-event-slice": [
     "replay-engine",
     "replay-engine",
@@ -767,6 +833,8 @@
     "graph-session-projection"
   ],
   "upcaster-registry": [
+    "event-sourcing",
+    "reducer",
     "reducer",
     "event-sourcing",
     "sdd-meta-harness"
@@ -811,6 +879,8 @@
   ],
   "write-kernel": [
     "execution-guard",
+    "optimistic-concurrency-control",
+    "optimistic-concurrency-control",
     "cqrs-boundary",
     "execution-guard",
     "optimistic-concurrency-control",

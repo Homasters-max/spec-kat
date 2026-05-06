@@ -1,0 +1,36 @@
+--- global-laws.md
++++ global-laws.md
+@@ -32,13 +32,32 @@
+ GL-4 Projection:   Projection := f(EventLog, Code)
+ GL-5 Isolation:    L0 не зависит от L1/L2
+ GL-6 Write Gate:   write разрешён только после start-task + resolve + explain + file ∈ write_scope
+-GL-7 EventStore:   event_store.append() доступен ТОЛЬКО из Command handlers
++GL-7 EventStore:   event_store.append() доступен ТОЛЬКО из Command handlers (Domain Events);
+                   Observability Events — легальное исключение, медиируемое [[eventstore-guard]]
+ GL-8 Sandbox:      каждый TaskRun исполняется в изолированном окружении
+ GL-9 Agent Loop:   нет постоянно живущего loop — Session Orchestrator chains stateless sessions
+ GL-10 L2 Access:   L2 компоненты доступны только через CommandBus + ReadModel
+ ```
+ 
+ GL-1 и GL-2 формируют основу event sourcing. GL-3 определяет порядок исполнения. GL-4 делает проекции детерминированными. GL-5 гарантирует независимость ядра. GL-6..GL-10 описывают поведенческие ограничения на агента и систему.
++
++
++## Consistency Model
++
++```text
++Strong (within WriteKernel transaction):
++  L1 reads within same transaction always see own writes.
++
++Snapshot (L1 cross-transaction, cycle-bounded):
++  Snapshot built once at AgentLoop.start(). Staleness bound: ≤ 1 AgentLoop iteration.
++
++Eventual (L2 only):
++  EmbeddingProjection, SemanticSearch — no staleness bound.
++  L2 failure does NOT affect L1, Guards, or EventLog.
++```
++
++"Cycle-bounded" ≠ "eventually consistent" (Cassandra/DynamoDB): здесь staleness строго ограничен одним AgentLoop iteration.
++
++- **I-CONSISTENCY-1**: Cross-domain consistency = cycle-bounded; only within-WriteKernel-transaction = strongly consistent
+ 
+ ## When To Use

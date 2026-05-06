@@ -9,9 +9,9 @@ tags:
 - pipeline
 - automation
 - domain/sdd
-version: 2
+version: 4
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Meta Harness Core.md
 - raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
@@ -100,3 +100,31 @@ I-EVENTLOG-7: OCC — append(events, expected_version) проверяет вер
 - [[cqrs-boundary]]
 - [[idempotent-events]]
 - [[causal-linkage]]
+
+## Open Questions
+
+- [ ] (P0) Q1 PARTIAL: Как обеспечивается total order EventLog? single-writer vs partition+merge? Где формализован инвариант?
+- [ ] (P0) Q2 PARTIAL: Является ли event_index глобальным монотонным счётчиком? Что происходит при concurrent append в PostgreSQL?
+- [ ] (P0) Q3 PARTIAL: Что является границей batch? Атомарны ли N events от одного handler? Batch failure path открыт.
+- [ ] (P0) Q5: Что происходит при падении процесса между handle() и append()? Как обнаружить незавершённый batch?
+- [ ] (P0) Q7: Можно ли replay старого EventLog новой версией reducer без потери инвариантов? Как тестировать совместимость?
+- [ ] (P0) Q9: Есть ли несколько EventLog или один глобальный? Как гарантировать causality между ними?
+- [ ] (P0) Q10 PARTIAL: Событие ломает reducer на replay. DLQ? Quarantine? Manual upcasting? → [[classified-recovery]] ABORT есть, repair flow нет.
+- [ ] (P0) Q11 PARTIAL: Нужен ли snapshotting для prod EventLog? При каком объёме replay неприемлем? SLA? → [[golden-fixture]] только для тестов.
+- [ ] (P0) Q55: Явное различие logical time (event_index) vs wall-clock? Что является canonical ordering?
+- [ ] (P0) Q56: Нужен ли Lamport clock для causality? При multi-agent — vector clock обязателен?
+- [ ] (P0) Q57: Как обрабатываются события с идентичным wall-clock timestamp? Monotonic clock required?
+- [ ] (P0) Q58: При distributed setup возможен ли reordering при concurrent append? Как гарантировать total order без distributed lock?
+- [ ] (P0) Q59: Как формализовано "happened-before" для команд и событий? EventLog position достаточен?
+- [ ] (P0) Q60: Если два события конкурентны, какой deterministic tie-breaker используется?
+
+- [ ] (P2) Q134: Каков исчерпывающий canonical список всех событий системы? (ProjectCreated, PhaseStarted, TaskCompleted…). Где живёт — wiki или enum в коде?
+- [ ] (P2) Q135: Должен ли каждый вызов write_file порождать FileWritten event, или это деталь TaskStepRecorded?
+- [ ] (P2) Q136: Как записать что агент решил не делать что-то? SkippedTest? DecisionRecorded?
+- [ ] (P2) Q137: На каком уровне детализации записываются события? Стратегия для "слишком много vs слишком мало"?
+
+## Decisions
+
+- [x] (P0) Q4: Atomic append гарантируется через Write Kernel + OCC → [[write-kernel]]
+- [x] (P0) Q6: Schema evolution через upcasting старых событий → [[upcaster-registry]]
+- [x] (P0) Q8: Event immutability технически запрещена через DB constraints → [[eventstore-guard]]

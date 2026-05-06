@@ -9,9 +9,9 @@ tags:
 - pipeline
 - enforcement
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 ---
@@ -63,6 +63,19 @@ snapshot = reduce(event_store.load(up_to=N))
 - Единая точка записи упрощает аудит и тестирование
 - Все projections rebuild синхронно — latency tradeoff при большом числе projections
 - OCC retry orchestrated снаружи (middleware / orchestrator)
+
+## Open Questions
+
+- [ ] (P0) Q5: Что происходит при падении процесса между handle() и append()? Как обнаружить и компенсировать незавершённый batch?
+- [ ] (P0) Q49: Как гарантируется deterministic key ordering в JSON serialization? sorted_keys? custom encoder? Тест на ordering stability?
+- [ ] (P0) Q50: Есть ли schema_version или schema_hash в каждом событии для обнаружения schema drift?
+- [ ] (P0) Q51: Как обрабатываются поля отсутствующие в старых событиях при replay новым reducer? Default values? Strict validation?
+- [ ] (P0) Q54: Как избежать расхождения если разные версии кода читают одни события? Serializer compatibility matrix? Migration tests?
+
+## Decisions
+
+- [x] (P0) Q4: Atomic append гарантируется через Write Kernel + OCC; expected_version = snapshot.version → [[optimistic-concurrency-control]]
+- [x] (P0) Q27: expected_version source — всегда snapshot.version, никогда не задаётся клиентом → [[optimistic-concurrency-control]]
 
 ## See Also
 

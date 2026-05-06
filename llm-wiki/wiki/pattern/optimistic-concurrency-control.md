@@ -9,9 +9,9 @@ tags:
 - automation
 - validation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 ---
@@ -59,6 +59,20 @@ Handler retry-safe: детерминированный вход → детерм
 - Нет lock'ов — высокая throughput при низком contention
 - При высоком contention — много retry; снимается через command batching или actor per aggregate
 - Требует детерминированного handler для безопасного retry
+
+## Open Questions
+
+- [ ] (P0) Q12 PARTIAL: Сколько retry допустимо? max_retries есть в [[loop-policy]], но backoff алгоритм (exponential/fixed) не задан.
+- [ ] (P0) Q13: Всегда ли OCC-конфликт → retry? Когда конфликт должен приводить к ABORT? Как отличить transient от systemic?
+- [ ] (P0) Q14: Handler работает долго, snapshot устаревает. Heartbeat? Timeout? Re-read snapshot?
+- [ ] (P0) Q15: Разрешены ли параллельные команды к одному aggregate? Если нет — где serialization point?
+- [ ] (P0) Q16 PARTIAL: OCC ловит version mismatch, но logical write skew (два агента читают одно состояние, принимают разные решения) не рассмотрен.
+- [ ] (P0) Q17: Может ли OCC с несколькими агентами привести к livelock при высокой contention? Jitter на retry?
+- [ ] (P1) Q19: Нужны ли saga/compensation patterns? Если handle() эмитирует событие запускающее следующую команду — это сага? Как rollback?
+
+## Decisions
+
+- [x] (P0) Q18: Command dedup через idempotency key → [[idempotency-projection]] + [[idempotency-mode]]
 
 ## See Also
 

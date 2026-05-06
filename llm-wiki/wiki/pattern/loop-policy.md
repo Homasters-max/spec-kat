@@ -9,9 +9,9 @@ tags:
 - pipeline
 - write-path
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/orchestrator-agentloop-plan.md
 ---
@@ -62,6 +62,13 @@ policy = memory.read.policy(scope=phase_id)  # at_offset = current EventLog offs
 - `step_budget` — hard stop: даже успешный шаг не завершает loop если `task_complete != true`.
 - Per-error `retry_budget` позволяет дифференцировать надёжность по типу ошибки без центрального `MAX_RETRIES`.
 - `gate_freeze_ttl_hours` как policy-ключ делает TTL наблюдаемым и настраиваемым без code changes.
+
+## Open Questions
+
+- [ ] (P0) Q12 PARTIAL: Backoff алгоритм (exponential/fixed) не задан. Какой конкретно используется?
+- [ ] (P3) Q216: Как записываются LLM API costs? В EventLog как metric event или отдельный store?
+- [ ] (P3) Q217: При каком % budget usage агент предупреждает? При 100% — HUMAN_GATE или ABORT?
+- [ ] (P3) Q220: Суммарный бюджет на фазу? Как распределяется между задачами?
 
 ## See Also
 

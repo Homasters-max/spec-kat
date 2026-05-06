@@ -9,9 +9,9 @@ tags:
 - llm
 - ssot
 - domain/sdd
-version: 2
+version: 3
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
 ---
@@ -68,3 +68,17 @@ class ContextKernel:
 - [[execution-guard]]
 - [[input-port]]
 - [[session-orchestrator]]
+
+## Open Questions
+
+- [ ] (P1) Q72: Ограничение токенов на ContextPacket? Кто enforces? Что если budget exceeded?
+- [ ] (P1) Q73 PARTIAL: Алгоритм приоритизации данных в context при нехватке бюджета? push+pull есть, алгоритм не формализован.
+- [ ] (P1) Q74: Когда context считается stale? Только при graph change или также при state change?
+- [ ] (P1) Q75 PARTIAL: Привязан ли context к event_index? Как воспроизвести точный context для debugging? → [[deterministic-context]]
+- [ ] (P1) Q76: Разрешено ли включать внешние источники (web, API) в context? Как они влияют на детерминизм?
+- [ ] (P1) Q77: Может ли context одного TaskRun "протечь" в другой через shared projections?
+- [ ] (P1) Q78: Как сравнить два context? Инструмент для debugging context changes между TaskRuns?
+
+## Decisions
+
+- [x] (P1) Q71: Context boundary — ContextPacket = seam между Stage 0 и Stage 1 → [[context-packet]]

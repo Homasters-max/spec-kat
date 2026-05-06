@@ -3,10 +3,15 @@ id: pattern/meta-optimization
 page_type: pattern
 domain: sdd
 layer: architecture
-tags: [automation, pipeline, llm, validation, domain/sdd]
-version: 1
+tags:
+- automation
+- pipeline
+- llm
+- validation
+- domain/sdd
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
 ---
@@ -56,6 +61,15 @@ approved_by: null  # ожидает human review
 - Proposals требуют human approval — нет автоматического применения политик.
 - Качество proposals зависит от накопленной статистики — нужны минимум N задач для значимых выводов.
 - Не является real-time системой — это batch analysis между фазами.
+
+## Open Questions
+
+- [ ] (P2) Q191: Как измерить качество proposals от MetaOptimization? Какой процент принимается человеком?
+- [ ] (P2) Q192: Как быстро изменение policy влияет на следующий TaskRun? Немедленно или после phase boundary?
+- [ ] (P2) Q193: Может ли SDD использоваться для разработки самой себя? Bootstrap problem?
+- [ ] (P2) Q194: Как добавить новый invariant в уже работающую систему? Нужен ли EventLog replay для проверки старых событий?
+- [ ] (P2) Q195: Как wiki-знания влияют на system behavior? Где граница между wiki и PolicyKernel?
+- [ ] (P2) Q196: Как обнаружить что новая версия модели ухудшила AgentScore по историческим задачам?
 
 ## See Also
 

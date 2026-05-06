@@ -8,9 +8,9 @@ tags:
 - automation
 - pipeline
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/replay-based-testing-architecture.md
 ---
@@ -77,6 +77,15 @@ sdd golden-approve T-034   # эмитит GoldenFixtureApproved → TestCatalogP
 
 - `schema_version` может отстать от системы — `GoldenTestRunner` логирует Warning и активирует upcasters (I-REPLAY-8)
 - context_prefix жёстко зафиксирован при capture — изменения в системных событиях требуют повторного capture
+
+## Open Questions
+
+- [ ] (P1) Q122: Есть ли golden master tests для системы end-to-end? (full scenario → expected final EventLog state snapshot)
+- [ ] (P1) Q125: Есть ли тест: replay(EventLog) N раз → bit-identical State? Запускается ли в CI как regression gate?
+
+## Decisions
+
+- [x] (P1) Q97: Replay with snapshots — golden-fixture используется для тестовых снапшотов → [[replay-engine]]
 
 ## See Also
 

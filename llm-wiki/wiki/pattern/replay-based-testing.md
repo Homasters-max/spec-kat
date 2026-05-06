@@ -9,9 +9,9 @@ tags:
 - pipeline
 - ssot
 - domain/sdd
-version: 3
+version: 4
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/replay-based-testing-architecture.md
 - raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
@@ -124,6 +124,21 @@ I-REDUCER-2: reduce — total function (unknown event type → identity, not rai
 - Тесты зависят от качества event sequences — плохой EventLog → слабые тесты
 - Изменение схемы Event требует обновления upcasters + golden fixtures
 - Tier 3 встроен в Session Orchestrator flow — не изолированный процесс
+
+## Open Questions
+
+- [ ] (P1) Q122: Есть ли golden master tests для системы end-to-end? (full scenario → expected final EventLog state snapshot)
+- [ ] (P1) Q123: Есть ли fuzz testing — случайные sequences событий не должны ломать reducer? Hypothesis или custom fuzzer?
+- [ ] (P1) Q124: Используются ли property-based tests (Hypothesis) для reducer и guards? Какие свойства — commutativity, idempotency?
+- [ ] (P1) Q125: Есть ли тест: replay(EventLog) N раз → bit-identical State? Запускается ли в CI как regression gate?
+- [ ] (P1) Q126: Есть ли chaos тесты — crash mid-append, disk full, DB connection drop?
+- [ ] (P1) Q127: Как тестируется OCC при высокой concurrency? Stress tests с параллельными командами и проверкой no livelock?
+- [ ] (P1) Q128: Есть ли test harness гарантирующий полный детерминизм тестов — seed, mock clock, mock random, network disabled?
+- [ ] (P2) Q181: Как интегрировать replay-verification в CI pipeline? `sdd verify --ci`?
+- [ ] (P2) Q182: Как SDD-система проверяет PR перед merge? Replay? Guard checks?
+- [ ] (P2) Q183: Должен ли `sdd check-dod` блокировать деплой при FAIL?
+- [ ] (P2) Q184: Как гарантировать что dev/staging/prod имеют идентичные EventStore schemas?
+- [ ] (P2) Q185: Как schema migrations (upcasters) тестируются в CI перед применением в prod?
 
 ## See Also
 

@@ -9,16 +9,18 @@ tags:
 - pipeline
 - ssot
 - domain/sdd
-version: 3
+version: 5
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
 - raw/commandspec-deepening-plan.md
 ---
 # AuditEngine
 
-L1-компонент: детерминированный расчёт AgentScore из метрик M1–M9 по завершению каждого TaskRun. Нормализует приоритеты [[metric-collector]] в веса: `weight_i = collector.priority / Σ(priorities)`.
+**L2-компонент, Intelligence-домен**: детерминированный расчёт AgentScore из метрик M1–M9 по завершению каждого TaskRun. Нормализует приоритеты [[metric-collector]] в веса: `weight_i = collector.priority / Σ(priorities)`.
+
+Вычисляет AgentScore — это analysis, не execution. Тот факт, что AuditEngine вызывается L1 SessionOrchestrator, не делает его L1-компонентом: being called from L1 ≠ being L1. Классификация по роли компонента, не по местонахождению вызова.
 
 ## How It Works
 
@@ -70,6 +72,21 @@ M7 (priority=5)  → 0.05   M8 (priority=5)  → 0.05   M9 (priority=10) → 0.1
 - M9 требует ScenarioSpec — если ScenarioGen не сгенерировал spec для задачи, M9 = null.
 - AgentScore агрегирует очень разные метрики — высокий score ≠ идеальная задача.
 - Locality взвешивания концентрируется в AuditEngine, не размазана по 9 коллекторам.
+
+## Open Questions
+
+- [ ] (P2) Q164: Какие метрики нужны human-оператору в реальном времени? (активные TaskRuns, queue depth, AgentScore trend, error rate)
+- [ ] (P2) Q165: Нужен ли real-time stream событий для monitoring? SSE, WebSocket, или poll?
+- [ ] (P2) Q166: Как traced запрос от CLI команды до EventLog append? OpenTelemetry?
+- [ ] (P2) Q167: Как связать log lines с конкретным TaskRun/event_id?
+- [ ] (P2) Q168: `sdd debug-task T-NNN` — step-by-step воспроизведение с инспекцией каждого состояния?
+- [ ] (P2) Q169: Какие условия → alert? (ABORT loop, state corruption, EventLog gap, projection lag)
+- [ ] (P2) Q170: Как человек просматривает audit_log.jsonl? CLI, web UI, grep?
+- [ ] (P2) Q171: Как измерить "хорошесть" спеки перед запуском фазы? (completeness, ambiguity score)
+- [ ] (P2) Q172: Как убедиться что спека покрывает все требования? Checklist? Automated analysis?
+- [ ] (P2) Q173: Автоматические проверки спеки — нет ли противоречий, неопределённостей, пустых секций?
+- [ ] (P2) Q174: Все ли секции спеки отражены в TaskSet? Как обнаружить uncovered spec items?
+- [ ] (P2) Q175: Как обнаружить что спека устарела (код изменился, спека не обновлялась)?
 
 ## See Also
 

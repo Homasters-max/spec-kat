@@ -8,9 +8,9 @@ tags:
 - validation
 - automation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Meta Harness Core.md
 ---
@@ -46,6 +46,20 @@ def upcast(event: Event) -> Event:
 
 - Цепочка апкастеров растёт с каждой миграцией схемы.
 - Нельзя удалять апкастеры, пока в EventLog есть старые события.
+
+## Open Questions
+
+- [ ] (P2) Q203: Как делается upgrade системы без потери событий и downtime? Blue-green? Rolling с multi-version compatibility?
+- [ ] (P2) Q204: При каких изменениях (reducer, projection, guard) обязателен full replay EventLog? Можно ли incremental migration?
+- [ ] (P2) Q205: Как откатить версию системы если новый код несовместим со старым EventLog? Downgrade path?
+- [ ] (P2) Q206: При rolling upgrade — могут ли разные версии нод одновременно читать/писать один EventLog? Compatibility contract?
+- [ ] (P2) Q207: Как тестировать upgrade на production данных? Snapshot EventLog → staging → test upgrade → verify State equality?
+- [ ] (P2) Q208: Есть ли механизм feature flags для постепенного включения новой функциональности? Через PolicyKernel?
+
+## Decisions
+
+- [x] (P0) Q6: Schema evolution реализована через upcasting — цепочка апкастеров для всех старых версий → [[event-sourcing]]
+- [x] (P0) Q35: Reducer versioning — upcaster позволяет reducer работать только с последней версией событий → [[reducer]]
 
 ## See Also
 

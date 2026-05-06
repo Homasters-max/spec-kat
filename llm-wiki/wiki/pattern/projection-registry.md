@@ -9,9 +9,9 @@ tags:
 - pipeline
 - automation
 - domain/sdd
-version: 2
+version: 3
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
 - raw/Memory Layer and Invariant Management.md
@@ -68,6 +68,20 @@ ProjectionRegistry не читает флаги из CommandSpec. Маршрут
 - O(1) routing (vs O(N×N) при фильтрации по флагам) — важно при росте числа проекций.
 - Явный `subscribed_commands` — routing SSOT; изменение подписки требует явного кода, нет скрытых side-effects.
 - L2 проекции вынесены за периметр — сбой async worker не откатывает L1 commit.
+
+## Open Questions
+
+- [ ] (P1) Q88 PARTIAL: Нет explicit механизма обнаружения desync проекции и EventLog. Как обнаружить corruption?
+- [ ] (P1) Q89 PARTIAL: Все ли projections консистентны между собой в одной точке времени? Нет explicit guarantee.
+- [ ] (P1) Q90: Как обновить schema проекции без полного rebuild? Rolling migration?
+- [ ] (P1) Q91: Разрешены ли projection dependencies (A зависит от B)? Какой порядок обновления?
+- [ ] (P1) Q92: Какие projections держать в памяти, какие только в DB? SLA на cold projection read?
+- [ ] (P1) Q93: Как тестировать детерминизм проекций? Property-based tests?
+
+## Decisions
+
+- [x] (P1) Q86: Sync vs async projections — sync inline в L1 → [[projection-registry]]
+- [x] (P1) Q87: Rebuild trigger — проекции перестраиваются при rebuild → [[projection-registry]]
 
 ## See Also
 

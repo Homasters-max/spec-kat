@@ -9,9 +9,9 @@ tags:
 - automation
 - llm
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD System Architecture - Component Inventory and Boundaries.md
 ---
@@ -59,6 +59,14 @@ LLM:
 
 - LLM ограничен tool calls — нет прямого доступа к файловой системе вне [[sandbox-manager]].
 - Human gates замедляют цикл, но обеспечивают supervision над критическими решениями.
+
+## Open Questions
+
+- [ ] (P0) Q24 PARTIAL: Может ли human override structural guard (не policy)? Механика не описана.
+- [ ] (P2) Q138: Canonical список ролей агентов: Planner, Executor, Reviewer, Auditor. Могут ли переопределяться через PolicyKernel?
+- [ ] (P2) Q139: Sequential vs Streaming паттерн оркестрации фазы. Где описывается?
+- [ ] (P2) Q140: Reviewer имеет только read+comment, Executor — read+write? Где задаётся tool ACL?
+- [ ] (P2) Q143: Как создаётся, передаётся и инвалидируется actor_id агента в сессии?
 
 ## See Also
 

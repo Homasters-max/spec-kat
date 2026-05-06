@@ -8,9 +8,9 @@ tags:
 - write-path
 - validation
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Meta Harness Core.md
 ---
@@ -59,6 +59,11 @@ file ∉ write_scope → DENY (даже если есть graph path)
 
 - Зависит от корректной работы hook на Edit/Write tools — если hook не сработал, violation не будет обнаружена.
 - `write_scope` задаётся человеком в TaskSet — требует точного указания всех файлов.
+
+## Open Questions
+
+- [ ] (P2) Q147: Как изолируется run_terminal_cmd? Docker, nsjail, ScopeGuard на путях? Сетевой доступ?
+- [ ] (P2) Q149: Role = set[Permissions]. Уровни: project:read, spec:write, phase:approve. Где задаётся — PolicyKernel или hardcoded?
 
 ## See Also
 

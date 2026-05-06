@@ -8,9 +8,9 @@ tags:
 - automation
 - pipeline
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Meta Harness Core.md
 ---
@@ -60,3 +60,22 @@ State:
 - [[upcaster-registry]]
 - [[replay-based-testing]]
 - [[sdd-meta-harness]]
+
+## Open Questions
+
+- [ ] (P0) Q35: Запрет datetime.now() в handlers? Как внедрять clock abstraction? Тестирование с mock time?
+- [ ] (P0) Q36: Что входит в reproducible environment? OS version, lib versions, DB version? Где фиксируется?
+- [ ] (P0) Q37: Как автоматически проверяется, что reducer pure? Mutation testing? Property-based testing?
+- [ ] (P0) Q38: Как ловить недетерминизм в runtime? Двойной запуск с проверкой идентичности output?
+- [ ] (P0) Q39 PARTIAL: Как гарантировать replay_context при изменении graph? → [[deterministic-context]] но нет формального proof.
+- [ ] (P1) Q80 PARTIAL: phases_snapshots есть в SDDState, но materialized snapshots для ускорения prod replay не реализованы. SLA на полный replay vs snapshot replay?
+- [ ] (P1) Q81: Как ограничить рост state? Eviction policy для старых phases_snapshots?
+- [ ] (P1) Q82: Можно ли replay с checkpoint вместо начала? Как гарантировать корректность?
+- [ ] (P1) Q83: Проверяется ли state после каждого события? Post-condition assertions в reducer?
+- [ ] (P1) Q84: Где ловится invariant violation — reducer или guard? Что если reducer нарушил инвариант?
+- [ ] (P1) Q85: Canonical format для State_index.yaml? Versioned? Migration path?
+
+## Decisions
+
+- [x] (P0) Q34: Randomness control — детерминизм по дизайну, GL-1 → [[global-laws]]
+- [x] (P1) Q79: Reducer composition — один pure reducer → [[reducer]]
