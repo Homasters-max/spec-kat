@@ -1,20 +1,24 @@
 ---
-id: pattern/agent-loop
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/agent-loop
 layer: architecture
+page_type: pattern
+sdd_domain: Engine
+sdd_layer: L1
+sources:
+- raw/orchestrator-agentloop-plan.md
+- raw/error-model-architecture.md
 tags:
 - pipeline
 - automation
 - enforcement
 - llm
 - domain/sdd
-version: 3
-created: '2026-05-05'
+- sdd/l1
+- sdd/engine
 updated: '2026-05-06'
-sources:
-- raw/orchestrator-agentloop-plan.md
-- raw/error-model-architecture.md
+version: 3
 ---
 # AgentLoop
 

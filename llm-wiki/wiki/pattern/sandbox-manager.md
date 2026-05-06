@@ -1,19 +1,23 @@
 ---
-id: pattern/sandbox-manager
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/sandbox-manager
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
 tags:
 - enforcement
 - pipeline
 - write-path
 - automation
 - domain/sdd
-version: 1
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-05'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
+version: 1
 ---
 # SandboxManager
 

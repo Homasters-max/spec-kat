@@ -1,18 +1,22 @@
 ---
-id: pattern/replay-engine
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/replay-engine
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/replay-based-testing-architecture.md
 tags:
 - automation
 - validation
 - pipeline
 - domain/sdd
-version: 3
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/replay-based-testing-architecture.md
+version: 3
 ---
 # ReplayEngine
 

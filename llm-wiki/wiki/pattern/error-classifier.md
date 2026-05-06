@@ -1,21 +1,25 @@
 ---
-id: pattern/error-classifier
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/error-classifier
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
+- raw/orchestrator-agentloop-plan.md
+- raw/error-model-architecture.md
 tags:
 - enforcement
 - validation
 - pipeline
 - automation
 - domain/sdd
-version: 3
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-05'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
-- raw/orchestrator-agentloop-plan.md
-- raw/error-model-architecture.md
+version: 3
 ---
 # ErrorClassifier
 

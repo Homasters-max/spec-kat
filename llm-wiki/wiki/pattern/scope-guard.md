@@ -1,18 +1,22 @@
 ---
-id: pattern/scope-guard
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/scope-guard
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD Meta Harness Core.md
 tags:
 - enforcement
 - write-path
 - validation
 - domain/sdd
-version: 2
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD Meta Harness Core.md
+version: 2
 ---
 # Scope Guard
 

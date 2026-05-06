@@ -1,18 +1,22 @@
 ---
-id: pattern/embedding-projection
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/embedding-projection
 layer: architecture
+page_type: pattern
+sdd_domain: Intelligence
+sdd_layer: L2
+sources:
+- raw/Memory Layer and Invariant Management.md
 tags:
 - pipeline
 - search
 - automation
 - domain/sdd
-version: 1
-created: '2026-05-05'
+- sdd/l2
+- sdd/intelligence
 updated: '2026-05-05'
-sources:
-- raw/Memory Layer and Invariant Management.md
+version: 1
 ---
 # Embedding Projection
 

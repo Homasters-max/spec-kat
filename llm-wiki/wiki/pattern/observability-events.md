@@ -1,19 +1,23 @@
 ---
-id: pattern/observability-events
-page_type: pattern
+created: '2026-05-06'
 domain: sdd
+id: pattern/observability-events
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD_Bounded_Contexts_Plan.md
 tags:
 - enforcement
 - write-path
 - ssot
 - automation
 - domain/sdd
-version: 1
-created: '2026-05-06'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD_Bounded_Contexts_Plan.md
+version: 1
 ---
 # Observability Events
 

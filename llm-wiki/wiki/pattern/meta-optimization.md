@@ -1,19 +1,23 @@
 ---
-id: pattern/meta-optimization
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/meta-optimization
 layer: architecture
+page_type: pattern
+sdd_domain: Intelligence
+sdd_layer: L2
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
 tags:
 - automation
 - pipeline
 - llm
 - validation
 - domain/sdd
-version: 2
-created: '2026-05-05'
+- sdd/l2
+- sdd/intelligence
 updated: '2026-05-06'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
+version: 2
 ---
 # MetaOptimization
 

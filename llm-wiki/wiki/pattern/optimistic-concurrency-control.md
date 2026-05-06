@@ -1,19 +1,23 @@
 ---
-id: pattern/optimistic-concurrency-control
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/optimistic-concurrency-control
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 tags:
 - write-path
 - ssot
 - automation
 - validation
 - domain/sdd
-version: 2
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
+version: 2
 ---
 # Optimistic Concurrency Control
 

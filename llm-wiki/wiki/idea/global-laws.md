@@ -1,19 +1,23 @@
 ---
-id: idea/global-laws
-page_type: idea
+created: '2026-05-05'
 domain: sdd
+id: idea/global-laws
 layer: architecture
+page_type: idea
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
 tags:
 - ssot
 - enforcement
 - write-path
 - pipeline
 - domain/sdd
-version: 4
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
+version: 4
 ---
 # Global Laws
 

@@ -1,19 +1,23 @@
 ---
-id: pattern/input-port
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/input-port
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
 tags:
 - pipeline
 - write-path
 - llm
 - automation
 - domain/sdd
-version: 2
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-05'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
+version: 2
 ---
 # InputPort (ToolCallAdapter)
 

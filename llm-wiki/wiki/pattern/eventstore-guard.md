@@ -1,19 +1,23 @@
 ---
-id: pattern/eventstore-guard
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/eventstore-guard
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
 tags:
 - enforcement
 - write-path
 - ssot
 - validation
 - domain/sdd
-version: 3
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
+version: 3
 ---
 # EventStore Guard
 

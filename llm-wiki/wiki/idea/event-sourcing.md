@@ -1,20 +1,24 @@
 ---
-id: idea/event-sourcing
-page_type: idea
+created: '2026-05-05'
 domain: sdd
+id: idea/event-sourcing
 layer: architecture
+page_type: idea
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD Meta Harness Core.md
+- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 tags:
 - ssot
 - write-path
 - pipeline
 - automation
 - domain/sdd
-version: 4
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD Meta Harness Core.md
-- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
+version: 4
 ---
 # Event Sourcing
 

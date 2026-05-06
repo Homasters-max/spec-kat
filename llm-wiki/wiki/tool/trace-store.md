@@ -1,15 +1,24 @@
 ---
-id: tool/trace-store
-page_type: tool
-domain: sdd
-layer: architecture
-tags: [pipeline, read-only, automation, write-path, domain/sdd]
-version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+domain: sdd
+id: tool/trace-store
+layer: architecture
+page_type: tool
+sdd_domain: Core
+sdd_layer: L1
 sources:
 - raw/SDD Meta Harness Core.md
 - raw/sdd-v2-architecture-deepening.md
+tags:
+- pipeline
+- read-only
+- automation
+- write-path
+- domain/sdd
+- sdd/l1
+- sdd/core
+updated: '2026-05-05'
+version: 2
 ---
 # TraceStore
 

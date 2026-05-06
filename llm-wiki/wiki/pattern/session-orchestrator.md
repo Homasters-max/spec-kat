@@ -1,20 +1,24 @@
 ---
-id: pattern/session-orchestrator
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/session-orchestrator
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
+- raw/orchestrator-agentloop-plan.md
 tags:
 - pipeline
 - automation
 - enforcement
 - write-path
 - domain/sdd
-version: 4
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
-- raw/orchestrator-agentloop-plan.md
+version: 4
 ---
 # Session Orchestrator
 

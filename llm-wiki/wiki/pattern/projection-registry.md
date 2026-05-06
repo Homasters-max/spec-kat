@@ -1,20 +1,24 @@
 ---
-id: pattern/projection-registry
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/projection-registry
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
+- raw/Memory Layer and Invariant Management.md
 tags:
 - ssot
 - write-path
 - pipeline
 - automation
 - domain/sdd
-version: 3
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
-- raw/Memory Layer and Invariant Management.md
+version: 3
 ---
 # ProjectionRegistry
 

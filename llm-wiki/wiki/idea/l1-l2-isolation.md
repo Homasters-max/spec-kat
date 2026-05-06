@@ -1,19 +1,23 @@
 ---
-id: idea/l1-l2-isolation
-page_type: idea
+created: '2026-05-05'
 domain: sdd
+id: idea/l1-l2-isolation
 layer: architecture
+page_type: idea
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/Memory Layer and Invariant Management.md
 tags:
 - enforcement
 - validation
 - seam
 - ssot
 - domain/sdd
-version: 1
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-05'
-sources:
-- raw/Memory Layer and Invariant Management.md
+version: 1
 ---
 # L1/L2 Isolation
 

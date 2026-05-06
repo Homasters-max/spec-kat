@@ -1,19 +1,23 @@
 ---
-id: pattern/cqrs-boundary
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/cqrs-boundary
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 tags:
 - cqrs
 - write-path
 - ssot
 - pipeline
 - domain/sdd
-version: 1
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-05'
-sources:
-- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
+version: 1
 ---
 # CQRS Boundary
 

@@ -1,20 +1,24 @@
 ---
-id: pattern/audit-engine
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/audit-engine
 layer: architecture
+page_type: pattern
+sdd_domain: Intelligence
+sdd_layer: L2
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
+- raw/commandspec-deepening-plan.md
 tags:
 - validation
 - automation
 - pipeline
 - ssot
 - domain/sdd
-version: 5
-created: '2026-05-05'
+- sdd/l2
+- sdd/intelligence
 updated: '2026-05-06'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
-- raw/commandspec-deepening-plan.md
+version: 5
 ---
 # AuditEngine
 

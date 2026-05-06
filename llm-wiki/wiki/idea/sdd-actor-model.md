@@ -1,19 +1,23 @@
 ---
-id: idea/sdd-actor-model
-page_type: idea
+created: '2026-05-05'
 domain: sdd
+id: idea/sdd-actor-model
 layer: architecture
+page_type: idea
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
 tags:
 - enforcement
 - pipeline
 - automation
 - llm
 - domain/sdd
-version: 2
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD System Architecture - Component Inventory and Boundaries.md
+version: 2
 ---
 # SDD Actor Model
 

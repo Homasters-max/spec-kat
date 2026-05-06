@@ -1,18 +1,22 @@
 ---
-id: idea/command-context
-page_type: idea
+created: '2026-05-05'
 domain: sdd
+id: idea/command-context
 layer: architecture
+page_type: idea
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD Meta Harness Core.md
 tags:
 - pipeline
 - automation
 - ssot
 - domain/sdd
-version: 1
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-05'
-sources:
-- raw/SDD Meta Harness Core.md
+version: 1
 ---
 # Command Context
 

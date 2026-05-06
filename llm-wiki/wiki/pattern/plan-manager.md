@@ -1,20 +1,24 @@
 ---
-id: pattern/plan-manager
-page_type: pattern
+created: '2026-05-06'
 domain: sdd
+id: pattern/plan-manager
 layer: architecture
+page_type: pattern
+sdd_domain: Blueprint
+sdd_layer: L2
+sources:
+- raw/SDD_Bounded_Contexts_Plan.md
+- raw/Wiki Skill DocGraph Integration Plan.md
 tags:
 - pipeline
 - validation
 - write-path
 - automation
 - domain/sdd
-version: 2
-created: '2026-05-06'
+- sdd/l2
+- sdd/blueprint
 updated: '2026-05-06'
-sources:
-- raw/SDD_Bounded_Contexts_Plan.md
-- raw/Wiki Skill DocGraph Integration Plan.md
+version: 2
 ---
 # PlanManager
 

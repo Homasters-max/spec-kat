@@ -1,18 +1,22 @@
 ---
-id: pattern/error-event
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/error-event
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/error-model-architecture.md
 tags:
 - enforcement
 - pipeline
 - write-path
 - domain/sdd
-version: 1
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-05'
-sources:
-- raw/error-model-architecture.md
+version: 1
 ---
 # ErrorEvent
 

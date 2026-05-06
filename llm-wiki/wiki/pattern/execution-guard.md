@@ -1,21 +1,25 @@
 ---
-id: pattern/execution-guard
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/execution-guard
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD Meta Harness Core.md
+- raw/Memory Layer and Invariant Management.md
+- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
 tags:
 - enforcement
 - pipeline
 - validation
 - write-path
 - domain/sdd
-version: 4
-created: '2026-05-05'
+- sdd/l1
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD Meta Harness Core.md
-- raw/Memory Layer and Invariant Management.md
-- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
+version: 4
 ---
 # Execution Guard (L1)
 

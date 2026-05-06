@@ -1,18 +1,22 @@
 ---
-id: pattern/upcaster-registry
-page_type: pattern
+created: '2026-05-05'
 domain: sdd
+id: pattern/upcaster-registry
 layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L0
+sources:
+- raw/SDD Meta Harness Core.md
 tags:
 - pipeline
 - validation
 - automation
 - domain/sdd
-version: 2
-created: '2026-05-05'
+- sdd/l0
+- sdd/core
 updated: '2026-05-06'
-sources:
-- raw/SDD Meta Harness Core.md
+version: 2
 ---
 # Upcaster Registry
 
