@@ -10,7 +10,7 @@ tags:
 - llm
 - automation
 - domain/wiki
-version: 3
+version: 4
 created: '2026-05-05'
 updated: '2026-05-06'
 sources:
@@ -84,8 +84,15 @@ wiki sync-glossary                   # пользователь вручную
 ## Trade-offs
 - LLM-стадии не автоматизированы — требуют участия Claude в сессии
 - Конфликт при `apply-drafts` требует ручного разрешения (I-WIKI-CONFLICT-1)
-- После `apply-drafts` `runtime/tmp/` очищается — черновики не сохраняются
+- `apply-drafts` очищает черновики (`.diff/.create/.rewrite.md`) из `runtime/tmp/`, но НЕ удаляет `extraction.json`
+- `wiki finalize` не удаляет `extraction.json` — он остаётся до явного `wiki clean-tmp` в следующей сессии
 - `wiki finalize` не коммитит при отсутствии staged/unstaged изменений (идемпотентен)
+
+## Open Questions
+
+- [ ] (P2) Должен ли `finalize` автоматически удалять `extraction.json` после успешного коммита?
+
+## Decisions
 
 ## See Also
 - [[wiki-cli]]
