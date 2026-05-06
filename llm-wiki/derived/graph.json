@@ -938,9 +938,10 @@
     "wiki-evolve"
   ],
   "wiki-open-questions": [
+    "wiki-cli",
     "wiki-curate",
-    "wiki-curate",
-    "wiki-evolve"
+    "wiki-evolve",
+    "wiki-cli"
   ],
   "wiki-query": [
     "wiki-cli",
@@ -1025,6 +1026,7 @@
     "wiki-evolve",
     "wiki-query",
     "wiki-curate",
+    "wiki-open-questions",
     "context-packet",
     "extraction-result",
     "automation-over-llm",

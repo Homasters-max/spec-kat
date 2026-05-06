@@ -9,7 +9,7 @@ tags:
 - curation
 - llm
 - domain/wiki
-version: 2
+version: 3
 created: '2026-05-06'
 updated: '2026-05-06'
 sources:
@@ -18,7 +18,7 @@ sources:
 # Wiki Open Questions
 
 ## Summary
-Протокол встраивания открытых архитектурных вопросов прямо в wiki-страницы в виде inline-блоков `## Open Questions` и `## Decisions`. Не требует отдельного документа — вопросы живут рядом с контекстом.
+Протокол встраивания открытых архитектурных вопросов прямо в wiki-страницы в виде inline-блоков `## Open Questions` и `## Decisions`. Не требует отдельного документа — вопросы живут рядом с контекстом. `derived/open-questions.md` — навигационный индекс по всем вопросам, пересобирается через [[wiki-cli]] командой `rebuild-open-questions`.
 
 ## How It Works
 
@@ -51,6 +51,7 @@ sources:
 wiki show <page_id>
 # создать runtime/tmp/<id>.diff.md — добавить строку в ## Open Questions
 wiki apply-drafts
+# apply-drafts автоматически вызывает rebuild-open-questions если diff затрагивает OQ-блок
 ```
 
 **Workflow — решение вопроса:**
@@ -60,7 +61,7 @@ wiki apply-drafts
 # 1. удалить строку из ## Open Questions
 # 2. добавить в ## Decisions: - [x] (PN) <утверждение> → \[\[wikilink\]\]
 wiki apply-drafts
-# если P0 — обновить derived/open-questions.md через wiki-curate
+# → derived/open-questions.md пересобирается автоматически
 ```
 
 ## When To Use
@@ -76,8 +77,9 @@ wiki apply-drafts
 - Вопрос НИКОГДА не удаляется — только переносится в Decisions (история решений сохраняется)
 - Формат Decisions: утверждение + wikilink обязателен; просто ссылка недостаточна
 - Блоки размещаются строго в конце страницы (I-WIKI-OQ-0) — нарушение ломает lint
-- `derived/open-questions.md` обновляется через [[wiki-curate]] при закрытии P0 или >5 изменениях
+- `derived/open-questions.md` пересобирается автоматически через `wiki rebuild-open-questions` при каждом `apply-drafts`, затрагивающем OQ-блоки
 
 ## See Also
 - [[wiki-curate]]
 - [[wiki-evolve]]
+- [[wiki-cli]]

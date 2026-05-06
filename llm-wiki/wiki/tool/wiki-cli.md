@@ -69,11 +69,13 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - `wiki exists <id1> <id2> ...` — batch-проверка существования страниц; быстрее N последовательных `wiki show` вызовов
 - `wiki lint --errors-only` — выводит только errors + broken_links; exit 1 если хотя бы одно непусто
 - `wiki lint --json` — выводит полный lint report как JSON
+- `wiki rebuild-open-questions` — сканирует все `## Open Questions` блоки в `wiki/**/*.md`, пересобирает `derived/open-questions.md` с группировкой по приоритету (P0/P1/P2/P3); вызывается автоматически из `apply-drafts` если diff затрагивает OQ-блоки
 
 ## See Also
 - [[wiki-evolve]]
 - [[wiki-query]]
 - [[wiki-curate]]
+- [[wiki-open-questions]]
 - [[context-packet]]
 - [[extraction-result]]
 - [[automation-over-llm]]
