@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-05 · 83 pages_
+_Updated: 2026-05-06 · 84 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -21,6 +21,7 @@ _Updated: 2026-05-05 · 83 pages_
 | l1-l2-isolation | idea | sdd | architecture | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | idea | sdd | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | idea | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
+| sdd-open-questions | idea | sdd | architecture | ssot, enforcement, pipeline, automation, roadmap, domain/sdd | 2026-05-06 |
 | trace-aligned-test-partitioning | idea | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | trace-scope | idea | sdd | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | adversarial-scenario-mutator | pattern | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |

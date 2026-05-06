@@ -1,8 +1,8 @@
 # Pages by Type
 
-_Generated: 2026-05-05_
+_Generated: 2026-05-06_
 
-## idea (19)
+## idea (20)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
@@ -23,6 +23,7 @@ _Generated: 2026-05-05_
 | l1-l2-isolation | sdd | architecture | enforcement, validation, seam, ssot, domain/sdd | 2026-05-05 |
 | sdd-actor-model | sdd | architecture | enforcement, pipeline, automation, llm, domain/sdd | 2026-05-05 |
 | sdd-component-inventory | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-05 |
+| sdd-open-questions | sdd | architecture | ssot, enforcement, pipeline, automation, roadmap, domain/sdd | 2026-05-06 |
 | trace-aligned-test-partitioning | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | trace-scope | sdd | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 
