@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-06_
 
-## sdd (74)
+## sdd (82)
 
 | id | type | layer | tags | updated |
 |---|---|---|---|---|
@@ -10,6 +10,8 @@ _Generated: 2026-05-06_
 | classified-recovery | idea | architecture | enforcement, pipeline, validation, automation, domain/sdd | 2026-05-06 |
 | command-context | idea | architecture | pipeline, automation, ssot, domain/sdd | 2026-05-05 |
 | context-snapshot | idea | architecture | search, read-only, ssot, domain/sdd | 2026-05-05 |
+| doc-graph-node | idea | architecture | pipeline, automation, write-path, ssot, domain/sdd | 2026-05-06 |
+| docgraph-dual-ssot | idea | architecture | ssot, pipeline, enforcement, automation, domain/sdd | 2026-05-06 |
 | event-sourcing | idea | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-06 |
 | global-laws | idea | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-06 |
 | graph-impact | idea | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
@@ -36,6 +38,8 @@ _Generated: 2026-05-06_
 | context-kernel | pattern | architecture | pipeline, search, llm, ssot, domain/sdd | 2026-05-06 |
 | cqrs-boundary | pattern | architecture | cqrs, write-path, ssot, pipeline, domain/sdd | 2026-05-05 |
 | deterministic-context | pattern | architecture | pipeline, automation, ssot, write-path, domain/sdd | 2026-05-05 |
+| doc-graph-parser | pattern | architecture | pipeline, automation, validation, domain/sdd | 2026-05-06 |
+| doc-graph-validator | pattern | architecture | validation, pipeline, automation, enforcement, domain/sdd | 2026-05-06 |
 | embedding-projection | pattern | architecture | pipeline, search, automation, domain/sdd | 2026-05-05 |
 | error-classifier | pattern | architecture | enforcement, validation, pipeline, automation, domain/sdd | 2026-05-05 |
 | error-event | pattern | architecture | enforcement, pipeline, write-path, domain/sdd | 2026-05-05 |
@@ -44,7 +48,7 @@ _Generated: 2026-05-06_
 | eventstore-guard | pattern | architecture | enforcement, write-path, ssot, validation, domain/sdd | 2026-05-06 |
 | execution-guard | pattern | architecture | enforcement, pipeline, validation, write-path, domain/sdd | 2026-05-06 |
 | golden-fixture | pattern | architecture | validation, automation, pipeline, domain/sdd | 2026-05-06 |
-| graph-query-engine | pattern | architecture | search, pipeline, automation, ssot, domain/sdd | 2026-05-05 |
+| graph-query-engine | pattern | architecture | search, pipeline, automation, ssot, domain/sdd | 2026-05-06 |
 | graph-session-projection | pattern | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | idempotency-middleware | pattern | architecture | dedup, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | idempotency-projection | pattern | architecture | dedup, write-path, ssot, validation, domain/sdd | 2026-05-05 |
@@ -64,6 +68,7 @@ _Generated: 2026-05-06_
 | policy-projection | pattern | architecture | ssot, enforcement, write-path, pipeline, domain/sdd | 2026-05-05 |
 | projection-registry | pattern | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-06 |
 | reducer | pattern | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-06 |
+| render-wiki | pattern | architecture | pipeline, automation, write-path, ssot, domain/sdd | 2026-05-06 |
 | replay-based-testing | pattern | architecture | automation, validation, pipeline, ssot, domain/sdd | 2026-05-06 |
 | replay-engine | pattern | architecture | automation, validation, pipeline, domain/sdd | 2026-05-06 |
 | sandbox-manager | pattern | architecture | enforcement, pipeline, write-path, automation, domain/sdd | 2026-05-05 |
@@ -74,10 +79,13 @@ _Generated: 2026-05-06_
 | session-orchestrator | pattern | architecture | pipeline, automation, enforcement, write-path, domain/sdd | 2026-05-06 |
 | snapshot-comparator | pattern | architecture | validation, automation, domain/sdd | 2026-05-05 |
 | spec-manager | pattern | architecture | pipeline, validation, write-path, ssot, domain/sdd | 2026-05-06 |
+| sync-wiki | pattern | architecture | pipeline, write-path, automation, git, domain/sdd | 2026-05-06 |
 | task-event-slice | pattern | architecture | pipeline, automation, validation, domain/sdd | 2026-05-05 |
 | test-catalog-projection | pattern | architecture | pipeline, automation, validation, ssot, domain/sdd | 2026-05-05 |
 | trace-projection | pattern | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | upcaster-registry | pattern | architecture | pipeline, validation, automation, domain/sdd | 2026-05-06 |
+| wiki-semantic-extractor | pattern | architecture | pipeline, search, llm, read-only, domain/sdd | 2026-05-06 |
+| wiki-snapshot-loader | pattern | architecture | read-only, ssot, pipeline, automation, domain/sdd | 2026-05-06 |
 | write-kernel | pattern | architecture | write-path, ssot, pipeline, enforcement, domain/sdd | 2026-05-06 |
 | trace-store | tool | architecture | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
 

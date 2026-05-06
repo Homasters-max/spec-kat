@@ -9,7 +9,7 @@ tags:
 - write-path
 - enforcement
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-06'
 updated: '2026-05-06'
 sources:
@@ -48,11 +48,35 @@ PhaseOrchestrator — единственный компонент, приним�
 - Pure decision logic (I-ORCH-1) делает PhaseOrchestrator тестируемым без side-effects.
 - Polling в начале AgentLoop cycle означает: решения принимаются на основе snapshot, не real-time state — staleness ≤ 1 iteration.
 
+
+## Sync Freshness Check
+
+При `activate-phase` PhaseOrchestrator проверяет freshness `sync-wiki` через EventLog (Q11, Q19).
+
+**Механизм (I-SYNC-FRESHNESS-2):**
+
+```text
+activate-phase N
+  └─ PhaseOrchestrator.check_sync_freshness(phase_id)
+       ├─ читает SyncWikiExecuted из EventLog → получает wiki_files_hash
+       ├─ вычисляет current_hash(wiki-files)
+       ├─ если SyncWikiExecuted отсутствует → VIOLATION (I-SYNC-FRESHNESS-3)
+       ├─ если wiki_files_hash != current_hash → VIOLATION
+       └─ при VIOLATION: emit PhaseActivationBlocked {
+            reason: "SYNC_FRESHNESS_VIOLATION",
+            stale_files: list[str]
+          }
+```
+
+Отсутствие `SyncWikiExecuted` в EventLog = violation (I-SYNC-FRESHNESS-3).
+LLM напоминает пользователю запустить `sdd sync-wiki`, но не запускает сам (I-DOCGRAPH-SYNC-1).
+
 ## Open Questions
 
 - [ ] (P2) Как PhaseOrchestrator обрабатывает задачу с ошибкой — retry, skip, или abort фазы?
 
 ## See Also
+- [[sync-wiki]]
 
 - [[sdd-bounded-contexts]] — Blueprint domain, L2; I-ORCH-1
 - [[plan-manager]] — поставляет TaskScopeProjection (DAG)

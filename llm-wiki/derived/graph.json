@@ -54,6 +54,19 @@
     "wiki-cli",
     "git-as-ssot"
   ],
+  "doc-graph-node": [
+    "sync-wiki",
+    "render-wiki",
+    "doc-graph-parser",
+    "docgraph-dual-ssot"
+  ],
+  "docgraph-dual-ssot": [
+    "sync-wiki",
+    "render-wiki",
+    "graph-query-engine",
+    "plan-manager",
+    "context-kernel"
+  ],
   "event-sourcing": [
     "reducer",
     "upcaster-registry",
@@ -330,6 +343,8 @@
   ],
   "context-kernel": [
     "policy-projection",
+    "wiki-snapshot-loader",
+    "wiki-semantic-extractor",
     "graph-query-engine",
     "memory-layer",
     "policy-projection",
@@ -337,7 +352,7 @@
     "execution-guard",
     "input-port",
     "session-orchestrator",
-    "deterministic-context",
+    "wiki-snapshot-loader",
     "context-packet"
   ],
   "context-packet": [
@@ -366,6 +381,20 @@
     "cqrs-boundary",
     "replay-based-testing",
     "event-sourcing"
+  ],
+  "doc-graph-parser": [
+    "doc-graph-validator",
+    "plan-manager",
+    "doc-graph-node",
+    "sync-wiki"
+  ],
+  "doc-graph-validator": [
+    "doc-graph-parser",
+    "plan-manager",
+    "doc-graph-parser",
+    "plan-manager",
+    "sync-wiki",
+    "write-kernel"
   ],
   "embedding-projection": [
     "memory-layer",
@@ -467,10 +496,14 @@
   "graph-query-engine": [
     "execution-guard",
     "execution-guard",
+    "docgraph-dual-ssot",
     "context-snapshot",
     "execution-guard",
     "graph-session-state",
-    "sdd-meta-harness"
+    "sdd-meta-harness",
+    "wiki-semantic-extractor",
+    "wiki-snapshot-loader",
+    "docgraph-dual-ssot"
   ],
   "graph-session-projection": [
     "projection-registry",
@@ -615,6 +648,7 @@
     "wiki-evolve"
   ],
   "phase-orchestrator": [
+    "sync-wiki",
     "sdd-bounded-contexts",
     "plan-manager",
     "memory-layer",
@@ -623,12 +657,16 @@
     "observability-events"
   ],
   "plan-manager": [
+    "doc-graph-validator",
     "sandbox-manager",
+    "graph-query-engine",
     "sdd-bounded-contexts",
-    "spec-manager",
+    "doc-graph-parser",
+    "doc-graph-validator",
+    "sync-wiki",
     "phase-orchestrator",
-    "memory-layer",
-    "sandbox-manager"
+    "sandbox-manager",
+    "memory-layer"
   ],
   "policy-kernel": [
     "meta-optimization",
@@ -679,6 +717,13 @@
     "deterministic-context",
     "global-laws",
     "reducer"
+  ],
+  "render-wiki": [
+    "wiki-snapshot-loader",
+    "wiki-snapshot-loader",
+    "sync-wiki",
+    "doc-graph-node",
+    "docgraph-dual-ssot"
   ],
   "replay-based-testing": [
     "replay-engine",
@@ -796,6 +841,14 @@
     "memory-layer",
     "event-sourcing"
   ],
+  "sync-wiki": [
+    "doc-graph-parser",
+    "doc-graph-validator",
+    "plan-manager",
+    "render-wiki",
+    "phase-orchestrator",
+    "docgraph-dual-ssot"
+  ],
   "task-event-slice": [
     "replay-engine",
     "replay-engine",
@@ -870,12 +923,30 @@
     "wiki-evolve",
     "wiki-curate"
   ],
+  "wiki-semantic-extractor": [
+    "graph-query-engine",
+    "graph-query-engine",
+    "wiki-snapshot-loader",
+    "wiki-snapshot-loader",
+    "graph-query-engine",
+    "context-kernel",
+    "doc-graph-node",
+    "docgraph-dual-ssot"
+  ],
   "wiki-session-isolation": [
     "wiki-evolve",
     "wiki-curate",
     "wiki-evolve",
     "wiki-curate",
     "wiki-cli"
+  ],
+  "wiki-snapshot-loader": [
+    "context-kernel",
+    "wiki-semantic-extractor",
+    "render-wiki",
+    "context-kernel",
+    "wiki-semantic-extractor",
+    "docgraph-dual-ssot"
   ],
   "write-kernel": [
     "execution-guard",

@@ -9,11 +9,12 @@ tags:
 - automation
 - ssot
 - domain/sdd
-version: 1
+version: 2
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/SDD Meta Harness Core.md
+- raw/Wiki Skill DocGraph Integration Plan.md
 ---
 # Graph Query Engine
 
@@ -35,15 +36,25 @@ class QueryEngine:
     def execute(self, query: Query) -> ContextSnapshot: ...
 ```
 
-**Граф строится из трёх источников:**
+**Граф строится из трёх источников (Q6, Q16):**
 
 ```text
-Graph = f(Code, Specs, EventLog)
+Graph = f(Code, EventLog, WikiProse)
 ```
 
-- `CodeExtractor` → file nodes + code_depends edges
-- `SpecExtractor` → phase/task/spec nodes + belongs_to/depends_on/writes edges
-- `EventExtractor` → актуализирует статус узлов
+- `CodeExtractor` → file nodes + code_depends edges (из кодовой базы)
+- `EventExtractor` → структурные данные: phase/task nodes, status, deps (из EventLog; I-QE-ADAPTER-1)
+- `WikiSemanticExtractor` → семантика: prose, intent, domain context (из WikiSnapshot через WikiSnapshotLoader; I-QE-ADAPTER-2)
+
+Адаптеры не пересекаются по источникам: EventExtractor никогда не читает wiki, WikiSemanticExtractor никогда не читает структуру из EventLog.
+
+**Fingerprint (I-QE-FINGERPRINT-1):**
+
+```text
+hash(event_offset + wiki_snapshot_version + code_hash)
+```
+
+`spec_hash` удалён — заменён на `wiki_snapshot_version` (Q16). Если fingerprint изменился после `explain` но до `write` — [[execution-guard]] блокирует write.
 
 **Предустановленные стратегии:**
 
@@ -62,8 +73,8 @@ invariant: edge_kinds: [belongs_to],                     direction: out
 
 ## Trade-offs
 
-- Граф кэшируется под fingerprint `hash(code_hash + spec_hash + event_offset)`.
-- Если fingerprint изменился после `explain` но до `write` — [[execution-guard]] блокирует write.
+- Граф кэшируется под fingerprint.
+- Разделение на три адаптера по источникам (Code/EventLog/WikiProse) предотвращает смешение SSOT ([[docgraph-dual-ssot]]).
 
 ## See Also
 
@@ -71,3 +82,6 @@ invariant: edge_kinds: [belongs_to],                     direction: out
 - [[execution-guard]]
 - [[graph-session-state]]
 - [[sdd-meta-harness]]
+- [[wiki-semantic-extractor]]
+- [[wiki-snapshot-loader]]
+- [[docgraph-dual-ssot]]
