@@ -10,9 +10,9 @@ tags:
 - llm
 - automation
 - domain/wiki
-version: 2
+version: 3
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/TASKS.md
 ---
@@ -49,9 +49,23 @@ wiki save-proposals                          # только если proposals >
 ```
 
 **Stage 2 (LLM):**
-- Читает `ExtractionResult`, проверяет существование страниц
+- Читает `ExtractionResult`, проверяет существование страниц batch-командой:
+
+```bash
+wiki exists <id1> <id2> ...   # быстрее N последовательных wiki show
+```
+
 - Для каждой entity выбирает операцию: `create` / `diff` / `rewrite`
-- Пишет черновики в `runtime/tmp/<page_id>.[create|diff|rewrite].md`
+- `create` — страница не существует → пишет `runtime/tmp/<id>.create.md`
+- `rewrite` — страница существует, структурное изменение или размер ≤ 1000 chars → пишет `runtime/tmp/<id>.rewrite.md`
+- `diff` — страница существует, небольшое дополнение, размер > 1000 chars → workflow через `wiki gen-diff`:
+
+```bash
+wiki show <page_id>                                           # читаем текущий контент
+# LLM пишет runtime/tmp/<page_id>.new.md с полным новым контентом
+wiki gen-diff <page_id> --new-content runtime/tmp/<page_id>.new.md
+# → создаёт runtime/tmp/<page_id>.diff.md, удаляет .new.md
+```
 
 ```bash
 wiki apply-drafts   # conflict → STOP

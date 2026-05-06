@@ -10,9 +10,9 @@ tags:
 - python
 - automation
 - domain/wiki
-version: 6
+version: 7
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/TASKS.md
 ---
@@ -63,6 +63,12 @@ ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
 - `wiki save-proposals` — сохраняет `glossary_proposals` из extraction.json в `.wiki/config/glossary_pending.yaml`; skip если term уже есть (I-WIKI-SEQ-1)
 - `wiki delete <page_id> [--confirm]` — dry-run или удаление страницы: чистит входящие wikilinks, glossary entry, вызывает rebuild (I-WIKI-DELETE-1)
 - `git.py::pending_raw_files` = uncommitted raw/ WHERE sha256 NOT IN ingest_log
+- `wiki page-info <page_id>` — выводит path, size, sha256; exit 0 даже если страница не найдена (запрос-инфо, не ошибка)
+- `wiki gen-diff <page_id> --new-content <path>` — вычисляет unified diff; пишет `runtime/tmp/<id>.diff.md`; удаляет `--new-content` файл после генерации (I-WIKI-DIFF-1)
+- `wiki commit -m "msg"` — rebuild → lint → git commit; стейджит только `wiki/`, `derived/`, `.wiki/state/ingest_log.jsonl`; exit 1 при lint errors; не трогает `query_log.jsonl`
+- `wiki exists <id1> <id2> ...` — batch-проверка существования страниц; быстрее N последовательных `wiki show` вызовов
+- `wiki lint --errors-only` — выводит только errors + broken_links; exit 1 если хотя бы одно непусто
+- `wiki lint --json` — выводит полный lint report как JSON
 
 ## See Also
 - [[wiki-evolve]]

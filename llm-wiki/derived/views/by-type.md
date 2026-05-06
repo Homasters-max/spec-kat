@@ -30,7 +30,7 @@ _Generated: 2026-05-06_
 | trace-scope | sdd | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
 | wiki-taxonomy | wiki | architecture | knowledge-base, maintenance, markdown, llm, domain/wiki | 2026-05-06 |
 
-## pattern (76)
+## pattern (77)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
@@ -101,13 +101,14 @@ _Generated: 2026-05-06_
 | upcaster-registry | sdd | architecture | pipeline, validation, automation, domain/sdd | 2026-05-06 |
 | wiki-curate | wiki | architecture | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-06 |
 | wiki-docgraph | wiki | architecture | pipeline, write-path, llm, automation, domain/wiki | 2026-05-06 |
-| wiki-evolve | wiki | architecture | pipeline, ingestion, write-path, llm, automation, domain/wiki | 2026-05-05 |
+| wiki-evolve | wiki | architecture | pipeline, ingestion, write-path, llm, automation, domain/wiki | 2026-05-06 |
 | wiki-frontmatter | wiki | architecture | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
 | wiki-markup-standard | wiki | architecture | markdown, knowledge-base, validation, maintenance, domain/wiki | 2026-05-06 |
 | wiki-open-questions | wiki | architecture | open-questions, maintenance, curation, llm, domain/wiki | 2026-05-06 |
 | wiki-query | wiki | architecture | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-semantic-extractor | sdd | architecture | pipeline, search, llm, read-only, domain/sdd | 2026-05-06 |
 | wiki-session-isolation | wiki | architecture | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
+| wiki-skill | wiki | architecture | knowledge-base, pipeline, llm, cli, domain/wiki | 2026-05-06 |
 | wiki-snapshot-loader | sdd | architecture | read-only, ssot, pipeline, automation, domain/sdd | 2026-05-06 |
 | write-kernel | sdd | architecture | write-path, ssot, pipeline, enforcement, domain/sdd | 2026-05-06 |
 
@@ -116,4 +117,4 @@ _Generated: 2026-05-06_
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
 | trace-store | sdd | architecture | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
-| wiki-cli | wiki | implementation | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-05 |
+| wiki-cli | wiki | implementation | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-06 |

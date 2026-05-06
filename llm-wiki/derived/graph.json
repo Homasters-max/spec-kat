@@ -965,6 +965,24 @@
     "wiki-curate",
     "wiki-cli"
   ],
+  "wiki-skill": [
+    "wiki-evolve",
+    "wiki-query",
+    "wiki-curate",
+    "wiki-open-questions",
+    "wiki-docgraph",
+    "wiki-taxonomy",
+    "wiki-markup-standard",
+    "context-packet",
+    "extraction-result",
+    "wiki-session-isolation",
+    "wiki-docgraph",
+    "docgraph-dual-ssot",
+    "wiki-semantic-extractor",
+    "wiki-evolve",
+    "wiki-query",
+    "wiki-curate"
+  ],
   "wiki-snapshot-loader": [
     "context-kernel",
     "wiki-semantic-extractor",

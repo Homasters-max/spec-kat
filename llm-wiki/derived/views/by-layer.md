@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-06_
 
-## architecture (94)
+## architecture (95)
 
 | id | type | domain | tags | updated |
 |---|---|---|---|---|
@@ -90,13 +90,14 @@ _Generated: 2026-05-06_
 | upcaster-registry | pattern | sdd | pipeline, validation, automation, domain/sdd | 2026-05-06 |
 | wiki-curate | pattern | wiki | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-06 |
 | wiki-docgraph | pattern | wiki | pipeline, write-path, llm, automation, domain/wiki | 2026-05-06 |
-| wiki-evolve | pattern | wiki | pipeline, ingestion, write-path, llm, automation, domain/wiki | 2026-05-05 |
+| wiki-evolve | pattern | wiki | pipeline, ingestion, write-path, llm, automation, domain/wiki | 2026-05-06 |
 | wiki-frontmatter | pattern | wiki | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
 | wiki-markup-standard | pattern | wiki | markdown, knowledge-base, validation, maintenance, domain/wiki | 2026-05-06 |
 | wiki-open-questions | pattern | wiki | open-questions, maintenance, curation, llm, domain/wiki | 2026-05-06 |
 | wiki-query | pattern | wiki | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-semantic-extractor | pattern | sdd | pipeline, search, llm, read-only, domain/sdd | 2026-05-06 |
 | wiki-session-isolation | pattern | wiki | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
+| wiki-skill | pattern | wiki | knowledge-base, pipeline, llm, cli, domain/wiki | 2026-05-06 |
 | wiki-snapshot-loader | pattern | sdd | read-only, ssot, pipeline, automation, domain/sdd | 2026-05-06 |
 | write-kernel | pattern | sdd | write-path, ssot, pipeline, enforcement, domain/sdd | 2026-05-06 |
 | trace-store | tool | sdd | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
@@ -116,4 +117,4 @@ _Generated: 2026-05-06_
 | ingest-log | pattern | wiki | ingestion, write-path, ssot, automation, pipeline, domain/wiki | 2026-05-05 |
 | page-meta | pattern | wiki | python, pydantic, write-path, validation, domain/wiki | 2026-05-05 |
 | query-log | pattern | wiki | knowledge-base, read-only, pipeline, ingestion, domain/wiki | 2026-05-05 |
-| wiki-cli | tool | wiki | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-05 |
+| wiki-cli | tool | wiki | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-06 |

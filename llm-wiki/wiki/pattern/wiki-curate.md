@@ -9,7 +9,7 @@ tags:
 - pipeline
 - llm
 - domain/wiki
-version: 3
+version: 4
 created: '2026-05-05'
 updated: '2026-05-06'
 sources:
@@ -57,7 +57,7 @@ wiki curate-apply            # → scoped apply + rebuild + lint + cleanup
 
 ```bash
 wiki delete <page_id> --confirm   # для каждого op: delete из плана
-git add wiki/ derived/ && git commit -m "wiki: curate ..."
+wiki commit -m "wiki: curate ..."
 wiki lint                          # финальная проверка
 ```
 
