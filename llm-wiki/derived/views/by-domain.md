@@ -89,22 +89,26 @@ _Generated: 2026-05-06_
 | write-kernel | pattern | architecture | write-path, ssot, pipeline, enforcement, domain/sdd | 2026-05-06 |
 | trace-store | tool | architecture | pipeline, read-only, automation, write-path, domain/sdd | 2026-05-05 |
 
-## wiki (15)
+## wiki (19)
 
 | id | type | layer | tags | updated |
 |---|---|---|---|---|
 | automation-over-llm | idea | concept | automation, llm, ssot, pipeline, domain/wiki | 2026-05-05 |
 | diff-first-updates | idea | concept | write-path, dedup, maintenance, git, domain/wiki | 2026-05-05 |
 | git-as-ssot | idea | concept | git, ssot, knowledge-base, ingestion, domain/wiki | 2026-05-05 |
+| wiki-taxonomy | idea | architecture | knowledge-base, maintenance, markdown, llm, domain/wiki | 2026-05-06 |
 | context-packet | pattern | architecture | seam, pipeline, ingestion, automation, domain/wiki | 2026-05-05 |
 | extraction-result | pattern | architecture | seam, pipeline, extraction, pydantic, validation, domain/wiki | 2026-05-05 |
 | ingest-log | pattern | implementation | ingestion, write-path, ssot, automation, pipeline, domain/wiki | 2026-05-05 |
 | multi-vault | pattern | architecture | knowledge-base, pipeline, cli, automation, domain/wiki | 2026-05-05 |
 | page-meta | pattern | implementation | python, pydantic, write-path, validation, domain/wiki | 2026-05-05 |
 | query-log | pattern | implementation | knowledge-base, read-only, pipeline, ingestion, domain/wiki | 2026-05-05 |
-| wiki-curate | pattern | architecture | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-05 |
+| wiki-curate | pattern | architecture | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-06 |
+| wiki-docgraph | pattern | architecture | pipeline, write-path, llm, automation, domain/wiki | 2026-05-06 |
 | wiki-evolve | pattern | architecture | pipeline, ingestion, write-path, llm, automation, domain/wiki | 2026-05-05 |
 | wiki-frontmatter | pattern | architecture | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
+| wiki-markup-standard | pattern | architecture | markdown, knowledge-base, validation, maintenance, domain/wiki | 2026-05-06 |
+| wiki-open-questions | pattern | architecture | open-questions, maintenance, curation, llm, domain/wiki | 2026-05-06 |
 | wiki-query | pattern | architecture | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-session-isolation | pattern | architecture | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
 | wiki-cli | tool | implementation | cli, pipeline, knowledge-base, python, automation, domain/wiki | 2026-05-05 |

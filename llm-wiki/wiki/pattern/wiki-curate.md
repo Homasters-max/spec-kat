@@ -9,9 +9,9 @@ tags:
 - pipeline
 - llm
 - domain/wiki
-version: 2
+version: 3
 created: '2026-05-05'
-updated: '2026-05-05'
+updated: '2026-05-06'
 sources:
 - raw/TASKS.md
 ---
@@ -70,6 +70,8 @@ wiki lint                          # финальная проверка
 - Требует human gate — нельзя автоматизировать полностью
 - Конфликт при `apply-drafts` требует ручного разрешения (I-WIKI-CONFLICT-1)
 - `curate-apply` не коммитит автоматически: LLM пишет черновики, CLI применяет, пользователь коммитит
+- `curate-apply` lint: exit 1 на FM errors; WARN на broken_links (ожидаемо при pending deletes); WARN на orphans
+- pre-flight: exit 1 если отсутствуют черновики для non-delete операций
 - Лишние файлы в `runtime/tmp/` игнорируются scoped apply; `wiki clean-tmp` для очистки
 
 ## See Also

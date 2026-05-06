@@ -1,6 +1,6 @@
 # Wiki Index
 
-_Updated: 2026-05-06 · 97 pages_
+_Updated: 2026-05-06 · 101 pages_
 
 | id | type | domain | layer | tags | updated |
 |---|---|---|---|---|---|
@@ -26,6 +26,7 @@ _Updated: 2026-05-06 · 97 pages_
 | sdd-component-inventory | idea | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-06 |
 | trace-aligned-test-partitioning | idea | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | trace-scope | idea | sdd | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
+| wiki-taxonomy | idea | wiki | architecture | knowledge-base, maintenance, markdown, llm, domain/wiki | 2026-05-06 |
 | adversarial-scenario-mutator | pattern | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | agent-handle | pattern | sdd | architecture | llm, pipeline, automation, write-path, domain/sdd | 2026-05-05 |
 | agent-loop | pattern | sdd | architecture | pipeline, automation, enforcement, llm, domain/sdd | 2026-05-06 |
@@ -91,9 +92,12 @@ _Updated: 2026-05-06 · 97 pages_
 | test-catalog-projection | pattern | sdd | architecture | pipeline, automation, validation, ssot, domain/sdd | 2026-05-05 |
 | trace-projection | pattern | sdd | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | upcaster-registry | pattern | sdd | architecture | pipeline, validation, automation, domain/sdd | 2026-05-06 |
-| wiki-curate | pattern | wiki | architecture | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-05 |
+| wiki-curate | pattern | wiki | architecture | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-06 |
+| wiki-docgraph | pattern | wiki | architecture | pipeline, write-path, llm, automation, domain/wiki | 2026-05-06 |
 | wiki-evolve | pattern | wiki | architecture | pipeline, ingestion, write-path, llm, automation, domain/wiki | 2026-05-05 |
 | wiki-frontmatter | pattern | wiki | architecture | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
+| wiki-markup-standard | pattern | wiki | architecture | markdown, knowledge-base, validation, maintenance, domain/wiki | 2026-05-06 |
+| wiki-open-questions | pattern | wiki | architecture | open-questions, maintenance, curation, llm, domain/wiki | 2026-05-06 |
 | wiki-query | pattern | wiki | architecture | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-semantic-extractor | pattern | sdd | architecture | pipeline, search, llm, read-only, domain/sdd | 2026-05-06 |
 | wiki-session-isolation | pattern | wiki | architecture | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |

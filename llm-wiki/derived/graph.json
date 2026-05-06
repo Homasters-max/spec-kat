@@ -217,6 +217,10 @@
     "command-spec",
     "trace-projection"
   ],
+  "wiki-taxonomy": [
+    "wiki-markup-standard",
+    "wiki-evolve"
+  ],
   "adversarial-scenario-mutator": [
     "scenario-gen",
     "audit-engine",
@@ -900,6 +904,15 @@
     "wiki-evolve",
     "wiki-query"
   ],
+  "wiki-docgraph": [
+    "doc-graph-node",
+    "docgraph-dual-ssot",
+    "wiki-semantic-extractor",
+    "doc-graph-node",
+    "sync-wiki",
+    "docgraph-dual-ssot",
+    "wiki-semantic-extractor"
+  ],
   "wiki-evolve": [
     "wiki-cli",
     "diff-first-updates",
@@ -919,6 +932,15 @@
     "wiki-evolve",
     "page-meta",
     "ingest-log"
+  ],
+  "wiki-markup-standard": [
+    "wiki-taxonomy",
+    "wiki-evolve"
+  ],
+  "wiki-open-questions": [
+    "wiki-curate",
+    "wiki-curate",
+    "wiki-evolve"
   ],
   "wiki-query": [
     "wiki-cli",

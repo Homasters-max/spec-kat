@@ -2,7 +2,7 @@
 
 _Generated: 2026-05-06_
 
-## idea (22)
+## idea (23)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
@@ -28,8 +28,9 @@ _Generated: 2026-05-06_
 | sdd-component-inventory | sdd | architecture | ssot, enforcement, pipeline, automation, domain/sdd | 2026-05-06 |
 | trace-aligned-test-partitioning | sdd | architecture | validation, automation, pipeline, domain/sdd | 2026-05-05 |
 | trace-scope | sdd | architecture | ssot, automation, pipeline, domain/sdd | 2026-05-05 |
+| wiki-taxonomy | wiki | architecture | knowledge-base, maintenance, markdown, llm, domain/wiki | 2026-05-06 |
 
-## pattern (73)
+## pattern (76)
 
 | id | domain | layer | tags | updated |
 |---|---|---|---|---|
@@ -98,9 +99,12 @@ _Generated: 2026-05-06_
 | test-catalog-projection | sdd | architecture | pipeline, automation, validation, ssot, domain/sdd | 2026-05-05 |
 | trace-projection | sdd | architecture | ssot, write-path, pipeline, automation, domain/sdd | 2026-05-05 |
 | upcaster-registry | sdd | architecture | pipeline, validation, automation, domain/sdd | 2026-05-06 |
-| wiki-curate | wiki | architecture | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-05 |
+| wiki-curate | wiki | architecture | curation, maintenance, pipeline, llm, domain/wiki | 2026-05-06 |
+| wiki-docgraph | wiki | architecture | pipeline, write-path, llm, automation, domain/wiki | 2026-05-06 |
 | wiki-evolve | wiki | architecture | pipeline, ingestion, write-path, llm, automation, domain/wiki | 2026-05-05 |
 | wiki-frontmatter | wiki | architecture | validation, ssot, markdown, yaml, domain/wiki | 2026-05-05 |
+| wiki-markup-standard | wiki | architecture | markdown, knowledge-base, validation, maintenance, domain/wiki | 2026-05-06 |
+| wiki-open-questions | wiki | architecture | open-questions, maintenance, curation, llm, domain/wiki | 2026-05-06 |
 | wiki-query | wiki | architecture | read-only, search, llm, knowledge-base, domain/wiki | 2026-05-05 |
 | wiki-semantic-extractor | sdd | architecture | pipeline, search, llm, read-only, domain/sdd | 2026-05-06 |
 | wiki-session-isolation | wiki | architecture | automation, curation, maintenance, pipeline, domain/wiki | 2026-05-05 |
