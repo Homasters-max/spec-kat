@@ -1,0 +1,17 @@
+views:
+  - type: table
+    name: Таблица
+    filters:
+      and:
+        - domain == "sdd"
+    order:
+      - file.name
+      - domain
+      - file.folder
+      - tags
+    sort:
+      - property: domain
+        direction: ASC
+    columnSize:
+      file.folder: 140
+      note.tags: 834

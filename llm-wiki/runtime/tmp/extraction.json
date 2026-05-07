@@ -1,42 +1,27 @@
 {
   "entities": [
-    {"term": "sdd-meta-harness",     "type": "pattern", "confidence": 0.95, "in_glossary": false},
-    {"term": "event-sourcing",        "type": "idea",    "confidence": 0.92, "in_glossary": false},
-    {"term": "reducer",               "type": "pattern", "confidence": 0.90, "in_glossary": false},
-    {"term": "upcaster-registry",     "type": "pattern", "confidence": 0.85, "in_glossary": false},
-    {"term": "graph-query-engine",    "type": "pattern", "confidence": 0.90, "in_glossary": false},
-    {"term": "execution-guard",       "type": "pattern", "confidence": 0.90, "in_glossary": false},
-    {"term": "scope-guard",           "type": "pattern", "confidence": 0.85, "in_glossary": false},
-    {"term": "trace-store",           "type": "tool",    "confidence": 0.85, "in_glossary": false},
-    {"term": "replay-based-testing",  "type": "pattern", "confidence": 0.85, "in_glossary": false},
-    {"term": "graph-session-state",   "type": "idea",    "confidence": 0.80, "in_glossary": false},
-    {"term": "context-snapshot",      "type": "idea",    "confidence": 0.80, "in_glossary": false},
-    {"term": "command-context",       "type": "idea",    "confidence": 0.80, "in_glossary": false}
+    {"term": "sdd-horizontal-slice",   "type": "idea", "confidence": 0.97, "in_glossary": false},
+    {"term": "sdd-vertical-slice",     "type": "idea", "confidence": 0.97, "in_glossary": false},
+    {"term": "sdd-layer-l0",           "type": "idea", "confidence": 0.92, "in_glossary": false},
+    {"term": "sdd-layer-l1",           "type": "idea", "confidence": 0.92, "in_glossary": false},
+    {"term": "sdd-layer-l2",           "type": "idea", "confidence": 0.92, "in_glossary": false},
+    {"term": "sdd-domain-core",        "type": "idea", "confidence": 0.88, "in_glossary": false},
+    {"term": "sdd-domain-blueprint",   "type": "idea", "confidence": 0.88, "in_glossary": false},
+    {"term": "sdd-domain-engine",      "type": "idea", "confidence": 0.88, "in_glossary": false},
+    {"term": "sdd-domain-intelligence","type": "idea", "confidence": 0.88, "in_glossary": false}
   ],
   "relations": [
-    {"from_term": "sdd-meta-harness",    "to_term": "event-sourcing",      "type": "implements"},
-    {"from_term": "sdd-meta-harness",    "to_term": "reducer",             "type": "uses"},
-    {"from_term": "sdd-meta-harness",    "to_term": "graph-query-engine",  "type": "uses"},
-    {"from_term": "sdd-meta-harness",    "to_term": "execution-guard",     "type": "uses"},
-    {"from_term": "sdd-meta-harness",    "to_term": "scope-guard",         "type": "uses"},
-    {"from_term": "sdd-meta-harness",    "to_term": "trace-store",         "type": "uses"},
-    {"from_term": "execution-guard",     "to_term": "graph-session-state", "type": "uses"},
-    {"from_term": "execution-guard",     "to_term": "trace-store",         "type": "uses"},
-    {"from_term": "graph-query-engine",  "to_term": "context-snapshot",   "type": "produces"},
-    {"from_term": "scope-guard",         "to_term": "trace-store",         "type": "uses"},
-    {"from_term": "replay-based-testing","to_term": "reducer",             "type": "uses"},
-    {"from_term": "upcaster-registry",   "to_term": "reducer",             "type": "feeds"},
-    {"from_term": "command-context",     "to_term": "sdd-meta-harness",    "type": "extends"}
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-layer-l0",          "type": "describes"},
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-layer-l1",          "type": "describes"},
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-layer-l2",          "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-core",       "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-blueprint",  "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-engine",     "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-intelligence","type": "describes"},
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-vertical-slice",    "type": "complements"},
+    {"from_term": "sdd-domain-core",       "to_term": "sdd-layer-l0",          "type": "spans"},
+    {"from_term": "sdd-domain-core",       "to_term": "sdd-layer-l1",          "type": "spans"}
   ],
   "conflicts": [],
-  "glossary_proposals": [
-    {"term": "SDD", "suggested_page": "sdd-meta-harness", "type": "pattern",
-     "reason": "аббревиатура используется повсеместно без определения в тексте"},
-    {"term": "L0",  "suggested_page": "sdd-meta-harness", "type": "pattern",
-     "reason": "слой архитектуры, упоминается 20+ раз"},
-    {"term": "L1",  "suggested_page": "sdd-meta-harness", "type": "pattern",
-     "reason": "слой архитектуры, упоминается 15+ раз"},
-    {"term": "GSS", "suggested_page": "graph-session-state", "type": "idea",
-     "reason": "GraphSessionState — центральная структура исполнения"}
-  ]
+  "glossary_proposals": []
 }
