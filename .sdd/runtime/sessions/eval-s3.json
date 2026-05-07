@@ -1,0 +1,6 @@
+{
+  "session_id": "eval-s3",
+  "phase_id": 61,
+  "allowed_files": ["src/sdd/domain/tasks/parser.py"],
+  "trace_path": ["FILE:src/sdd/domain/tasks/parser.py"]
+}

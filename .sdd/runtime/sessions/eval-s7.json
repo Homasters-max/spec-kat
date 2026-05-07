@@ -1,0 +1,6 @@
+{
+  "session_id": "eval-s7",
+  "phase_id": 61,
+  "allowed_files": ["src/sdd/context_kernel/engine.py"],
+  "trace_path": []
+}

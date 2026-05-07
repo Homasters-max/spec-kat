@@ -1,0 +1,21 @@
+{
+  "task_id": "T-6304",
+  "session_id": "0a6dca68-403b-4714-b1d1-9c7e732034a1",
+  "total_events": 11,
+  "graph_calls": 0,
+  "file_reads": 0,
+  "file_writes": 2,
+  "commands": 9,
+  "violations": [
+    "I-TRACE-COMPLETE-1: FILE_WRITE on '/root/project/src/sdd/commands/enrich_trace.py' without prior GRAPH_CALL in session '0a6dca68-403b-4714-b1d1-9c7e732034a1'",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/commands/enrich_trace.py' not in allowed_files",
+    "I-TRACE-COMPLETE-1: FILE_WRITE on '/root/project/src/sdd/cli.py' without prior GRAPH_CALL in session '0a6dca68-403b-4714-b1d1-9c7e732034a1'",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/cli.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/src/sdd/commands/enrich_trace.py' without GRAPH_CALL in last 5 events",
+    "BLIND_WRITE: '/root/project/src/sdd/cli.py' without GRAPH_CALL in last 5 events",
+    "THRASHING: >3 COMMAND without GRAPH_CALL"
+  ]
+}

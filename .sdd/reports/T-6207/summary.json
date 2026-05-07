@@ -1,0 +1,16 @@
+{
+  "task_id": "T-6207",
+  "session_id": "6938910c-97cd-4d8f-b065-f478608b41a9",
+  "total_events": 8,
+  "graph_calls": 3,
+  "file_reads": 4,
+  "file_writes": 1,
+  "commands": 0,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/session_state.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/session_state.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/session_state.py' not in allowed_files"
+  ]
+}

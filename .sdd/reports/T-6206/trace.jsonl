@@ -1,0 +1,27 @@
+{"ts": 1777579840.4885032, "type": "FILE_READ", "payload": {"file_path": "/root/project/.sdd/docs/sessions/implement.md"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777579927.0607357, "type": "FILE_READ", "payload": {"file_path": "/root/project/CLAUDE.md"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777579931.273175, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/CLAUDE.md"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777579942.123572, "type": "FILE_READ", "payload": {"file_path": "/root/project/.sdd/docs/sessions/implement.md"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777579946.538496, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/.sdd/docs/sessions/implement.md"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777579996.6080704, "type": "GRAPH_CALL", "payload": {"command": "sdd resolve \"GraphCallLog\" --format json 2>&1"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580002.5192893, "type": "GRAPH_CALL", "payload": {"command": "sdd explain TERM:graph_call_log --edge-types implements,guards,emits 2>&1 | tail -50"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580007.1629763, "type": "GRAPH_CALL", "payload": {"command": "sdd resolve \"scope_policy\" --format json 2>&1 | tail -40"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580014.5458455, "type": "GRAPH_CALL", "payload": {"command": "sdd explain GUARD:scope_policy --edge-types implements,guards,emits 2>&1 | tail -30"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580022.4321337, "type": "GRAPH_CALL", "payload": {"command": "sdd trace \"FILE:tests/unit/tracing/test_trace_event.py\" --edge-types imports 2>&1 | tail -20"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580027.299562, "type": "GRAPH_CALL", "payload": {"command": "sdd trace \"FILE:tests/unit/tracing/__init__.py\" --edge-types imports 2>&1 | tail -10"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580032.167594, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/tracing/trace_event.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580032.509708, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/tracing/writer.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580035.5189178, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/tracing/summary.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580035.6834807, "type": "FILE_READ", "payload": {"file_path": "/root/project/src/sdd/hooks/trace_tool.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580051.0654309, "type": "FILE_READ", "payload": {"file_path": "/root/project/tests/unit/tracing/test_writer.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580051.3155499, "type": "FILE_READ", "payload": {"file_path": "/root/project/tests/unit/tracing/test_summary.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580051.6187549, "type": "FILE_READ", "payload": {"file_path": "/root/project/tests/unit/tracing/__init__.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580077.291724, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/tests/unit/tracing/test_trace_event.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580100.552889, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/tests/unit/tracing/test_hook.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580119.1761427, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/tests/unit/tracing/test_hook.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580124.417471, "type": "FILE_WRITE", "payload": {"file_path": "/root/project/tests/unit/tracing/test_hook.py"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580246.0729752, "type": "FILE_WRITE", "payload": {"path": "/root/project/src/sdd/hooks/trace_tool.py", "tool": "Edit"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580255.5130112, "type": "FILE_WRITE", "payload": {"path": "/root/project/src/sdd/hooks/trace_tool.py", "tool": "Edit"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580271.6272511, "type": "FILE_READ", "payload": {"path": "/root/project/tests/unit/tracing/test_hook.py", "tool": "Read"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580281.0395896, "type": "FILE_WRITE", "payload": {"path": "/root/project/tests/unit/tracing/test_hook.py", "tool": "Edit"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}
+{"ts": 1777580378.1190386, "type": "FILE_READ", "payload": {"path": "/root/project/.sdd/docs/sessions/implement.md", "tool": "Read"}, "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063", "task_id": "T-6206"}

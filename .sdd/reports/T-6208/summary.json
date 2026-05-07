@@ -1,0 +1,21 @@
+{
+  "task_id": "T-6208",
+  "session_id": "95267d30-d3a7-4ad3-a556-02c69ff5d4ab",
+  "total_events": 25,
+  "graph_calls": 3,
+  "file_reads": 6,
+  "file_writes": 4,
+  "commands": 12,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/session_state.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/trace.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/cli.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/graph_navigation/test_write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/graph_navigation/cli/write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/unit/graph_navigation/test_write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/unit/graph_navigation/test_write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/write_gate.py' not in allowed_files"
+  ]
+}

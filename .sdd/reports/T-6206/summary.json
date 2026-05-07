@@ -1,0 +1,19 @@
+{
+  "task_id": "T-6206",
+  "session_id": "f02f7976-6e12-40f6-b391-7cb46e6db063",
+  "total_events": 22,
+  "graph_calls": 6,
+  "file_reads": 10,
+  "file_writes": 6,
+  "commands": 0,
+  "violations": [
+    "I-TRACE-COMPLETE-1: FILE_WRITE on '<unknown>' without prior GRAPH_CALL in session 'f02f7976-6e12-40f6-b391-7cb46e6db063'",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '<unknown>' not in allowed_files",
+    "I-TRACE-COMPLETE-1: FILE_WRITE on '<unknown>' without prior GRAPH_CALL in session 'f02f7976-6e12-40f6-b391-7cb46e6db063'",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '<unknown>' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '<unknown>' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '<unknown>' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '<unknown>' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '<unknown>' not in allowed_files"
+  ]
+}

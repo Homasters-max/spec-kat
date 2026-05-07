@@ -1,0 +1,26 @@
+{
+  "task_id": "T-6211",
+  "session_id": "e0be4489-f78a-447f-bc36-349e9739a3a4",
+  "total_events": 27,
+  "graph_calls": 5,
+  "file_reads": 6,
+  "file_writes": 2,
+  "commands": 14,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/integration/test_eval_s1.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/graph_guard.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/cli/write_gate.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/graph_navigation/session_state.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/eval/eval_fixtures.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/eval/eval_harness.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/integration/test_eval_s9_s15.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/.sdd/reports/EvalReport_v62.md' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/tests/integration/test_eval_s9_s15.py' without GRAPH_CALL in last 5 events",
+    "BLIND_WRITE: '/root/project/.sdd/reports/EvalReport_v62.md' without GRAPH_CALL in last 5 events",
+    "THRASHING: >3 COMMAND without GRAPH_CALL",
+    "THRASHING: >3 COMMAND without GRAPH_CALL"
+  ]
+}

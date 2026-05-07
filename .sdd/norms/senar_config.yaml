@@ -1,0 +1,64 @@
+# SENAR Configuration — SER/SDD
+# Supervised Engineering & Normative AI Regulation
+# Schema version: 1
+
+schema_version: 1
+
+actors:
+  llm:
+    description: "Large Language Model executor (coder or planner agent)"
+    default_enforcement: hard    # violations → STOP immediately
+    audit_all_actions: true      # every action logged to audit_log.jsonl
+
+  human:
+    description: "Human operator / reviewer / approver"
+    default_enforcement: soft    # violations → warning (human intent may differ)
+    audit_approval_gates: true   # only gate events are logged
+
+audit:
+  log_path: runtime/audit_log.jsonl
+  format: jsonl
+  include_context: true
+  entry_fields:
+    - entry_id        # deterministic SHA-256(actor+action+norm+timestamp)
+    - timestamp_iso   # ISO8601
+    - actor           # llm | human
+    - action_type     # e.g. TaskImplemented, ScopeCheck, PhaseGuard
+    - norm_id         # e.g. NORM-ACTOR-004
+    - result          # allowed | rejected
+    - context         # {task_id, phase, file_path, ...}
+
+supervision_gates:
+  enabled: true
+  gates:
+    - NORM-GATE-001   # Spec approval
+    - NORM-GATE-002   # Plan activation
+    - NORM-GATE-003   # Phase completion
+
+violation_reporting:
+  enabled: true
+  output_dir: reports/
+  format: markdown
+  filename_pattern: "SENARIncident_{timestamp}.md"
+  fields:
+    - report_id         # deterministic SHA-256(type+context+timestamp)
+    - error_type
+    - message
+    - violated_invariants
+    - norm_ids
+    - timestamp_iso
+
+process_event_log:
+  path: .sdd/state/EventLog.jsonl
+  format: jsonl
+  note: "SDD process events (SpecDrafted, TaskImplemented, etc.) — separate from BC-7 DuckDB runtime EventLog"
+
+scope_guard:
+  enabled: true
+  tool: .sdd/tools/check_scope.py
+  fail_fast: true
+
+phase_guard:
+  enabled: true
+  tool: .sdd/tools/phase_guard.py
+  emits_on_rejection: SDDEventRejected

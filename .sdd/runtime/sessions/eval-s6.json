@@ -1,0 +1,6 @@
+{
+  "session_id": "eval-s6",
+  "phase_id": 61,
+  "allowed_files": ["src/sdd/context_kernel/engine.py", "src/sdd/context_kernel/assembler.py", "src/sdd/context_kernel/documents.py", "src/sdd/context_kernel/intent.py", "src/sdd/context_kernel/rag_types.py", "src/sdd/context_kernel/selection.py", "src/sdd/graph/types.py", "src/sdd/context_kernel/context_types.py"],
+  "trace_path": ["FILE:src/sdd/context_kernel/engine.py", "FILE:src/sdd/context_kernel/assembler.py"]
+}

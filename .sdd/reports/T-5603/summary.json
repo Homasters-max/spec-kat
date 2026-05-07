@@ -1,0 +1,22 @@
+{
+  "task_id": "T-5603",
+  "session_id": "25675e42-100b-4794-989c-ffef8bdd09e1",
+  "total_events": 17,
+  "graph_calls": 1,
+  "file_reads": 3,
+  "file_writes": 2,
+  "commands": 11,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/infra/paths.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/infra/session_context.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/infra/audit.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/infra/graph_call_log.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/tests/unit/infra/test_graph_call_log.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/src/sdd/infra/graph_call_log.py' without GRAPH_CALL in session history",
+    "BLIND_WRITE: '/root/project/tests/unit/infra/test_graph_call_log.py' without GRAPH_CALL in session history"
+  ],
+  "behavioral_warnings": []
+}

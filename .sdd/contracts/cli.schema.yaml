@@ -1,0 +1,286 @@
+---
+# CLI Schema — MACHINE TRUTH for SDD CLI contract
+# update_trigger: any change to flags in src/sdd/commands/*.py or src/sdd/cli.py
+# last_synced: 2026-04-24
+#
+# Hierarchy:
+#   cli.schema.yaml  ← MACHINE TRUTH (this file)
+#   src/sdd/commands/*.py  ← implementation (must match)
+#   docs/ref/tool-reference.md  ← derived human doc (from this file)
+#   docs/sessions/*.md  ← usage recipes (reference tool-reference)
+#
+# Fields per command:
+#   required: list of required flags
+#   optional: list of optional flags (with defaults)
+#   forbidden_flags: flags that MUST NOT be passed
+#   failure_mode: how the command signals error
+#   parallel_allowed: false = must run sequentially in preconditions chain
+#   execution_order: position in preconditions chain (lower = earlier)
+
+# ── Invocation contract ──────────────────────────────────────────────────────
+invocation:
+  correct: "sdd <command> [args]"
+  forbidden: "python3 -m sdd"
+  reason: >
+    Package has no __main__.py; python3 -m sdd fails (No module named sdd.__main__).
+    Entry point is console_script sdd = sdd.cli:main (pyproject.toml).
+    SEM-1: no guessing — use documented invocation only.
+
+# ── Guards (precondition chain) ──────────────────────────────────────────────
+
+phase-guard.check:
+  required:
+    - flag: --command
+      type: str
+      description: "Command string, must contain T-NNN pattern"
+    - flag: --state
+      type: path
+      resolver: sdd.path.state
+      note: "REQUIRED — guards do NOT auto-detect paths (§BOOTSTRAP STATE RULE)"
+  optional: []
+  forbidden_flags: []
+  failure_mode: exit_1_json_stdout
+  parallel_allowed: false
+  execution_order: 1
+
+task-guard.check:
+  required:
+    - flag: --task
+      type: task_id
+      description: "Task ID (T-NNN)"
+    - flag: --taskset
+      type: path
+      resolver: sdd.path.taskset
+      note: "REQUIRED — guards do NOT auto-detect paths (§BOOTSTRAP STATE RULE)"
+  optional: []
+  forbidden_flags: []
+  failure_mode: exit_1_json_stdout
+  parallel_allowed: false
+  execution_order: 2
+
+check-scope.read:
+  required:
+    - flag: path
+      type: positional
+      description: "File path to validate against SENAR scope norms"
+  optional:
+    - flag: --inputs
+      type: str
+      description: "Comma-separated list of ALL declared Task Inputs"
+      note: >
+        REQUIRED in practice for any src/ path — without it the guard assumes
+        no declared inputs and denies access. Pass all Task Inputs joined by comma.
+  failure_mode: exit_1_json_stdout
+  parallel_allowed: false
+  execution_order: 3
+
+norm-guard.check:
+  required:
+    - flag: --actor
+      type: str
+      description: "Actor (llm | human)"
+    - flag: --action
+      type: str
+      description: "Action name (implement_task | etc.)"
+  optional: []
+  failure_mode: exit_1_json
+  parallel_allowed: false
+  execution_order: 4
+
+# ── Path resolution (§BOOTSTRAP STATE RULE) ─────────────────────────────────
+
+path:
+  subcommands: [state, taskset, eventlog, plan, config]
+  required:
+    - flag: resource
+      type: positional
+      values: [state, taskset, eventlog, plan, config]
+  optional:
+    - flag: --phase
+      type: int
+      default: auto-detected from State_index.yaml
+      applies_to: [taskset, plan]
+  forbidden_flags: []
+  failure_mode: exit_1_json_stderr
+  note: >
+    MUST read State_index.yaml directly from filesystem (FS-direct).
+    MUST NOT use EventLog replay or projection pipeline.
+    This is the canonical way to supply --state/--taskset/--eventlog to other commands.
+
+# ── Read-only show commands ──────────────────────────────────────────────────
+
+show-state:
+  required: []
+  optional:
+    - flag: --state
+      type: path
+      default: sdd.path.state
+      description: "Path to State_index.yaml"
+  forbidden_flags:
+    - --json
+    - --format
+  failure_mode: exit_1_json_stderr
+  note: "Use sdd query-events --json for JSON output; show-state is markdown only"
+
+show-task:
+  required:
+    - flag: task_id
+      type: positional
+      description: "Task ID (T-NNN)"
+  optional:
+    - flag: --phase
+      type: int
+      default: auto-detected
+  failure_mode: exit_1_json_stderr
+
+show-spec:
+  required:
+    - flag: --phase
+      type: int
+  optional: []
+  failure_mode: exit_1_json_stderr
+
+show-plan:
+  required: []
+  optional:
+    - flag: --phase
+      type: int
+      default: auto-detected from State_index.yaml
+  failure_mode: exit_1_json_stderr
+
+# ── Write commands (via REGISTRY → execute_and_project) ─────────────────────
+
+complete:
+  required:
+    - flag: task_id
+      type: positional
+      description: "Task ID (T-NNN)"
+  optional: []
+  failure_mode: exit_1_json_stderr
+  registry_entry: complete
+  actor: llm
+
+validate:
+  required:
+    - flag: task_id
+      type: positional
+      description: "Task ID (T-NNN) — omit only when --check-dod is set"
+    - flag: --result
+      type: choice
+      choices: [PASS, FAIL]
+      description: "Validation result — REQUIRED for normal validate; omit only when --check-dod is set"
+  optional:
+    - flag: --check-dod
+      type: bool
+      description: "Run DoD check for entire phase instead of single-task validate; requires --phase N instead of task_id"
+    - flag: --phase
+      type: int
+      description: "Phase number — required when --check-dod is set"
+  failure_mode: exit_1_json_stderr
+  registry_entry: validate
+  actor: llm
+
+activate-phase:
+  required:
+    - flag: phase_number
+      type: positional
+      description: "Phase number (int)"
+  optional:
+    - flag: --tasks
+      type: path
+      description: "Path to TaskSet file"
+  failure_mode: exit_1_json_stderr
+  registry_entry: activate-phase
+  actor: human
+  note: "HUMAN-ONLY gate — LLM MUST NOT invoke (NORM-ACTOR-001)"
+
+sync-state:
+  required:
+    - flag: --phase
+      type: int
+  optional: []
+  failure_mode: exit_1_json_stderr
+  registry_entry: sync-state
+  actor: llm
+
+record-decision:
+  required:
+    - flag: --decision-id
+      type: str
+    - flag: --title
+      type: str
+    - flag: --summary
+      type: str
+  optional:
+    - flag: --phase
+      type: int
+      default: auto-detected from EventLog
+  failure_mode: exit_1_json_stderr
+  registry_entry: record-decision
+  actor: llm
+
+# ── Query / observability commands ──────────────────────────────────────────
+
+query-events:
+  required:
+    - flag: --phase
+      type: int
+  optional:
+    - flag: --step
+      type: task_id
+    - flag: --event
+      type: str
+    - flag: --include-bash
+      type: bool
+    - flag: --json
+      type: bool
+    - flag: --save
+      type: bool
+    - flag: --list-types
+      type: bool
+  note: "query-events is the ONLY command with --json output flag"
+  failure_mode: exit_1_json_stderr
+
+metrics-report:
+  required:
+    - flag: --phase
+      type: int
+  optional:
+    - flag: --trend
+      type: bool
+    - flag: --anomalies
+      type: bool
+  failure_mode: exit_1_json_stderr
+
+report-error:
+  required:
+    - flag: --type
+      type: str
+      description: "Error type identifier"
+    - flag: --message
+      type: str
+  optional: []
+  failure_mode: exit_1_json_stderr
+
+validate-config:
+  required:
+    - flag: --phase
+      type: int
+  optional:
+    - flag: --config
+      type: path
+      default: sdd.path.config
+  failure_mode: exit_1_json_stderr
+
+validate-invariants:
+  required:
+    - flag: --phase
+      type: int
+  optional:
+    - flag: --task
+      type: task_id
+    - flag: --check
+      type: str
+    - flag: --scope
+      type: str
+  failure_mode: exit_1_json_stderr

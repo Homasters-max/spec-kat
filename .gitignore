@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing & coverage
+.coverage
+.pytest_cache/
+.hypothesis/
+htmlcov/
+
+# Type checking
+.mypy_cache/
+
+# SDD governance (local only — not part of source code)
+fake/
+sdd_plan.md
+sdd_v1/
+.sdd/state/sdd_events.duckdb
+obsidian-vault/
+
+# Environment / secrets
+.env
+.env.local
+
+# OS
+.DS_Store

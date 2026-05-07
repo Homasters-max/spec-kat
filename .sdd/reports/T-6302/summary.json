@@ -1,0 +1,29 @@
+{
+  "task_id": "T-6302",
+  "session_id": "2796d00a-488b-4bcd-b333-da1191d5f8c0",
+  "total_events": 37,
+  "graph_calls": 1,
+  "file_reads": 9,
+  "file_writes": 2,
+  "commands": 25,
+  "violations": [
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/commands/complete.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/.sdd/specs/Spec_v18_SpatialIndex.md' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/.sdd/specs/Spec_v18_SpatialIndex.md' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/.sdd/specs/Spec_v18_SpatialIndex.md' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/.sdd/docs/ref/kernel-contracts.md' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/hooks/trace_tool.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/tracing/trace_event.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/src/sdd/tracing/writer.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_READ on '/root/project/tests/unit/tracing/test_writer.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/transcript/__init__.py' not in allowed_files",
+    "SCOPE_VIOLATION(I-TRACE-SCOPE-1): FILE_WRITE on '/root/project/src/sdd/transcript/parser.py' not in allowed_files"
+  ],
+  "command_failures": 0,
+  "behavioral_violations": [
+    "BLIND_WRITE: '/root/project/src/sdd/transcript/__init__.py' without GRAPH_CALL in last 5 events",
+    "BLIND_WRITE: '/root/project/src/sdd/transcript/parser.py' without GRAPH_CALL in last 5 events",
+    "THRASHING: >3 COMMAND without GRAPH_CALL",
+    "THRASHING: >3 COMMAND without GRAPH_CALL"
+  ]
+}
