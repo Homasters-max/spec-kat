@@ -1,2 +1,0 @@
-class GraphInvariantError(Exception):
-    pass

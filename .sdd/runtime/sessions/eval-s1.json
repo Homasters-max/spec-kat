@@ -1,6 +1,0 @@
-{
-  "session_id": "eval-s1",
-  "phase_id": 61,
-  "allowed_files": ["src/sdd/graph_navigation/cli/graph_guard.py", "src/sdd/graph_navigation/cli/write_gate.py"],
-  "trace_path": ["FILE:src/sdd/graph_navigation/cli/graph_guard.py"]
-}
