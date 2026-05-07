@@ -92,12 +92,36 @@ Stage 2 (LLM):
     diff    → page exists + small addition + page size > 1000 chars
     rewrite → page exists + structural change OR page size ≤ 1000 chars
 
+  SDD CLASSIFICATION RULE (применять когда domain: sdd):
+
+    sdd_layer:
+      L0 — определяет физику системы: EventLog, WriteKernel, Guards, CommandBus,
+           ProjectionRegistry и их прямые зависимости. Полностью детерминирован,
+           нет зависимости от L1/L2.
+      L1 — исполняет задачи детерминированно через L0-примитивы. Ephemeral,
+           replay-safe, session-scoped.
+      L2 — анализирует, предлагает, оптимизирует. Eventual consistency.
+           НИКОГДА не мутирует state напрямую.
+      null — концепция/паттерн без чёткой привязки к слою
+
+    sdd_domain:
+      Core        — владеет инфраструктурой (EventLog, write path, projections)
+      Blueprint   — владеет проектной моделью (specs, plans, phases, policy)
+      Engine      — владеет runtime исполнения (AgentLoop, execution)
+      Intelligence — владеет анализом (metrics, proposals, audit)
+      null        — страница не является SDD-компонентом
+
+    Если неоднозначно → [[sdd-component-inventory]] как авторитетный источник
+    Если компонент вне SDD-системы → sdd_layer: null, sdd_domain: null
+
   .create.md FORMAT  (key MUST be "page_type", NOT "type"):
     ---
     page_type: pattern
-    domain: wiki
+    domain: sdd
     layer: architecture
-    tags: [rag, retrieval, llm]
+    sdd_layer: L1          # L0 | L1 | L2 | null
+    sdd_domain: Core       # Core | Blueprint | Engine | Intelligence | null
+    tags: [pipeline, enforcement, sdd/l1, sdd/core, domain/sdd]
     sources: ["raw/filename.md"]
     ---
     # RAG Pipeline

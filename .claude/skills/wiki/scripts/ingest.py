@@ -94,8 +94,10 @@ def make_context_packet(source_path: Path, vault_root: Path) -> ContextPacket:
     engine = SearchEngine(vault_root)
     try:
         related = engine.search(query, top_k=10)
+        all_page_ids = list(engine._page_ids)
     except Exception:
         related = []
+        all_page_ids = []
 
     return ContextPacket(
         file=source_path,
@@ -104,6 +106,7 @@ def make_context_packet(source_path: Path, vault_root: Path) -> ContextPacket:
         content_chunks=chunks,
         glossary_hints=hints,
         related_pages=related,
+        all_page_ids=all_page_ids,
     )
 
 
@@ -115,6 +118,7 @@ def _packet_to_dict(packet: ContextPacket) -> dict:
         "content_chunks": packet.content_chunks,
         "glossary_hints": [asdict(h) for h in packet.glossary_hints],
         "related_pages": [asdict(r) for r in packet.related_pages],
+        "all_page_ids": packet.all_page_ids,
     }
 
 
@@ -126,6 +130,7 @@ def _dict_to_packet(data: dict) -> ContextPacket:
         content_chunks=data["content_chunks"],
         glossary_hints=[GlossaryHint(**h) for h in data["glossary_hints"]],
         related_pages=[SearchResult(**r) for r in data["related_pages"]],
+        all_page_ids=data.get("all_page_ids", []),
     )
 
 

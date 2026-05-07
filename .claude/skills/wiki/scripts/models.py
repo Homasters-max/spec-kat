@@ -32,6 +32,7 @@ class ContextPacket:
     content_chunks: list[str]
     glossary_hints: list[GlossaryHint]
     related_pages: list[SearchResult]
+    all_page_ids: list[str] = field(default_factory=list)
 
 
 class ExtractedEntity(BaseModel):

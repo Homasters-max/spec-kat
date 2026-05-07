@@ -202,30 +202,53 @@ def rebuild(
 @app.command()
 def lint(
     vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+    errors_only: bool = typer.Option(False, "--errors-only", help="Print only errors and broken links"),
+    json_output: bool = typer.Option(False, "--json", help="Output full report as JSON"),
 ) -> None:
     """Check wiki integrity: orphans, broken links, duplicates, frontmatter."""
+    import json as _json
+
     from config import load_config
     from lint import run_lint
 
     vault_root = _resolve_vault(vault)
 
-    # Load domains/layers from config if available (E1/E2); fallback = no validation
     domains: list[str] | None = None
     layers: list[str] | None = None
+    sdd_components: list[str] | None = None
     try:
         cfg = load_config(vault_root)
         domains = getattr(cfg, "domains", None)
         layers = getattr(cfg, "layers", None)
+        sdd_components = getattr(cfg, "sdd_components", None) or None
     except Exception:
         pass
 
-    report = run_lint(vault_root, domains=domains, layers=layers)
+    report = run_lint(vault_root, domains=domains, layers=layers, sdd_components=sdd_components)
+
+    if json_output:
+        typer.echo(_json.dumps(report, indent=2))
+        return
 
     orphans = report["orphans"]
     broken = report["broken_links"]
     duplicates = report["duplicates"]
     warnings = report["warnings"]
     errors = report["errors"]
+
+    if errors_only:
+        if errors:
+            for item in errors:
+                typer.echo(f"ERROR: {item['page_id']}: {item['message']}")
+        if broken:
+            typer.echo(f"Broken links ({len(broken)}):")
+            for item in broken:
+                typer.echo(f"  - {item['src']} → [[{item['target']}]]")
+        if not errors and not broken:
+            typer.echo("[OK] No errors.")
+        if errors or broken:
+            raise typer.Exit(1)
+        return
 
     if warnings:
         for item in warnings:
@@ -255,6 +278,113 @@ def lint(
         typer.echo("[OK] No issues found.")
     elif has_errors:
         raise typer.Exit(1)
+
+
+@app.command(name="gen-diff")
+def gen_diff(
+    page_id: str = typer.Argument(...),
+    new_content: Path = typer.Option(..., "--new-content", help="Path to file with full new page content"),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Compute unified diff between current page and new-content file; write .diff.md."""
+    import difflib
+    import hashlib
+
+    from repo import WikiRepo
+
+    vault_root = _resolve_vault(vault)
+    repo = WikiRepo(vault_root)
+
+    path = repo._find_page_path(page_id)
+    if path is None:
+        typer.echo(f"[ERROR] Page '{page_id}' not found.", err=True)
+        raise typer.Exit(1)
+
+    nc_path = new_content if new_content.is_absolute() else Path.cwd() / new_content
+    if not nc_path.exists():
+        typer.echo(f"[ERROR] --new-content file not found: {nc_path}", err=True)
+        raise typer.Exit(1)
+
+    old_text = path.read_text(encoding="utf-8")
+    new_text = nc_path.read_text(encoding="utf-8")
+    nc_path.unlink(missing_ok=True)
+
+    base_sha256 = hashlib.sha256(old_text.encode()).hexdigest()
+    rel_path = str(path.relative_to(vault_root))
+    diff_lines = list(
+        difflib.unified_diff(
+            old_text.splitlines(keepends=True),
+            new_text.splitlines(keepends=True),
+            fromfile=rel_path,
+            tofile=rel_path,
+        )
+    )
+
+    if not diff_lines:
+        typer.echo("[SKIP] No changes.")
+        return
+
+    tmp_dir = vault_root / "runtime" / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    out_path = tmp_dir / f"{page_id}.diff.md"
+    out_path.write_text(
+        f"---\nbase_sha256: {base_sha256}\n---\n" + "".join(diff_lines),
+        encoding="utf-8",
+    )
+    typer.echo(str(out_path))
+
+
+@app.command(name="commit")
+def wiki_commit(
+    message: str = typer.Option("wiki: update", "--message", "-m"),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """rebuild → lint → git commit (stages wiki/, derived/, ingest_log.jsonl only)."""
+    import subprocess
+
+    from config import load_config
+    from lint import run_lint
+    from rebuild import rebuild_all
+
+    vault_root = _resolve_vault(vault)
+
+    rebuild_all(vault_root)
+
+    domains: list[str] | None = None
+    layers: list[str] | None = None
+    sdd_components: list[str] | None = None
+    try:
+        cfg = load_config(vault_root)
+        domains = getattr(cfg, "domains", None) or None
+        layers = getattr(cfg, "layers", None) or None
+        sdd_components = getattr(cfg, "sdd_components", None) or None
+    except Exception:
+        pass
+
+    report = run_lint(vault_root, domains=domains, layers=layers, sdd_components=sdd_components)
+    if report["errors"] or report["broken_links"]:
+        for e in report["errors"]:
+            typer.echo(f"[ERROR] {e['page_id']}: {e['message']}", err=True)
+        for bl in report["broken_links"]:
+            typer.echo(f"[BROKEN] {bl['src']} → [[{bl['target']}]]", err=True)
+        typer.echo("[ERROR] Lint failed — commit aborted.", err=True)
+        raise typer.Exit(1)
+
+    files_to_add = [
+        str(vault_root / rel)
+        for rel in ("wiki", "derived", ".wiki/state/ingest_log.jsonl")
+        if (vault_root / rel).exists()
+    ]
+    if files_to_add:
+        subprocess.run(["git", "add"] + files_to_add, cwd=str(vault_root), check=True)
+
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=str(vault_root))
+    if result.returncode == 0:
+        typer.echo("[SKIP] Nothing to commit.")
+        return
+
+    subprocess.run(["git", "commit", "-m", message], cwd=str(vault_root), check=True)
+    typer.echo(f"[OK] Committed: {message}")
 
 
 @app.command()
@@ -305,6 +435,53 @@ def show(
         typer.echo(content)
 
 
+@app.command(name="page-info")
+def page_info(
+    page_id: str = typer.Argument(...),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Show page metadata: path, size, sha256. Exits 0 even if page not found."""
+    import hashlib
+
+    from repo import WikiRepo
+
+    vault_root = _resolve_vault(vault)
+    repo = WikiRepo(vault_root)
+    path = repo._find_page_path(page_id)
+    if path is None:
+        typer.echo(f"exists  : false")
+        typer.echo(f"page_id : {page_id}")
+        return
+    data = path.read_bytes()
+    sha256 = hashlib.sha256(data).hexdigest()
+    typer.echo(f"exists  : true")
+    typer.echo(f"page_id : {page_id}")
+    typer.echo(f"path    : {path.relative_to(vault_root)}")
+    typer.echo(f"size    : {len(data)}")
+    typer.echo(f"sha256  : {sha256}")
+
+
+@app.command(name="exists")
+def exists_cmd(
+    page_ids: list[str] = typer.Argument(...),
+    vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
+) -> None:
+    """Batch-check existence of wiki pages."""
+    from repo import WikiRepo
+
+    vault_root = _resolve_vault(vault)
+    repo = WikiRepo(vault_root)
+    col_w = max((len(pid) for pid in page_ids), default=10) + 2
+    typer.echo(f"{'page_id':<{col_w}} {'exists':<8} {'size':>6}")
+    typer.echo("-" * (col_w + 16))
+    for pid in page_ids:
+        path = repo._find_page_path(pid)
+        if path is None:
+            typer.echo(f"{pid:<{col_w}} {'false':<8} {'—':>6}")
+        else:
+            typer.echo(f"{pid:<{col_w}} {'true':<8} {path.stat().st_size:>6}")
+
+
 @app.command()
 def log(
     n: int = typer.Option(20, "--n", help="Number of entries to show"),
@@ -337,14 +514,36 @@ def log(
 
 @app.command()
 def promote(
-    query_id: str = typer.Argument(..., help="query_id from query_log"),
+    query_id: Optional[str] = typer.Argument(None, help="query_id from query_log"),
+    sha256: Optional[str] = typer.Option(None, "--sha256", help="SHA256 of a cached ContextPacket (bypasses query_log)"),
     vault: Path = typer.Option(_DEFAULT_VAULT, "--vault", envvar="WIKI_VAULT"),
 ) -> None:
-    """Promote a query context snapshot to a cached ContextPacket."""
-    from ingest import _dict_to_packet, cache_context_packet
-    from state import read_query_log
+    """Promote a query context snapshot to a cached ContextPacket.
+
+    Two modes:
+      wiki promote <query_id>          — loads snapshot from query_log
+      wiki promote --sha256 <sha256>   — loads directly from runtime/cache/ (no log-query needed)
+    """
+    from ingest import _dict_to_packet, cache_context_packet, load_context_packet
 
     vault_root = _resolve_vault(vault)
+
+    if sha256:
+        cache_path = vault_root / "runtime" / "cache" / f"{sha256}.json"
+        if not cache_path.exists():
+            typer.echo(f"Cache file not found: {cache_path}", err=True)
+            raise typer.Exit(1)
+        packet = load_context_packet(vault_root, sha256)
+        typer.echo(f"[OK] Promoted --sha256 '{sha256[:8]}'")
+        typer.echo(f"  sha256 : {packet.sha256}")
+        typer.echo(f"  cache  : {cache_path}")
+        return
+
+    if not query_id:
+        typer.echo("Provide either query_id argument or --sha256 option.", err=True)
+        raise typer.Exit(1)
+
+    from state import read_query_log
     entries = read_query_log(vault_root)
     match = next((e for e in entries if e.query_id == query_id), None)
     if match is None:
@@ -446,7 +645,9 @@ def status(
         from lint import run_lint
         cfg = load_config(vault_root)
         report = run_lint(vault_root, domains=getattr(cfg, "domains", None) or None,
-                                       layers=getattr(cfg, "layers", None) or None)
+                                       layers=getattr(cfg, "layers", None) or None,
+                                       sdd_components=getattr(cfg, "sdd_components", None) or None,
+                                       skip_duplicates=True)
         n_orphans = len(report["orphans"])
         n_broken  = len(report["broken_links"])
         n_errors  = len(report["errors"])
@@ -538,10 +739,11 @@ def finalize(
         cfg = load_config(vault_root)
         domains = getattr(cfg, "domains", None)
         layers = getattr(cfg, "layers", None)
+        sdd_components = getattr(cfg, "sdd_components", None) or None
     except Exception:
-        domains = layers = None
+        domains = layers = sdd_components = None
 
-    report = run_lint(vault_root, domains=domains, layers=layers)
+    report = run_lint(vault_root, domains=domains, layers=layers, sdd_components=sdd_components)
     if report["errors"] or report["broken_links"]:
         if report["errors"]:
             for e in report["errors"]:
@@ -587,7 +789,9 @@ def finalize(
     derived_dir = vault_root / "derived"
     ingest_log_path = vault_root / ".wiki" / "state" / "ingest_log.jsonl"
 
-    files_to_add = [str(src)]
+    files_to_add = []
+    if src.is_relative_to(vault_root):
+        files_to_add.append(str(src))
     if wiki_dir.exists():
         files_to_add.append(str(wiki_dir))
     if derived_dir.exists():
@@ -862,10 +1066,11 @@ def curate_apply(
         cfg = load_config(vault_root)
         _domains = getattr(cfg, "domains", None) or None
         _layers = getattr(cfg, "layers", None) or None
+        _sdd_components = getattr(cfg, "sdd_components", None) or None
     except Exception:
-        _domains = _layers = None
+        _domains = _layers = _sdd_components = None
 
-    report = run_lint(vault_root, domains=_domains, layers=_layers)
+    report = run_lint(vault_root, domains=_domains, layers=_layers, sdd_components=_sdd_components)
     has_fm_errors = bool(report["errors"])
     has_broken = bool(report["broken_links"])
     n_orphans = len(report["orphans"])
@@ -888,9 +1093,9 @@ def curate_apply(
     plan_path.unlink(missing_ok=True)
     typer.echo("[CLEAN] curate_plan.md removed.")
     if delete_ops:
-        typer.echo(f"\n[Next] wiki delete <page_id> --confirm  →  git add wiki/ derived/ && git commit -m \"wiki: curate ...\"  →  wiki lint")
+        typer.echo(f"\n[Next] wiki delete <page_id> --confirm  →  wiki commit -m \"wiki: curate ...\"  →  wiki lint")
     else:
-        typer.echo(f"\n[Next] git add wiki/ derived/ && git commit -m \"wiki: curate ...\"  →  wiki lint")
+        typer.echo(f"\n[Next] wiki commit -m \"wiki: curate ...\"  →  wiki lint")
 
 
 @app.command()

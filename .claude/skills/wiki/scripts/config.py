@@ -17,6 +17,7 @@ class WikiConfig(BaseModel):
     vault_root: Path
     domains: list[str] = []
     layers: list[str] = []
+    sdd_components: list[str] = []
 
 
 def load_config(vault_root: Path) -> WikiConfig:
