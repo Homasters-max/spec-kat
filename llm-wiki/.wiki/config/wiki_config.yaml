@@ -1,0 +1,59 @@
+domain: personal
+llm_model: claude-sonnet-4-6
+small_page_threshold: 1000
+vault_root: /root/project/obsidian-vault/llm-wiki
+
+domains:
+  - wiki
+  - llm
+  - sdd
+  - infra
+  - general
+
+layers:
+  - concept
+  - architecture
+  - implementation
+  - integration
+
+sdd_components:
+  - event-sourcing
+  - reducer
+  - write-kernel
+  - command-bus
+  - command-context
+  - eventstore-guard
+  - projection-registry
+  - upcaster-registry
+  - error-event
+  - global-laws
+  - command-spec
+  - optimistic-concurrency-control
+  - cqrs-boundary
+  - execution-guard
+  - scope-guard
+  - trace-store
+  - error-classifier
+  - session-orchestrator
+  - context-kernel
+  - input-port
+  - agent-handle
+  - sandbox-manager
+  - idempotency-middleware
+  - idempotency-projection
+  - memory-layer
+  - middleware-pipeline
+  - policy-kernel
+  - agent-loop
+  - spec-manager
+  - plan-manager
+  - phase-orchestrator
+  - constitution-parser
+  - audit-engine
+  - meta-optimization
+  - scenario-gen
+  - embedding-projection
+  - l1-l2-isolation
+  - sdd-actor-model
+  - observability-events
+  - replay-engine

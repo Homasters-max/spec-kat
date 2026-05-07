@@ -1,0 +1,95 @@
+---
+id: idea/causal-linkage
+page_type: idea
+domain: sdd
+layer: architecture
+tags:
+- pipeline
+- automation
+- ssot
+- write-path
+- domain/sdd
+version: 2
+created: '2026-05-05'
+updated: '2026-05-06'
+sources:
+- raw/SDD Architectural Hardening — CQRS EventLog Guard Idempotency.md
+---
+# Causal Linkage
+
+Три поля Event для полной трассируемости: `command_id` (provenance), `causation_event_id` (event DAG), `correlation_id` (flow grouping). Реконструкция истории сессии без внешних индексов.
+
+## How It Works
+
+```python
+@dataclass(frozen=True)
+class Event:
+    event_id:           UUID      # uuid5(command_id:position) — детерминирован
+    command_id:         UUID      # provenance: какая команда породила событие
+    causation_event_id: UUID | None  # event DAG: предыдущее событие (None если первое)
+    correlation_id:     UUID      # flow grouping: неизменен по всей сессии
+    sequence_no:        int
+    occurred_at:        datetime
+    payload:            dict
+```
+
+**Семантика полей:**
+
+| Поле | Вопрос | Задаётся |
+|------|--------|---------|
+| `command_id` | Какая команда создала событие? | CommandContext |
+| `causation_event_id` | Из какого события выросло следующее? | WriteKernel (event DAG) |
+| `correlation_id` | К какой сессии принадлежит? | SessionOrchestrator (один id на сессию) |
+
+**`correlation_id` lifecycle:**
+
+```python
+# SessionOrchestrator при старте сессии:
+correlation_id = uuid4()  # один id на всю сессию
+
+# CommandContext несёт его через весь pipeline:
+ctx = CommandContext(actor=..., session_id=..., task_id=..., correlation_id=correlation_id)
+
+# WriteKernel копирует в каждый Event:
+event.correlation_id = ctx.correlation_id
+```
+
+**Реконструкция истории сессии:**
+
+```sql
+SELECT * FROM event_log
+WHERE correlation_id = 'X'
+ORDER BY sequence_no;
+```
+
+**Event DAG через causation_event_id:**
+
+```text
+Event A (causation=None) → Event B (causation=A.event_id) → Event C (causation=B.event_id)
+```
+
+## When To Use
+
+Применяется в [[event-sourcing]] для: аудитабельности, debugging causal chains, реконструкции контекста сессии. Поля обязательны для всех Event в EventStore.
+
+## Trade-offs
+
+- `causation_event_id` строит DAG событий, не линейный лог — сложнее для анализа при ветвлении
+- `correlation_id` охватывает сессию целиком — нужен дополнительный индекс в PostgreSQL
+- `command_id` дублирует информацию о команде, но устраняет JOIN с таблицей команд
+
+## See Also
+
+- [[event-sourcing]]
+- [[cqrs-boundary]]
+- [[write-kernel]]
+- [[sdd-actor-model]]
+
+## Open Questions
+
+- [ ] (P1) Q116: Есть ли единая модель causal graph (event→event через causation_event_id, command→event через command_id)? Формализована в спеке?
+- [ ] (P1) Q117: Как восстановить полную цепочку причинности для произвольного event без ambiguity? SQL query или projection?
+- [ ] (P1) Q118: Есть ли API: `get_lineage(event_id) → [ancestor_events]`? Через EventLog query или отдельная lineage projection?
+- [ ] (P1) Q119: Как гарантировать что нет orphan events (событий без причины/команды)? Root events = user commands — это invariant?
+- [ ] (P1) Q120: Возможны ли циклы в causal graph? Где проверяется acyclicity — при append или при rebuild?
+- [ ] (P1) Q121: Как визуализируется causal graph для debugging? CLI `sdd trace-graph T-NNN`? Graphviz export?

@@ -1,0 +1,69 @@
+---
+created: '2026-05-05'
+domain: sdd
+id: pattern/input-port
+layer: architecture
+page_type: pattern
+sdd_domain: Core
+sdd_layer: L1
+sources:
+- raw/SDD System Architecture - Component Inventory and Boundaries.md
+tags:
+- pipeline
+- write-path
+- llm
+- automation
+- domain/sdd
+- sdd/l1
+- sdd/core
+updated: '2026-05-05'
+version: 2
+---
+# InputPort (ToolCallAdapter)
+
+L1-компонент: транслирует tool_use API calls от LLM в Commands для CommandBus. CLI остаётся исключительно для human.
+
+## How It Works
+
+```python
+class InputPort:
+    def dispatch(self, tool_call: ToolUseBlock) -> CommandResult:
+        cmd = self._translate(tool_call)   # tool_name → Command type
+        return command_bus.dispatch(cmd)
+
+    def _translate(self, call: ToolUseBlock) -> Command:
+        spec = TOOL_REGISTRY[call.name]    # typed tool schema
+        key  = uuid5(NAMESPACE_SDD, f"{call.id}:{call.name}")
+        return spec.command_type(**call.input, idempotency_key=key)
+```
+
+**Tool Schema → Command mapping:**
+
+```text
+tool: sdd_complete    → CompleteTaskCommand(task_id=...)
+tool: sdd_resolve     → ResolveCommand(task_id=...)
+tool: sdd_explain     → ExplainCommand(task_id=..., context=...)
+tool: sdd_write       → WriteCommand(file=..., content=...)
+tool: sdd_show_state  → ShowStateQuery(...)
+```
+
+**Ключевой инвариант:** LLM не может вызвать `event_store.append()` напрямую — только через tool calls → InputPort → CommandBus → WriteKernel → EventStore Guard. CLI-команды (activate-phase, approve) не выставляются как tools — human-only.
+
+**Tool schemas** генерируются из CommandRegistry автоматически при старте сессии и подаются в `AgentHandle.start()` как `tools` parameter.
+
+## When To Use
+
+Является единственным входом для LLM-actions. Все actions агента проходят через InputPort.
+
+## Trade-offs
+
+- Tool schema должна быть строго типизирована — иначе LLM может передать невалидные параметры.
+- Не поддерживает батчинг tool calls — каждый call обрабатывается атомарно.
+
+## See Also
+
+- [[command-bus]]
+- [[agent-handle]]
+- [[context-kernel]]
+- [[sdd-actor-model]]
+- [[idempotency-middleware]]

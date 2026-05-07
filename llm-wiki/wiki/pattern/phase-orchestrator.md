@@ -1,0 +1,90 @@
+---
+created: '2026-05-06'
+domain: sdd
+id: pattern/phase-orchestrator
+layer: architecture
+page_type: pattern
+sdd_domain: Blueprint
+sdd_layer: L2
+sources:
+- raw/SDD_Bounded_Contexts_Plan.md
+tags:
+- pipeline
+- automation
+- write-path
+- enforcement
+- domain/sdd
+- sdd/l2
+- sdd/blueprint
+updated: '2026-05-06'
+version: 2
+---
+# PhaseOrchestrator
+
+**[proposed]** L2-компонент Blueprint-домена: управляет макро-состоянием фазы. Coordinator, не Engine — принимает решения, но не исполняет их напрямую.
+
+- **I-ORCH-1**: PhaseOrchestrator MUST be pure decision logic — no execution side-effects. All decisions output Commands or Events via CommandBus. All execution delegated to SandboxManager / AgentHandle / AuditEngine.
+
+## How It Works
+
+**Next Task**: читает `TaskScopeProjection` через `memory.blueprint.read.task_scope(task_id)`, определяет следующую задачу по DAG. Emits команду для Engine (через CommandBus, caller_domain="blueprint").
+
+**Definition of Done**: проверяет критерии завершения фазы: все задачи выполнены + порог AgentScore достигнут. Если DoD met → emit `PhaseCompleted`.
+
+**Cross-Phase Dependencies**: проверяет наличие артефактов от предыдущих фаз через MemoryLayer.
+
+**Force Transition**: обрабатывает команду человека "перейти на следующую фазу" → emit `PhaseAbandoned`.
+
+**Proposal Handling**: видит pending proposal (из Intelligence через `ProposalProjection`) → останавливает цикл → `HumanGateReached`.
+
+```text
+Polling: читает проекции в начале каждого AgentLoop цикла (не по таймеру)
+Decision: emit Command via CommandBus (caller_domain="blueprint")
+No inline conditions like "if phase == X do Y" — это нарушение I-ORCH-1
+```
+
+## When To Use
+
+PhaseOrchestrator — единственный компонент, принимающий решение о следующей задаче фазы, завершении фазы или переходе к следующей. Engine не может инициировать фазовые переходы.
+
+## Trade-offs
+
+- Pure decision logic (I-ORCH-1) делает PhaseOrchestrator тестируемым без side-effects.
+- Polling в начале AgentLoop cycle означает: решения принимаются на основе snapshot, не real-time state — staleness ≤ 1 iteration.
+
+
+## Sync Freshness Check
+
+При `activate-phase` PhaseOrchestrator проверяет freshness `sync-wiki` через EventLog (Q11, Q19).
+
+**Механизм (I-SYNC-FRESHNESS-2):**
+
+```text
+activate-phase N
+  └─ PhaseOrchestrator.check_sync_freshness(phase_id)
+       ├─ читает SyncWikiExecuted из EventLog → получает wiki_files_hash
+       ├─ вычисляет current_hash(wiki-files)
+       ├─ если SyncWikiExecuted отсутствует → VIOLATION (I-SYNC-FRESHNESS-3)
+       ├─ если wiki_files_hash != current_hash → VIOLATION
+       └─ при VIOLATION: emit PhaseActivationBlocked {
+            reason: "SYNC_FRESHNESS_VIOLATION",
+            stale_files: list[str]
+          }
+```
+
+Отсутствие `SyncWikiExecuted` в EventLog = violation (I-SYNC-FRESHNESS-3).
+LLM напоминает пользователю запустить `sdd sync-wiki`, но не запускает сам (I-DOCGRAPH-SYNC-1).
+
+## Open Questions
+
+- [ ] (P2) Как PhaseOrchestrator обрабатывает задачу с ошибкой — retry, skip, или abort фазы?
+
+## See Also
+- [[sync-wiki]]
+
+- [[sdd-bounded-contexts]] — Blueprint domain, L2; I-ORCH-1
+- [[plan-manager]] — поставляет TaskScopeProjection (DAG)
+- [[memory-layer]] — `memory.blueprint.read.*`
+- [[audit-engine]] — поставляет AgentScore для DoD check
+- [[agent-loop]] — инфраструктура polling
+- [[observability-events]] — HumanGateReached emit

@@ -1,0 +1,27 @@
+{
+  "entities": [
+    {"term": "sdd-horizontal-slice",   "type": "idea", "confidence": 0.97, "in_glossary": false},
+    {"term": "sdd-vertical-slice",     "type": "idea", "confidence": 0.97, "in_glossary": false},
+    {"term": "sdd-layer-l0",           "type": "idea", "confidence": 0.92, "in_glossary": false},
+    {"term": "sdd-layer-l1",           "type": "idea", "confidence": 0.92, "in_glossary": false},
+    {"term": "sdd-layer-l2",           "type": "idea", "confidence": 0.92, "in_glossary": false},
+    {"term": "sdd-domain-core",        "type": "idea", "confidence": 0.88, "in_glossary": false},
+    {"term": "sdd-domain-blueprint",   "type": "idea", "confidence": 0.88, "in_glossary": false},
+    {"term": "sdd-domain-engine",      "type": "idea", "confidence": 0.88, "in_glossary": false},
+    {"term": "sdd-domain-intelligence","type": "idea", "confidence": 0.88, "in_glossary": false}
+  ],
+  "relations": [
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-layer-l0",          "type": "describes"},
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-layer-l1",          "type": "describes"},
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-layer-l2",          "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-core",       "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-blueprint",  "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-engine",     "type": "describes"},
+    {"from_term": "sdd-vertical-slice",    "to_term": "sdd-domain-intelligence","type": "describes"},
+    {"from_term": "sdd-horizontal-slice",  "to_term": "sdd-vertical-slice",    "type": "complements"},
+    {"from_term": "sdd-domain-core",       "to_term": "sdd-layer-l0",          "type": "spans"},
+    {"from_term": "sdd-domain-core",       "to_term": "sdd-layer-l1",          "type": "spans"}
+  ],
+  "conflicts": [],
+  "glossary_proposals": []
+}

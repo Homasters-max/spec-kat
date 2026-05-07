@@ -1,0 +1,87 @@
+---
+id: tool/wiki-cli
+page_type: tool
+domain: wiki
+layer: implementation
+tags:
+- cli
+- pipeline
+- knowledge-base
+- python
+- automation
+- domain/wiki
+version: 7
+created: '2026-05-05'
+updated: '2026-05-06'
+sources:
+- raw/TASKS.md
+---
+# Wiki CLI
+
+## Summary
+Консольный инструмент (`wiki`) для управления персональной базой знаний на основе markdown. Реализует три протокола: [[wiki-evolve]], [[wiki-query]], [[wiki-curate]]. Построен на принципе [[automation-over-llm]]: детерминированный код делает механическую работу, LLM — только смысловую.
+
+## Архитектура модулей
+
+| Модуль | Назначение |
+|--------|-----------|
+| `models.py` | Контракты данных: `ContextPacket`, `ExtractionResult`, `WikiDiff`, `RewriteOp` |
+| `config.py` | Загрузка `wiki_config.yaml`, чтение/запись glossary |
+| `state.py` | Append-only логи: `ingest_log.jsonl`, `query_log.jsonl` |
+| `git.py` | Обнаружение pending raw-файлов через git status |
+| `repo.py` | CRUD страниц wiki: `create_page`, `apply_diff`, `rewrite_page` |
+| `search.py` | BM25-индекс по всем страницам `wiki/**/*.md` |
+| `ingest.py` | Stage 0: создание [[context-packet]] из raw-файла |
+| `apply.py` | Stage 2: применение LLM-черновиков к wiki |
+| `rebuild.py` | Генерация `derived/index.md`, `derived/graph.json` |
+| `lint.py` | Проверка: orphans, broken links, duplicates, frontmatter |
+
+## Установка
+
+```bash
+WIKI_SRC=/root/project/.claude/skills/wiki
+python3 -m venv $WIKI_SRC/venv
+$WIKI_SRC/venv/bin/pip install -e $WIKI_SRC/scripts/ -q
+ln -sf $WIKI_SRC/venv/bin/wiki /usr/local/bin/wiki
+```
+
+## Ключевые инварианты
+
+- `repo.py` не имеет метода `save_page()` — только `create_page`, `apply_diff`, `rewrite_page`
+- `ingest.py::make_context_packet` — единственный конструктор `ContextPacket`
+- `apply_drafts` останавливается на первом конфликте (не откатывает применённые)
+- `wiki mark-ingested` — финальный шаг pipeline: записывает SHA256 в [[ingest-log]] (I-WIKI-INGEST-1)
+- `wiki log-query` — записывает вопрос в [[query-log]], возвращает `query_id` для `wiki promote`
+- `wiki evolve` — подсказка-указатель; выводит инструкцию запустить /wiki skill; НЕ автоматизирует pipeline
+- `wiki finalize --file <path>` — post-action shortcut: rebuild → lint → mark-ingested → git commit (I-WIKI-SEQ-1)
+- `wiki clean-tmp` — удаляет все файлы из `runtime/tmp/` (stale drafts, extraction.json) (I-WIKI-CLEAN-1)
+- `wiki templates` — показывает доступные шаблоны страниц и черновиков с путями
+- `wiki curate-apply` — проверяет наличие черновиков (pre-flight), scoped apply по `curate_plan.md` frontmatter, дифференцированный lint; НЕ пишет черновики сам
+- `wiki init --domains <...> --layers <...>` — добавлены флаги для списка допустимых доменов и слоёв в конфиг
+- `wiki register`, `wiki vaults`, `wiki use` — управление [[multi-vault]] реестром
+- `wiki status` — показывает состояние pipeline: pending файлы, черновики, записи логов + wiki health (lint summary)
+- `wiki save-proposals` — сохраняет `glossary_proposals` из extraction.json в `.wiki/config/glossary_pending.yaml`; skip если term уже есть (I-WIKI-SEQ-1)
+- `wiki delete <page_id> [--confirm]` — dry-run или удаление страницы: чистит входящие wikilinks, glossary entry, вызывает rebuild (I-WIKI-DELETE-1)
+- `git.py::pending_raw_files` = uncommitted raw/ WHERE sha256 NOT IN ingest_log
+- `wiki page-info <page_id>` — выводит path, size, sha256; exit 0 даже если страница не найдена (запрос-инфо, не ошибка)
+- `wiki gen-diff <page_id> --new-content <path>` — вычисляет unified diff; пишет `runtime/tmp/<id>.diff.md`; удаляет `--new-content` файл после генерации (I-WIKI-DIFF-1)
+- `wiki commit -m "msg"` — rebuild → lint → git commit; стейджит только `wiki/`, `derived/`, `.wiki/state/ingest_log.jsonl`; exit 1 при lint errors; не трогает `query_log.jsonl`
+- `wiki exists <id1> <id2> ...` — batch-проверка существования страниц; быстрее N последовательных `wiki show` вызовов
+- `wiki lint --errors-only` — выводит только errors + broken_links; exit 1 если хотя бы одно непусто
+- `wiki lint --json` — выводит полный lint report как JSON
+- `wiki rebuild-open-questions` — сканирует все `## Open Questions` блоки в `wiki/**/*.md`, пересобирает `derived/open-questions.md` с группировкой по приоритету (P0/P1/P2/P3); вызывается автоматически из `apply-drafts` если diff затрагивает OQ-блоки
+
+## See Also
+- [[wiki-evolve]]
+- [[wiki-query]]
+- [[wiki-curate]]
+- [[wiki-open-questions]]
+- [[context-packet]]
+- [[extraction-result]]
+- [[automation-over-llm]]
+- [[git-as-ssot]]
+- [[ingest-log]]
+- [[query-log]]
+- [[wiki-frontmatter]]
+- [[page-meta]]
+- [[multi-vault]]

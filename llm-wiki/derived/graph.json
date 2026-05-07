@@ -1,0 +1,3015 @@
+{
+  "automation-over-llm": {
+    "type": "idea",
+    "domain": "wiki",
+    "layer": "concept",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "automation",
+      "llm",
+      "ssot",
+      "pipeline",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Automation Over LLM",
+    "links": [
+      "wiki-cli",
+      "context-packet",
+      "extraction-result",
+      "wiki-cli",
+      "context-packet",
+      "extraction-result",
+      "git-as-ssot"
+    ]
+  },
+  "causal-linkage": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "automation",
+      "ssot",
+      "write-path",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "Causal Linkage",
+    "links": [
+      "event-sourcing",
+      "event-sourcing",
+      "cqrs-boundary",
+      "write-kernel",
+      "sdd-actor-model"
+    ]
+  },
+  "classified-recovery": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "validation",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "Classified Recovery",
+    "links": [
+      "error-registry",
+      "error-event",
+      "error-classifier",
+      "error-registry",
+      "classification-result",
+      "error-registry",
+      "error-event",
+      "error-classifier",
+      "classification-result",
+      "session-orchestrator",
+      "error-classifier",
+      "error-event",
+      "session-orchestrator"
+    ]
+  },
+  "command-context": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "automation",
+      "ssot",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "Command Context",
+    "links": [
+      "sdd-meta-harness",
+      "graph-session-state",
+      "trace-store"
+    ]
+  },
+  "context-snapshot": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "search",
+      "read-only",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Context Snapshot",
+    "links": [
+      "graph-query-engine",
+      "trace-store",
+      "execution-guard",
+      "graph-query-engine",
+      "execution-guard",
+      "trace-store",
+      "graph-query-engine",
+      "execution-guard",
+      "trace-store"
+    ]
+  },
+  "diff-first-updates": {
+    "type": "idea",
+    "domain": "wiki",
+    "layer": "concept",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "write-path",
+      "dedup",
+      "maintenance",
+      "git",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Diff-First Updates",
+    "links": [
+      "wiki-evolve",
+      "automation-over-llm",
+      "git-as-ssot",
+      "wiki-evolve",
+      "wiki-cli",
+      "git-as-ssot"
+    ]
+  },
+  "doc-graph-node": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "automation",
+      "write-path",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "DocGraph Node",
+    "links": [
+      "sync-wiki",
+      "render-wiki",
+      "doc-graph-parser",
+      "docgraph-dual-ssot"
+    ]
+  },
+  "docgraph-dual-ssot": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ssot",
+      "pipeline",
+      "enforcement",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "DocGraph Dual SSOT",
+    "links": [
+      "sync-wiki",
+      "render-wiki",
+      "graph-query-engine",
+      "plan-manager",
+      "context-kernel"
+    ]
+  },
+  "event-sourcing": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "ssot",
+      "write-path",
+      "pipeline",
+      "automation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Event Sourcing",
+    "links": [
+      "reducer",
+      "upcaster-registry",
+      "replay-based-testing",
+      "sdd-meta-harness",
+      "cqrs-boundary",
+      "idempotent-events",
+      "causal-linkage",
+      "classified-recovery",
+      "golden-fixture",
+      "write-kernel",
+      "upcaster-registry",
+      "eventstore-guard"
+    ]
+  },
+  "git-as-ssot": {
+    "type": "idea",
+    "domain": "wiki",
+    "layer": "concept",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "git",
+      "ssot",
+      "knowledge-base",
+      "ingestion",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Git as SSOT",
+    "links": [
+      "wiki-cli",
+      "wiki-cli",
+      "wiki-evolve",
+      "automation-over-llm"
+    ]
+  },
+  "global-laws": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "ssot",
+      "enforcement",
+      "write-path",
+      "pipeline",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Global Laws",
+    "links": [
+      "eventstore-guard",
+      "global-laws",
+      "global-laws",
+      "event-sourcing",
+      "sdd-bounded-contexts",
+      "observability-events",
+      "eventstore-guard",
+      "sandbox-manager",
+      "session-orchestrator",
+      "sdd-component-inventory"
+    ]
+  },
+  "graph-impact": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ssot",
+      "automation",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "GraphImpact",
+    "links": [
+      "command-spec",
+      "command-spec",
+      "command-spec",
+      "graph-structural-offset"
+    ]
+  },
+  "graph-session-state": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "write-path",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Graph Session State",
+    "links": [
+      "graph-session-projection",
+      "projection-registry",
+      "execution-guard",
+      "trace-projection",
+      "execution-guard",
+      "graph-session-projection",
+      "execution-guard",
+      "graph-session-projection",
+      "execution-guard",
+      "graph-session-projection",
+      "execution-guard",
+      "projection-registry",
+      "replay-based-testing",
+      "graph-query-engine"
+    ]
+  },
+  "graph-structural-offset": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "search",
+      "pipeline",
+      "ssot",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Graph Structural Offset",
+    "links": [
+      "graph-query-engine",
+      "graph-query-engine",
+      "command-bus",
+      "event-sourcing"
+    ]
+  },
+  "idempotency-mode": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "dedup",
+      "write-path",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "IdempotencyMode",
+    "links": [
+      "command-spec",
+      "idempotency-middleware",
+      "command-spec",
+      "idempotency-middleware",
+      "command-bus"
+    ]
+  },
+  "idempotent-events": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "dedup",
+      "write-path",
+      "ssot",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Idempotent Events",
+    "links": [
+      "cqrs-boundary",
+      "event-sourcing",
+      "write-kernel",
+      "replay-based-testing"
+    ]
+  },
+  "l1-l2-isolation": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "validation",
+      "seam",
+      "ssot",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "L1/L2 Isolation",
+    "links": [
+      "memory-layer",
+      "memory-layer",
+      "embedding-projection",
+      "execution-guard",
+      "context-kernel"
+    ]
+  },
+  "sdd-actor-model": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "automation",
+      "llm",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Actor Model",
+    "links": [
+      "agent-handle",
+      "sandbox-manager",
+      "agent-handle",
+      "input-port",
+      "session-orchestrator",
+      "policy-kernel",
+      "sdd-component-inventory"
+    ]
+  },
+  "sdd-bounded-contexts": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "bounded-contexts",
+      "enforcement",
+      "ssot",
+      "write-path",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Bounded Contexts",
+    "links": [
+      "eventstore-guard",
+      "memory-layer",
+      "phase-orchestrator",
+      "memory-layer",
+      "memory-layer",
+      "spec-manager",
+      "plan-manager",
+      "phase-orchestrator",
+      "constitution-parser",
+      "audit-engine",
+      "sdd-component-inventory",
+      "sdd-meta-harness",
+      "command-bus",
+      "event-sourcing",
+      "memory-layer",
+      "global-laws",
+      "execution-guard",
+      "eventstore-guard",
+      "write-kernel",
+      "projection-registry",
+      "policy-kernel",
+      "observability-events",
+      "phase-orchestrator",
+      "spec-manager",
+      "plan-manager",
+      "constitution-parser"
+    ]
+  },
+  "sdd-component-inventory": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ssot",
+      "enforcement",
+      "pipeline",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Component Inventory",
+    "links": [
+      "sdd-bounded-contexts",
+      "sdd-meta-harness",
+      "sdd-bounded-contexts",
+      "global-laws",
+      "sdd-actor-model",
+      "event-sourcing",
+      "session-orchestrator",
+      "audit-engine",
+      "idempotency-middleware",
+      "idempotency-projection",
+      "memory-layer",
+      "spec-manager",
+      "plan-manager",
+      "phase-orchestrator",
+      "constitution-parser"
+    ]
+  },
+  "sdd-domain-blueprint": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "sdd/blueprint",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Domain — Blueprint",
+    "links": [
+      "policy-kernel",
+      "spec-manager",
+      "plan-manager",
+      "phase-orchestrator",
+      "constitution-parser",
+      "sdd-vertical-slice",
+      "sdd-domain-core",
+      "sdd-domain-engine",
+      "sdd-layer-l1",
+      "sdd-layer-l2"
+    ]
+  },
+  "sdd-domain-core": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "sdd/core",
+      "ssot",
+      "write-path",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Domain — Core",
+    "links": [
+      "event-sourcing",
+      "write-kernel",
+      "command-bus",
+      "command-spec",
+      "command-context",
+      "eventstore-guard",
+      "projection-registry",
+      "upcaster-registry",
+      "reducer",
+      "error-event",
+      "global-laws",
+      "cqrs-boundary",
+      "optimistic-concurrency-control",
+      "observability-events",
+      "replay-engine",
+      "execution-guard",
+      "scope-guard",
+      "trace-store",
+      "error-classifier",
+      "session-orchestrator",
+      "context-kernel",
+      "input-port",
+      "agent-handle",
+      "sandbox-manager",
+      "idempotency-middleware",
+      "idempotency-projection",
+      "memory-layer",
+      "middleware-pipeline",
+      "l1-l2-isolation",
+      "sdd-actor-model",
+      "sdd-vertical-slice",
+      "sdd-domain-blueprint",
+      "sdd-layer-l0",
+      "sdd-layer-l1"
+    ]
+  },
+  "sdd-domain-engine": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "sdd/engine",
+      "pipeline",
+      "llm",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Domain — Engine",
+    "links": [
+      "agent-loop",
+      "sdd-vertical-slice",
+      "sdd-domain-blueprint",
+      "sdd-domain-intelligence",
+      "agent-loop",
+      "sdd-layer-l1"
+    ]
+  },
+  "sdd-domain-intelligence": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "sdd/intelligence",
+      "validation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Domain — Intelligence",
+    "links": [
+      "audit-engine",
+      "meta-optimization",
+      "scenario-gen",
+      "embedding-projection",
+      "sdd-vertical-slice",
+      "sdd-domain-core",
+      "sdd-layer-l2",
+      "l1-l2-isolation"
+    ]
+  },
+  "sdd-horizontal-slice": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "bounded-contexts",
+      "navigation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Horizontal Slice",
+    "links": [
+      "sdd-layer-l0",
+      "sdd-layer-l1",
+      "sdd-layer-l2",
+      "sdd-component-inventory",
+      "sdd-bounded-contexts",
+      "sdd-vertical-slice",
+      "sdd-layer-l0",
+      "sdd-layer-l1",
+      "sdd-layer-l2",
+      "sdd-bounded-contexts",
+      "sdd-component-inventory"
+    ]
+  },
+  "sdd-layer-l0": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "sdd/l0",
+      "enforcement",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Layer L0 — Core Physics",
+    "links": [
+      "event-sourcing",
+      "write-kernel",
+      "command-bus",
+      "command-spec",
+      "command-context",
+      "eventstore-guard",
+      "projection-registry",
+      "upcaster-registry",
+      "reducer",
+      "error-event",
+      "global-laws",
+      "cqrs-boundary",
+      "optimistic-concurrency-control",
+      "observability-events",
+      "replay-engine",
+      "sdd-layer-l1",
+      "sdd-horizontal-slice",
+      "sdd-domain-core"
+    ]
+  },
+  "sdd-layer-l1": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "sdd/l1",
+      "pipeline",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Layer L1 — Execution",
+    "links": [
+      "execution-guard",
+      "scope-guard",
+      "trace-store",
+      "error-classifier",
+      "session-orchestrator",
+      "context-kernel",
+      "input-port",
+      "agent-handle",
+      "sandbox-manager",
+      "idempotency-middleware",
+      "idempotency-projection",
+      "memory-layer",
+      "middleware-pipeline",
+      "l1-l2-isolation",
+      "sdd-actor-model",
+      "policy-kernel",
+      "agent-loop",
+      "sdd-layer-l0",
+      "sdd-layer-l2",
+      "sdd-horizontal-slice",
+      "l1-l2-isolation"
+    ]
+  },
+  "sdd-layer-l2": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "sdd/l2",
+      "validation",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Layer L2 — Intelligence",
+    "links": [
+      "spec-manager",
+      "plan-manager",
+      "phase-orchestrator",
+      "constitution-parser",
+      "audit-engine",
+      "meta-optimization",
+      "scenario-gen",
+      "embedding-projection",
+      "sdd-layer-l1",
+      "sdd-horizontal-slice",
+      "l1-l2-isolation",
+      "sdd-domain-intelligence",
+      "sdd-domain-blueprint"
+    ]
+  },
+  "sdd-vertical-slice": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "bounded-contexts",
+      "navigation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "SDD Vertical Slice",
+    "links": [
+      "sdd-domain-core",
+      "sdd-domain-blueprint",
+      "agent-loop",
+      "sdd-domain-engine",
+      "sdd-domain-intelligence",
+      "sdd-horizontal-slice",
+      "sdd-domain-core",
+      "sdd-domain-blueprint",
+      "sdd-domain-engine",
+      "sdd-domain-intelligence",
+      "sdd-bounded-contexts"
+    ]
+  },
+  "trace-aligned-test-partitioning": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "automation",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Trace-Aligned Test Partitioning (TATP)",
+    "links": [
+      "test-catalog-projection",
+      "test-catalog-projection",
+      "test-catalog-projection",
+      "replay-based-testing",
+      "replay-engine",
+      "golden-fixture"
+    ]
+  },
+  "trace-scope": {
+    "type": "idea",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ssot",
+      "automation",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "TraceScope",
+    "links": [
+      "command-spec",
+      "trace-projection",
+      "trace-projection",
+      "command-spec",
+      "command-spec",
+      "trace-projection"
+    ]
+  },
+  "wiki-taxonomy": {
+    "type": "idea",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "knowledge-base",
+      "maintenance",
+      "markdown",
+      "llm",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki Taxonomy",
+    "links": [
+      "wiki-markup-standard",
+      "wiki-evolve"
+    ]
+  },
+  "adversarial-scenario-mutator": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "automation",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "AdversarialScenarioMutator",
+    "links": [
+      "scenario-gen",
+      "audit-engine",
+      "scenario-gen",
+      "audit-engine",
+      "error-classifier",
+      "replay-based-testing",
+      "task-event-slice",
+      "mutation-registry"
+    ]
+  },
+  "agent-handle": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "llm",
+      "pipeline",
+      "automation",
+      "write-path",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "AgentHandle",
+    "links": [
+      "agent-loop",
+      "agent-loop",
+      "audit-engine",
+      "agent-loop",
+      "session-orchestrator",
+      "graph-session-state",
+      "agent-loop",
+      "session-orchestrator",
+      "input-port",
+      "trace-store",
+      "context-kernel",
+      "graph-session-state"
+    ]
+  },
+  "agent-loop": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Engine",
+    "tags": [
+      "pipeline",
+      "automation",
+      "enforcement",
+      "llm",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/engine"
+    ],
+    "updated": "2026-05-06",
+    "title": "AgentLoop",
+    "links": [
+      "session-orchestrator",
+      "agent-handle",
+      "agent-handle",
+      "policy-projection",
+      "command-bus",
+      "trace-projection",
+      "trace-projection",
+      "session-orchestrator",
+      "loop-outcome",
+      "session-orchestrator",
+      "agent-handle",
+      "loop-policy",
+      "loop-outcome",
+      "error-classifier",
+      "classification-result",
+      "error-event",
+      "trace-projection",
+      "policy-projection",
+      "command-bus"
+    ]
+  },
+  "audit-engine": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Intelligence",
+    "tags": [
+      "validation",
+      "automation",
+      "pipeline",
+      "ssot",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/intelligence"
+    ],
+    "updated": "2026-05-06",
+    "title": "AuditEngine",
+    "links": [
+      "metric-collector",
+      "scenario-gen",
+      "test-catalog-projection",
+      "adversarial-scenario-mutator",
+      "meta-optimization",
+      "metric-collector",
+      "metric-collector",
+      "scenario-gen",
+      "trace-store",
+      "meta-optimization",
+      "session-orchestrator",
+      "replay-based-testing"
+    ]
+  },
+  "bootstrap-policy": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "ssot",
+      "write-path",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Bootstrap Policy",
+    "links": [
+      "policy-kernel",
+      "projection-registry",
+      "policy-kernel",
+      "policy-kernel",
+      "projection-registry",
+      "event-sourcing",
+      "global-laws"
+    ]
+  },
+  "classification-result": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "validation",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "ClassificationResult",
+    "links": [
+      "error-classifier",
+      "agent-loop",
+      "agent-loop",
+      "error-meta",
+      "error-meta",
+      "error-registry",
+      "error-classifier",
+      "agent-loop",
+      "error-event"
+    ]
+  },
+  "command-bus": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "write-path",
+      "enforcement",
+      "automation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "CommandBus",
+    "links": [
+      "middleware-pipeline",
+      "input-port",
+      "middleware-pipeline",
+      "idempotency-middleware",
+      "input-port",
+      "eventstore-guard",
+      "execution-guard",
+      "scope-guard",
+      "error-classifier",
+      "projection-registry"
+    ]
+  },
+  "command-spec": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "cli",
+      "ssot",
+      "write-path",
+      "automation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "CommandSpec",
+    "links": [
+      "command-bus",
+      "trace-scope",
+      "trace-projection",
+      "graph-impact",
+      "idempotency-mode",
+      "idempotency-middleware",
+      "task-event-slice",
+      "command-bus",
+      "trace-scope",
+      "graph-impact",
+      "idempotency-mode",
+      "command-bus",
+      "middleware-pipeline",
+      "task-event-slice"
+    ]
+  },
+  "commit-discard-gate": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "write-path",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Commit/Discard Gate",
+    "links": [
+      "sandbox-manager",
+      "scenario-gen",
+      "scenario-gen",
+      "sandbox-manager",
+      "audit-engine",
+      "sandbox-manager",
+      "audit-engine",
+      "scenario-gen",
+      "metric-collector",
+      "score-context"
+    ]
+  },
+  "constitution-parser": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Blueprint",
+    "tags": [
+      "pipeline",
+      "validation",
+      "ssot",
+      "automation",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/blueprint"
+    ],
+    "updated": "2026-05-06",
+    "title": "ConstitutionParser",
+    "links": [
+      "sdd-bounded-contexts",
+      "spec-manager",
+      "memory-layer",
+      "policy-kernel"
+    ]
+  },
+  "context-kernel": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "search",
+      "llm",
+      "ssot",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Context Kernel",
+    "links": [
+      "policy-projection",
+      "wiki-snapshot-loader",
+      "wiki-semantic-extractor",
+      "graph-query-engine",
+      "memory-layer",
+      "policy-projection",
+      "context-snapshot",
+      "execution-guard",
+      "input-port",
+      "session-orchestrator",
+      "wiki-snapshot-loader",
+      "context-packet"
+    ]
+  },
+  "context-packet": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "seam",
+      "pipeline",
+      "ingestion",
+      "automation",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Context Packet",
+    "links": [
+      "wiki-evolve",
+      "wiki-evolve",
+      "extraction-result",
+      "wiki-cli"
+    ]
+  },
+  "cqrs-boundary": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "cqrs",
+      "write-path",
+      "ssot",
+      "pipeline",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "CQRS Boundary",
+    "links": [
+      "write-kernel",
+      "write-kernel",
+      "write-kernel",
+      "replay-based-testing",
+      "write-kernel",
+      "optimistic-concurrency-control",
+      "idempotent-events",
+      "replay-based-testing",
+      "event-sourcing",
+      "execution-guard"
+    ]
+  },
+  "deterministic-context": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "automation",
+      "ssot",
+      "write-path",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Deterministic Context",
+    "links": [
+      "write-kernel",
+      "write-kernel",
+      "replay-based-testing",
+      "write-kernel",
+      "cqrs-boundary",
+      "replay-based-testing",
+      "event-sourcing"
+    ]
+  },
+  "doc-graph-parser": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "automation",
+      "validation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "DocGraphParser",
+    "links": [
+      "doc-graph-validator",
+      "plan-manager",
+      "doc-graph-node",
+      "sync-wiki"
+    ]
+  },
+  "doc-graph-validator": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "pipeline",
+      "automation",
+      "enforcement",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "DocGraphValidator",
+    "links": [
+      "doc-graph-parser",
+      "plan-manager",
+      "doc-graph-parser",
+      "plan-manager",
+      "sync-wiki",
+      "write-kernel"
+    ]
+  },
+  "embedding-projection": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Intelligence",
+    "tags": [
+      "pipeline",
+      "search",
+      "automation",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/intelligence"
+    ],
+    "updated": "2026-05-05",
+    "title": "Embedding Projection",
+    "links": [
+      "memory-layer",
+      "memory-layer",
+      "l1-l2-isolation",
+      "projection-registry"
+    ]
+  },
+  "error-classifier": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "validation",
+      "pipeline",
+      "automation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "ErrorClassifier",
+    "links": [
+      "classification-result",
+      "agent-loop",
+      "agent-loop",
+      "agent-loop",
+      "session-orchestrator",
+      "agent-loop",
+      "agent-loop",
+      "error-registry",
+      "classification-result",
+      "error-meta",
+      "agent-loop",
+      "loop-policy",
+      "session-orchestrator",
+      "execution-guard"
+    ]
+  },
+  "error-event": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "write-path",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "ErrorEvent",
+    "links": [
+      "agent-loop",
+      "error-meta",
+      "command-bus",
+      "trace-projection",
+      "agent-loop",
+      "agent-loop",
+      "agent-loop",
+      "trace-projection",
+      "error-registry",
+      "error-meta",
+      "classification-result",
+      "agent-loop",
+      "loop-outcome",
+      "trace-projection"
+    ]
+  },
+  "error-meta": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "validation",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "ErrorMeta",
+    "links": [
+      "error-registry",
+      "classification-result",
+      "error-registry",
+      "classification-result",
+      "error-registry",
+      "classification-result",
+      "error-event"
+    ]
+  },
+  "error-registry": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "validation",
+      "ssot",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "ErrorRegistry",
+    "links": [
+      "error-classifier",
+      "agent-loop",
+      "error-meta",
+      "error-event",
+      "classification-result",
+      "error-classifier",
+      "agent-loop"
+    ]
+  },
+  "eventstore-guard": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "write-path",
+      "ssot",
+      "validation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "EventStore Guard",
+    "links": [
+      "observability-events",
+      "event-sourcing",
+      "command-bus",
+      "global-laws",
+      "sdd-component-inventory",
+      "observability-events",
+      "sdd-bounded-contexts"
+    ]
+  },
+  "execution-guard": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "validation",
+      "write-path",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Execution Guard (L1)",
+    "links": [
+      "policy-projection",
+      "graph-session-projection",
+      "graph-session-projection",
+      "policy-projection",
+      "l1-l2-isolation",
+      "cqrs-boundary",
+      "write-kernel",
+      "scope-guard",
+      "trace-projection",
+      "sdd-actor-model",
+      "middleware-pipeline",
+      "middleware-pipeline",
+      "execution-guard"
+    ]
+  },
+  "extraction-result": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "seam",
+      "pipeline",
+      "extraction",
+      "pydantic",
+      "validation",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Extraction Result",
+    "links": [
+      "wiki-evolve",
+      "context-packet",
+      "wiki-evolve",
+      "context-packet",
+      "wiki-cli"
+    ]
+  },
+  "golden-fixture": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "automation",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "GoldenFixture",
+    "links": [
+      "test-catalog-projection",
+      "replay-engine",
+      "replay-engine",
+      "snapshot-comparator",
+      "task-event-slice",
+      "test-catalog-projection",
+      "scenario-gen",
+      "replay-based-testing"
+    ]
+  },
+  "graph-query-engine": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "search",
+      "pipeline",
+      "automation",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "Graph Query Engine",
+    "links": [
+      "execution-guard",
+      "execution-guard",
+      "docgraph-dual-ssot",
+      "context-snapshot",
+      "execution-guard",
+      "graph-session-state",
+      "sdd-meta-harness",
+      "wiki-semantic-extractor",
+      "wiki-snapshot-loader",
+      "docgraph-dual-ssot"
+    ]
+  },
+  "graph-session-projection": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ssot",
+      "enforcement",
+      "write-path",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Graph Session Projection",
+    "links": [
+      "projection-registry",
+      "execution-guard",
+      "policy-projection",
+      "trace-projection",
+      "policy-projection",
+      "execution-guard",
+      "policy-projection",
+      "execution-guard",
+      "projection-registry",
+      "execution-guard",
+      "policy-projection",
+      "trace-projection",
+      "memory-layer"
+    ]
+  },
+  "idempotency-middleware": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "dedup",
+      "write-path",
+      "pipeline",
+      "automation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "IdempotencyMiddleware",
+    "links": [
+      "middleware-pipeline",
+      "middleware-pipeline",
+      "idempotency-projection",
+      "input-port",
+      "command-bus"
+    ]
+  },
+  "idempotency-projection": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "dedup",
+      "write-path",
+      "ssot",
+      "validation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "IdempotencyProjection",
+    "links": [
+      "idempotency-middleware",
+      "idempotency-middleware",
+      "idempotency-middleware",
+      "middleware-pipeline",
+      "projection-registry",
+      "eventstore-guard"
+    ]
+  },
+  "ingest-log": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "implementation",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ingestion",
+      "write-path",
+      "ssot",
+      "automation",
+      "pipeline",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Ingest Log",
+    "links": [
+      "context-packet",
+      "wiki-cli",
+      "context-packet",
+      "wiki-cli",
+      "wiki-evolve",
+      "context-packet",
+      "query-log"
+    ]
+  },
+  "input-port": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "write-path",
+      "llm",
+      "automation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "InputPort (ToolCallAdapter)",
+    "links": [
+      "command-bus",
+      "agent-handle",
+      "context-kernel",
+      "sdd-actor-model",
+      "idempotency-middleware"
+    ]
+  },
+  "loop-outcome": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "LoopOutcome",
+    "links": [
+      "agent-loop",
+      "session-orchestrator",
+      "agent-loop",
+      "session-orchestrator",
+      "agent-loop",
+      "session-orchestrator",
+      "loop-policy",
+      "audit-engine"
+    ]
+  },
+  "loop-policy": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "enforcement",
+      "automation",
+      "pipeline",
+      "write-path",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "LoopPolicy",
+    "links": [
+      "agent-loop",
+      "policy-projection",
+      "agent-loop",
+      "agent-loop",
+      "error-classifier",
+      "agent-loop",
+      "agent-loop",
+      "policy-projection",
+      "loop-outcome",
+      "error-classifier"
+    ]
+  },
+  "memory-layer": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "ssot",
+      "read-only",
+      "pipeline",
+      "llm",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Memory Layer",
+    "links": [
+      "projection-registry",
+      "l1-l2-isolation",
+      "embedding-projection",
+      "embedding-projection",
+      "l1-l2-isolation",
+      "sdd-bounded-contexts",
+      "policy-projection",
+      "embedding-projection",
+      "projection-registry",
+      "context-kernel",
+      "execution-guard"
+    ]
+  },
+  "meta-optimization": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Intelligence",
+    "tags": [
+      "automation",
+      "pipeline",
+      "llm",
+      "validation",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/intelligence"
+    ],
+    "updated": "2026-05-06",
+    "title": "MetaOptimization",
+    "links": [
+      "policy-kernel",
+      "audit-engine",
+      "trace-store",
+      "classified-recovery",
+      "sdd-actor-model"
+    ]
+  },
+  "metric-collector": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "automation",
+      "pipeline",
+      "enforcement",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Metric Collector",
+    "links": [
+      "audit-engine",
+      "audit-engine",
+      "score-context",
+      "commit-discard-gate",
+      "execution-guard",
+      "scope-guard",
+      "trace-projection"
+    ]
+  },
+  "middleware-pipeline": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "write-path",
+      "enforcement",
+      "automation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "Middleware Pipeline",
+    "links": [
+      "command-bus",
+      "global-laws",
+      "command-bus",
+      "idempotency-middleware",
+      "global-laws",
+      "error-classifier"
+    ]
+  },
+  "multi-vault": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "knowledge-base",
+      "pipeline",
+      "cli",
+      "automation",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Multi-Vault",
+    "links": [
+      "wiki-cli",
+      "wiki-cli",
+      "git-as-ssot",
+      "ingest-log"
+    ]
+  },
+  "mutation-registry": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "automation",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "MutationRegistry",
+    "links": [
+      "error-registry",
+      "error-registry",
+      "error-registry",
+      "error-classifier"
+    ]
+  },
+  "observability-events": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "write-path",
+      "ssot",
+      "automation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Observability Events",
+    "links": [
+      "eventstore-guard",
+      "eventstore-guard",
+      "sdd-bounded-contexts",
+      "global-laws",
+      "event-sourcing",
+      "agent-loop"
+    ]
+  },
+  "optimistic-concurrency-control": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "write-path",
+      "ssot",
+      "automation",
+      "validation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Optimistic Concurrency Control",
+    "links": [
+      "write-kernel",
+      "cqrs-boundary",
+      "loop-policy",
+      "idempotency-projection",
+      "idempotency-mode",
+      "cqrs-boundary",
+      "write-kernel",
+      "idempotent-events",
+      "event-sourcing"
+    ]
+  },
+  "page-meta": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "implementation",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "python",
+      "pydantic",
+      "write-path",
+      "validation",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "PageMeta",
+    "links": [
+      "wiki-cli",
+      "wiki-cli",
+      "wiki-frontmatter",
+      "wiki-evolve"
+    ]
+  },
+  "phase-orchestrator": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Blueprint",
+    "tags": [
+      "pipeline",
+      "automation",
+      "write-path",
+      "enforcement",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/blueprint"
+    ],
+    "updated": "2026-05-06",
+    "title": "PhaseOrchestrator",
+    "links": [
+      "sync-wiki",
+      "sdd-bounded-contexts",
+      "plan-manager",
+      "memory-layer",
+      "audit-engine",
+      "agent-loop",
+      "observability-events"
+    ]
+  },
+  "plan-manager": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Blueprint",
+    "tags": [
+      "pipeline",
+      "validation",
+      "write-path",
+      "automation",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/blueprint"
+    ],
+    "updated": "2026-05-06",
+    "title": "PlanManager",
+    "links": [
+      "doc-graph-validator",
+      "sandbox-manager",
+      "graph-query-engine",
+      "sdd-bounded-contexts",
+      "doc-graph-parser",
+      "doc-graph-validator",
+      "sync-wiki",
+      "phase-orchestrator",
+      "sandbox-manager",
+      "memory-layer"
+    ]
+  },
+  "policy-kernel": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Blueprint",
+    "tags": [
+      "enforcement",
+      "ssot",
+      "write-path",
+      "automation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/blueprint"
+    ],
+    "updated": "2026-05-06",
+    "title": "PolicyKernel",
+    "links": [
+      "meta-optimization",
+      "error-classifier",
+      "meta-optimization",
+      "sdd-actor-model",
+      "scope-guard",
+      "event-sourcing"
+    ]
+  },
+  "policy-projection": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ssot",
+      "enforcement",
+      "write-path",
+      "pipeline",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Policy Projection",
+    "links": [
+      "projection-registry",
+      "memory-layer",
+      "agent-loop",
+      "loop-policy",
+      "loop-policy",
+      "memory-layer",
+      "execution-guard",
+      "trace-projection",
+      "projection-registry",
+      "graph-session-projection",
+      "agent-loop",
+      "loop-policy",
+      "bootstrap-policy"
+    ]
+  },
+  "projection-registry": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "ssot",
+      "write-path",
+      "pipeline",
+      "automation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "ProjectionRegistry",
+    "links": [
+      "embedding-projection",
+      "memory-layer",
+      "policy-projection",
+      "trace-projection",
+      "embedding-projection",
+      "command-bus",
+      "projection-registry",
+      "projection-registry"
+    ]
+  },
+  "query-log": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "implementation",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "knowledge-base",
+      "read-only",
+      "pipeline",
+      "ingestion",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Query Log",
+    "links": [
+      "context-packet",
+      "wiki-query",
+      "wiki-cli",
+      "ingest-log",
+      "context-packet",
+      "wiki-evolve"
+    ]
+  },
+  "reducer": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "ssot",
+      "automation",
+      "pipeline",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Reducer",
+    "links": [
+      "upcaster-registry",
+      "event-sourcing",
+      "upcaster-registry",
+      "replay-based-testing",
+      "sdd-meta-harness",
+      "deterministic-context",
+      "global-laws",
+      "reducer"
+    ]
+  },
+  "render-wiki": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "automation",
+      "write-path",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "render-wiki",
+    "links": [
+      "wiki-snapshot-loader",
+      "wiki-snapshot-loader",
+      "sync-wiki",
+      "doc-graph-node",
+      "docgraph-dual-ssot"
+    ]
+  },
+  "replay-based-testing": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "automation",
+      "validation",
+      "pipeline",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "Replay-Based Testing",
+    "links": [
+      "replay-engine",
+      "task-event-slice",
+      "golden-fixture",
+      "snapshot-comparator",
+      "test-catalog-projection",
+      "adversarial-scenario-mutator",
+      "replay-engine",
+      "task-event-slice",
+      "golden-fixture",
+      "snapshot-comparator",
+      "test-catalog-projection",
+      "adversarial-scenario-mutator",
+      "reducer",
+      "upcaster-registry",
+      "event-sourcing",
+      "audit-engine"
+    ]
+  },
+  "replay-engine": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "automation",
+      "validation",
+      "pipeline",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "ReplayEngine",
+    "links": [
+      "golden-fixture",
+      "reducer",
+      "upcaster-registry",
+      "task-event-slice",
+      "golden-fixture",
+      "replay-based-testing",
+      "classified-recovery",
+      "replay-engine",
+      "replay-engine",
+      "replay-engine",
+      "replay-engine",
+      "golden-fixture"
+    ]
+  },
+  "sandbox-manager": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "pipeline",
+      "write-path",
+      "automation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "SandboxManager",
+    "links": [
+      "scope-guard",
+      "audit-engine",
+      "session-orchestrator",
+      "global-laws",
+      "sdd-component-inventory"
+    ]
+  },
+  "scenario-gen": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Intelligence",
+    "tags": [
+      "automation",
+      "validation",
+      "pipeline",
+      "ssot",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/intelligence"
+    ],
+    "updated": "2026-05-05",
+    "title": "ScenarioGen",
+    "links": [
+      "adversarial-scenario-mutator",
+      "audit-engine",
+      "trace-store",
+      "replay-based-testing",
+      "session-orchestrator",
+      "adversarial-scenario-mutator"
+    ]
+  },
+  "scope-guard": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "enforcement",
+      "write-path",
+      "validation",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Scope Guard",
+    "links": [
+      "trace-store",
+      "trace-store",
+      "execution-guard",
+      "sdd-meta-harness"
+    ]
+  },
+  "score-context": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "pipeline",
+      "read-only",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Score Context",
+    "links": [
+      "metric-collector",
+      "audit-engine",
+      "trace-projection",
+      "sandbox-manager",
+      "commit-discard-gate",
+      "trace-projection",
+      "sandbox-manager",
+      "policy-kernel",
+      "metric-collector",
+      "metric-collector",
+      "metric-collector",
+      "audit-engine",
+      "commit-discard-gate",
+      "trace-projection",
+      "policy-kernel"
+    ]
+  },
+  "sdd-meta-harness": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "event-sourcing",
+      "pipeline",
+      "ssot",
+      "enforcement",
+      "llm",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "SDD Meta Harness",
+    "links": [
+      "agent-loop",
+      "sdd-component-inventory",
+      "global-laws",
+      "event-sourcing",
+      "reducer",
+      "command-bus",
+      "session-orchestrator",
+      "agent-loop",
+      "loop-outcome",
+      "execution-guard",
+      "audit-engine",
+      "trace-store",
+      "trace-projection",
+      "commit-discard-gate",
+      "metric-collector",
+      "upcaster-registry",
+      "replay-based-testing"
+    ]
+  },
+  "session-orchestrator": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "automation",
+      "enforcement",
+      "write-path",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Session Orchestrator",
+    "links": [
+      "agent-loop",
+      "agent-loop",
+      "agent-loop",
+      "loop-outcome",
+      "agent-handle",
+      "context-kernel",
+      "sandbox-manager",
+      "audit-engine",
+      "classified-recovery",
+      "sdd-component-inventory"
+    ]
+  },
+  "snapshot-comparator": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "SnapshotComparator",
+    "links": [
+      "golden-fixture",
+      "replay-engine",
+      "golden-fixture",
+      "replay-based-testing"
+    ]
+  },
+  "spec-manager": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L2",
+    "sdd_domain": "Blueprint",
+    "tags": [
+      "pipeline",
+      "validation",
+      "write-path",
+      "ssot",
+      "domain/sdd",
+      "sdd/l2",
+      "sdd/blueprint"
+    ],
+    "updated": "2026-05-06",
+    "title": "SpecManager",
+    "links": [
+      "constitution-parser",
+      "constitution-parser",
+      "sdd-bounded-contexts",
+      "constitution-parser",
+      "plan-manager",
+      "memory-layer",
+      "event-sourcing"
+    ]
+  },
+  "sync-wiki": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "write-path",
+      "automation",
+      "git",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "sync-wiki",
+    "links": [
+      "doc-graph-parser",
+      "doc-graph-validator",
+      "plan-manager",
+      "render-wiki",
+      "phase-orchestrator",
+      "docgraph-dual-ssot"
+    ]
+  },
+  "task-event-slice": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "automation",
+      "validation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "TaskEventSlice",
+    "links": [
+      "replay-engine",
+      "replay-engine",
+      "golden-fixture",
+      "event-sourcing",
+      "replay-based-testing"
+    ]
+  },
+  "test-catalog-projection": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "automation",
+      "validation",
+      "ssot",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "TestCatalogProjection",
+    "links": [
+      "projection-registry",
+      "trace-aligned-test-partitioning",
+      "replay-engine",
+      "audit-engine",
+      "projection-registry",
+      "replay-based-testing",
+      "replay-engine",
+      "golden-fixture",
+      "audit-engine",
+      "memory-layer"
+    ]
+  },
+  "trace-projection": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "ssot",
+      "write-path",
+      "pipeline",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-05",
+    "title": "Trace Projection",
+    "links": [
+      "projection-registry",
+      "trace-store",
+      "execution-guard",
+      "scope-guard",
+      "command-bus",
+      "execution-guard",
+      "graph-session-projection",
+      "scope-guard",
+      "command-bus",
+      "projection-registry",
+      "trace-store",
+      "projection-registry",
+      "execution-guard",
+      "scope-guard",
+      "graph-session-projection"
+    ]
+  },
+  "upcaster-registry": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "validation",
+      "automation",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Upcaster Registry",
+    "links": [
+      "reducer",
+      "event-sourcing",
+      "sdd-meta-harness",
+      "event-sourcing",
+      "reducer"
+    ]
+  },
+  "wiki-curate": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "curation",
+      "maintenance",
+      "pipeline",
+      "llm",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki Curate",
+    "links": [
+      "wiki-cli",
+      "wiki-cli",
+      "wiki-evolve",
+      "wiki-query"
+    ]
+  },
+  "wiki-docgraph": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "write-path",
+      "llm",
+      "automation",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki DocGraph",
+    "links": [
+      "doc-graph-node",
+      "docgraph-dual-ssot",
+      "wiki-semantic-extractor",
+      "doc-graph-node",
+      "sync-wiki",
+      "docgraph-dual-ssot",
+      "wiki-semantic-extractor"
+    ]
+  },
+  "wiki-evolve": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "ingestion",
+      "write-path",
+      "llm",
+      "automation",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki Evolve",
+    "links": [
+      "wiki-cli",
+      "diff-first-updates",
+      "context-packet",
+      "extraction-result",
+      "wiki-cli",
+      "context-packet",
+      "extraction-result",
+      "diff-first-updates",
+      "wiki-query",
+      "wiki-curate",
+      "wiki-session-isolation"
+    ]
+  },
+  "wiki-frontmatter": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "validation",
+      "ssot",
+      "markdown",
+      "yaml",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Wiki Frontmatter",
+    "links": [
+      "wiki-cli",
+      "wiki-cli",
+      "wiki-evolve",
+      "page-meta",
+      "ingest-log"
+    ]
+  },
+  "wiki-markup-standard": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "markdown",
+      "knowledge-base",
+      "validation",
+      "maintenance",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki Markup Standard",
+    "links": [
+      "wiki-taxonomy",
+      "wiki-evolve"
+    ]
+  },
+  "wiki-open-questions": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "open-questions",
+      "maintenance",
+      "curation",
+      "llm",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki Open Questions",
+    "links": [
+      "wiki-cli",
+      "wiki-curate",
+      "wiki-evolve",
+      "wiki-cli"
+    ]
+  },
+  "wiki-query": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "read-only",
+      "search",
+      "llm",
+      "knowledge-base",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Wiki Query",
+    "links": [
+      "wiki-cli",
+      "wiki-cli",
+      "wiki-evolve",
+      "wiki-curate"
+    ]
+  },
+  "wiki-semantic-extractor": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "pipeline",
+      "search",
+      "llm",
+      "read-only",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "WikiSemanticExtractor",
+    "links": [
+      "graph-query-engine",
+      "graph-query-engine",
+      "wiki-snapshot-loader",
+      "wiki-snapshot-loader",
+      "graph-query-engine",
+      "context-kernel",
+      "doc-graph-node",
+      "docgraph-dual-ssot"
+    ]
+  },
+  "wiki-session-isolation": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "automation",
+      "curation",
+      "maintenance",
+      "pipeline",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-05",
+    "title": "Wiki Session Isolation",
+    "links": [
+      "wiki-evolve",
+      "wiki-curate",
+      "wiki-evolve",
+      "wiki-curate",
+      "wiki-cli"
+    ]
+  },
+  "wiki-skill": {
+    "type": "pattern",
+    "domain": "wiki",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "knowledge-base",
+      "pipeline",
+      "llm",
+      "cli",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki Skill",
+    "links": [
+      "wiki-evolve",
+      "wiki-query",
+      "wiki-curate",
+      "wiki-open-questions",
+      "wiki-docgraph",
+      "wiki-taxonomy",
+      "wiki-markup-standard",
+      "context-packet",
+      "extraction-result",
+      "wiki-session-isolation",
+      "wiki-docgraph",
+      "docgraph-dual-ssot",
+      "wiki-semantic-extractor",
+      "wiki-evolve",
+      "wiki-query",
+      "wiki-curate"
+    ]
+  },
+  "wiki-snapshot-loader": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "read-only",
+      "ssot",
+      "pipeline",
+      "automation",
+      "domain/sdd"
+    ],
+    "updated": "2026-05-06",
+    "title": "WikiSnapshotLoader",
+    "links": [
+      "context-kernel",
+      "wiki-semantic-extractor",
+      "render-wiki",
+      "context-kernel",
+      "wiki-semantic-extractor",
+      "docgraph-dual-ssot"
+    ]
+  },
+  "write-kernel": {
+    "type": "pattern",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L0",
+    "sdd_domain": "Core",
+    "tags": [
+      "write-path",
+      "ssot",
+      "pipeline",
+      "enforcement",
+      "domain/sdd",
+      "sdd/l0",
+      "sdd/core"
+    ],
+    "updated": "2026-05-06",
+    "title": "Write Kernel",
+    "links": [
+      "execution-guard",
+      "cqrs-boundary",
+      "execution-guard",
+      "optimistic-concurrency-control",
+      "event-sourcing",
+      "deterministic-context",
+      "command-context",
+      "optimistic-concurrency-control",
+      "optimistic-concurrency-control"
+    ]
+  },
+  "trace-store": {
+    "type": "tool",
+    "domain": "sdd",
+    "layer": "architecture",
+    "sdd_layer": "L1",
+    "sdd_domain": "Core",
+    "tags": [
+      "pipeline",
+      "read-only",
+      "automation",
+      "write-path",
+      "domain/sdd",
+      "sdd/l1",
+      "sdd/core"
+    ],
+    "updated": "2026-05-05",
+    "title": "TraceStore",
+    "links": [
+      "trace-projection",
+      "projection-registry",
+      "projection-registry",
+      "execution-guard",
+      "scope-guard",
+      "trace-projection",
+      "execution-guard",
+      "scope-guard",
+      "sdd-meta-harness"
+    ]
+  },
+  "wiki-cli": {
+    "type": "tool",
+    "domain": "wiki",
+    "layer": "implementation",
+    "sdd_layer": null,
+    "sdd_domain": null,
+    "tags": [
+      "cli",
+      "pipeline",
+      "knowledge-base",
+      "python",
+      "automation",
+      "domain/wiki"
+    ],
+    "updated": "2026-05-06",
+    "title": "Wiki CLI",
+    "links": [
+      "wiki-evolve",
+      "wiki-query",
+      "wiki-curate",
+      "automation-over-llm",
+      "context-packet",
+      "ingest-log",
+      "query-log",
+      "multi-vault",
+      "wiki-evolve",
+      "wiki-query",
+      "wiki-curate",
+      "wiki-open-questions",
+      "context-packet",
+      "extraction-result",
+      "automation-over-llm",
+      "git-as-ssot",
+      "ingest-log",
+      "query-log",
+      "wiki-frontmatter",
+      "page-meta",
+      "multi-vault"
+    ]
+  }
+}

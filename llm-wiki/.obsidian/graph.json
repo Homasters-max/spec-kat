@@ -1,0 +1,22 @@
+{
+  "collapse-filter": false,
+  "search": " tag:#domain/sdd  ",
+  "showTags": false,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": true,
+  "colorGroups": [],
+  "collapse-display": false,
+  "showArrow": false,
+  "textFadeMultiplier": -1.8,
+  "nodeSizeMultiplier": 1.65677083333333,
+  "lineSizeMultiplier": 1.45260416666667,
+  "collapse-forces": false,
+  "centerStrength": 0.518713248970312,
+  "repelStrength": 16.0416666666667,
+  "linkStrength": 0.203125,
+  "linkDistance": 480,
+  "scale": 0.29629629629629584,
+  "close": false
+}
